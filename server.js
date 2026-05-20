@@ -147,47 +147,34 @@ app.use((req, res, next) => {
 // ═══════════════════════════════════════════════════════════════
 // STATIC FILE SERVING
 // ═══════════════════════════════════════════════════════════════
-// Read HTML files at module load time — this guarantees Node File Trace
-// detects them and bundles them into the Vercel serverless function zip.
-// Serving from memory is also faster than disk I/O per request.
+// IMPORTANT: These fs.readFileSync calls MUST use literal string paths
+// (not variables) so Vercel's Node File Trace can statically detect and
+// bundle the HTML files into the serverless function zip.
 
-function loadHTML(fileName) {
-  const candidates = [
-    path.join(__dirname, fileName),
-    path.join(process.cwd(), fileName),
-    path.join(__dirname, '..', fileName)
-  ];
-  for (const p of candidates) {
-    try {
-      return fs.readFileSync(p, 'utf8');
-    } catch (_) { /* try next */ }
+let _indexHtml = null;
+let _githubLoginHtml = null;
+let _googleLoginHtml = null;
+
+try { _indexHtml = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8'); } catch(e) {
+  try { _indexHtml = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf8'); } catch(e2) {
+    console.error('[WARN] index.html not found in __dirname or cwd');
   }
-  console.error(`[WARN] Could not load ${fileName} from any path`);
-  return null;
+}
+try { _githubLoginHtml = fs.readFileSync(path.join(__dirname, 'github-login.html'), 'utf8'); } catch(e) {
+  try { _githubLoginHtml = fs.readFileSync(path.resolve(process.cwd(), 'github-login.html'), 'utf8'); } catch(e2) {
+    console.error('[WARN] github-login.html not found');
+  }
+}
+try { _googleLoginHtml = fs.readFileSync(path.join(__dirname, 'google-login.html'), 'utf8'); } catch(e) {
+  try { _googleLoginHtml = fs.readFileSync(path.resolve(process.cwd(), 'google-login.html'), 'utf8'); } catch(e2) {
+    console.error('[WARN] google-login.html not found');
+  }
 }
 
-const PAGE_CACHE = {
-  'index.html':        loadHTML('index.html'),
-  'github-login.html': loadHTML('github-login.html'),
-  'google-login.html': loadHTML('google-login.html')
-};
-
-// Serve cached HTML pages
-function serveCachedHTML(fileName) {
-  return (req, res) => {
-    const html = PAGE_CACHE[fileName];
-    if (html) {
-      res.type('html').send(html);
-    } else {
-      res.status(404).send(`${fileName} not found`);
-    }
-  };
-}
-
-app.get('/', serveCachedHTML('index.html'));
-app.get('/index.html', serveCachedHTML('index.html'));
-app.get('/github-login.html', serveCachedHTML('github-login.html'));
-app.get('/google-login.html', serveCachedHTML('google-login.html'));
+app.get('/', (req, res) => _indexHtml ? res.type('html').send(_indexHtml) : res.status(404).send('index.html not found'));
+app.get('/index.html', (req, res) => _indexHtml ? res.type('html').send(_indexHtml) : res.status(404).send('index.html not found'));
+app.get('/github-login.html', (req, res) => _githubLoginHtml ? res.type('html').send(_githubLoginHtml) : res.status(404).send('not found'));
+app.get('/google-login.html', (req, res) => _googleLoginHtml ? res.type('html').send(_googleLoginHtml) : res.status(404).send('not found'));
 
 // Serve other static assets (CSS, JS, images) from the project directory
 app.use(express.static(__dirname, {
