@@ -171,22 +171,6 @@ app.get('/', serveHTML('index.html'));
 app.get('/index.html', serveHTML('index.html'));
 app.get('/github-login.html', serveHTML('github-login.html'));
 app.get('/google-login.html', serveHTML('google-login.html'));
-
-app.get('/api/debug-files', (req, res) => {
-  try {
-    const fs = require('fs');
-    const path = require('path');
-    res.json({
-      __dirname: __dirname,
-      cwd: process.cwd(),
-      currentDirFiles: fs.existsSync(__dirname) ? fs.readdirSync(__dirname) : null,
-      parentDirFiles: fs.existsSync(path.join(__dirname, '..')) ? fs.readdirSync(path.join(__dirname, '..')) : null,
-      cwdFiles: fs.existsSync(process.cwd()) ? fs.readdirSync(process.cwd()) : null
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
 // ═══════════════════════════════════════════════════════════════
 // PROMISE WRAPPERS FOR SQLITE (used throughout)
 // ═══════════════════════════════════════════════════════════════
