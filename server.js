@@ -154,6 +154,7 @@ app.use(express.static(__dirname, {
 function serveHTML(fileName) {
   return (req, res) => {
     const possiblePaths = [
+      path.join(process.cwd(), fileName),
       path.join(__dirname, fileName),
       path.join(__dirname, '..', fileName)
     ];

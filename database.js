@@ -12,14 +12,20 @@ const sqlite3 = require('sqlite3').verbose();
 const crypto  = require('crypto');
 const path    = require('path');
 
+const fs = require('fs');
 let DB_PATH = path.join(__dirname, 'app.db');
+if (!fs.existsSync(DB_PATH) && fs.existsSync(path.join(process.cwd(), 'app.db'))) {
+  DB_PATH = path.join(process.cwd(), 'app.db');
+}
 
 if (process.env.VERCEL) {
-  const fs = require('fs');
   const tmpPath = '/tmp/app.db';
   if (!fs.existsSync(tmpPath)) {
     try {
-      const srcPath = path.join(__dirname, 'app.db');
+      let srcPath = path.join(__dirname, 'app.db');
+      if (!fs.existsSync(srcPath) && fs.existsSync(path.join(process.cwd(), 'app.db'))) {
+        srcPath = path.join(process.cwd(), 'app.db');
+      }
       if (fs.existsSync(srcPath)) {
         fs.copyFileSync(srcPath, tmpPath);
         console.log('[DB] Copied pre-seeded SQLite database to write-safe Vercel /tmp path.');
