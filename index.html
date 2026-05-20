@@ -623,6 +623,26 @@ body.dark-theme .demo-details strong {
 </head>
 <body>
 
+<!-- DIAGNOSTIC: Catch ALL JavaScript errors and show them visually -->
+<div id="js-error-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#ff0000;color:#fff;padding:12px 20px;font-family:monospace;font-size:13px;white-space:pre-wrap;max-height:200px;overflow:auto;"></div>
+<script>
+window.onerror = function(msg, url, line, col, error) {
+  var banner = document.getElementById('js-error-banner');
+  if (banner) {
+    banner.style.display = 'block';
+    banner.textContent += 'JS ERROR: ' + msg + ' (line ' + line + ')\n';
+  }
+  return false;
+};
+window.addEventListener('unhandledrejection', function(e) {
+  var banner = document.getElementById('js-error-banner');
+  if (banner) {
+    banner.style.display = 'block';
+    banner.textContent += 'PROMISE ERROR: ' + e.reason + '\n';
+  }
+});
+</script>
+
 <!-- High-Security Hardware Viewport / Device Lockdown Blocker -->
 <div id="lockdown-blocker" class="desktop-only-lockdown">
   <div class="lockdown-inner">
