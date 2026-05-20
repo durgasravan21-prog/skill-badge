@@ -623,26 +623,6 @@ body.dark-theme .demo-details strong {
 </head>
 <body>
 
-<!-- DIAGNOSTIC: Catch ALL JavaScript errors and show them visually -->
-<div id="js-error-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#ff0000;color:#fff;padding:12px 20px;font-family:monospace;font-size:13px;white-space:pre-wrap;max-height:200px;overflow:auto;"></div>
-<script>
-window.onerror = function(msg, url, line, col, error) {
-  var banner = document.getElementById('js-error-banner');
-  if (banner) {
-    banner.style.display = 'block';
-    banner.textContent += 'JS ERROR: ' + msg + ' (line ' + line + ')\n';
-  }
-  return false;
-};
-window.addEventListener('unhandledrejection', function(e) {
-  var banner = document.getElementById('js-error-banner');
-  if (banner) {
-    banner.style.display = 'block';
-    banner.textContent += 'PROMISE ERROR: ' + e.reason + '\n';
-  }
-});
-</script>
-
 <!-- High-Security Hardware Viewport / Device Lockdown Blocker -->
 <div id="lockdown-blocker" class="desktop-only-lockdown">
   <div class="lockdown-inner">
@@ -1742,18 +1722,35 @@ function loadStudentDashboard() {
   const scoreBar = document.getElementById('student-score-bar');
   if (scoreBar) scoreBar.style.width = Math.min(100, Math.max(0, currentUser.skillproof_score)) + '%';
 
-  // Fetch claimed skills
+  // Fetch claimed skills — re-authenticate if student not found (Vercel ephemeral DB)
   fetch(`/api/skills/status?student_email=${encodeURIComponent(currentUser.email)}`)
+    .then(res => {
+      if (res.status === 404) {
+        // Student not in DB (cold start wiped it) — re-create via login
+        return fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: currentUser.email, name: currentUser.name, provider: selectProvider || 'Google' })
+        }).then(() => fetch(`/api/skills/status?student_email=${encodeURIComponent(currentUser.email)}`));
+      }
+      return res;
+    })
     .then(res => res.json())
     .then(claimedSkills => {
-      // Fetch master list of skills to see if they need to claim any first
+      // Defensive: ensure claimedSkills is always an array
+      if (!Array.isArray(claimedSkills)) claimedSkills = [];
+      // Fetch master list of skills
       fetch('/api/skills')
         .then(res => res.json())
         .then(masterSkills => {
+          if (!Array.isArray(masterSkills)) masterSkills = [];
           renderClaimsSection(masterSkills, claimedSkills);
           renderProgressiveVerifier(claimedSkills);
           loadStudentSchedules();
         });
+    })
+    .catch(err => {
+      console.error('Dashboard load error:', err);
     });
 }
 
@@ -1764,6 +1761,8 @@ function renderClaimsSection(master, claimed) {
   listContainer.innerHTML = '';
 
   // Filter skills not claimed yet
+  if (!Array.isArray(claimed)) claimed = [];
+  if (!Array.isArray(master)) master = [];
   const unclaimed = master.filter(m => !claimed.some(c => c.skill_id === m.id));
 
   if (unclaimed.length === 0) {
@@ -1825,6 +1824,7 @@ function renderProgressiveVerifier(claimed) {
   badgesList.innerHTML = '';
   progWrapper.style.display = 'none';
 
+  if (!Array.isArray(claimed)) claimed = [];
   if (claimed.length === 0) {
     questionsList.innerHTML = '<div style="color:var(--gray-500)">Claim a skill above to unlock proctored shuffled assessments.</div>';
     badgesList.innerHTML = '<div style="color:var(--gray-500)">No tags earned. Verification milestone pending.</div>';
@@ -1986,28 +1986,28 @@ async function startExam(questionId) {
     return;
   }
 
-  // 1. Enforce Full Screen
-  try {
-    await document.documentElement.requestFullscreen();
-  } catch (err) {
-    alert('Security prerequisite: Full Screen mode must be permitted to unlock high-security assessments.');
+  // 1. Capture Screen Sharing FIRST (must happen before fullscreen — Chrome blocks picker in fullscreen)
+  const screenShared = await initScreenShare();
+  if (!screenShared) {
+    cleanupStreams();
+    alert('Security prerequisite: Full primary display screen sharing is required.');
     return;
   }
 
   // 2. Access Camera and microphone WebRTC streams
   const mediaStreamsOk = await initProctorMediaStreams();
   if (!mediaStreamsOk) {
-    if (document.fullscreenElement) document.exitFullscreen().catch(err=>{});
+    cleanupStreams();
     alert('Security prerequisite: Both microphone and webcam feed must be active.');
     return;
   }
 
-  // 3. Capture Screen Sharing
-  const screenShared = await initScreenShare();
-  if (!screenShared) {
+  // 3. Enforce Full Screen LAST (after all permission dialogs are done)
+  try {
+    await document.documentElement.requestFullscreen();
+  } catch (err) {
+    alert('Security prerequisite: Full Screen mode must be permitted to unlock high-security assessments.');
     cleanupStreams();
-    if (document.fullscreenElement) document.exitFullscreen().catch(err=>{});
-    alert('Security prerequisite: Full primary display screen sharing is required.');
     return;
   }
 
@@ -2110,9 +2110,11 @@ async function initProctorMediaStreams() {
       });
 
       // Periodic check if microphone is muted
-      const audioTrack = audioStream.getAudioTracks()[0];
-      if (!audioTrack || !audioTrack.enabled || audioTrack.muted) {
-        logViolation('mic_muted');
+      if (audioStream) {
+        const audioTrack = audioStream.getAudioTracks()[0];
+        if (!audioTrack || !audioTrack.enabled || audioTrack.muted) {
+          logViolation('mic_muted');
+        }
       }
     }, 100);
 
@@ -3080,28 +3082,28 @@ async function startScheduledExam(scheduleId) {
     return;
   }
 
-  // 1. Enforce Full Screen
-  try {
-    await document.documentElement.requestFullscreen();
-  } catch (err) {
-    alert('Security prerequisite: Full Screen mode must be permitted to unlock high-security assessments.');
+  // 1. Capture Screen Sharing FIRST (must happen before fullscreen)
+  const screenShared = await initScreenShare();
+  if (!screenShared) {
+    cleanupStreams();
+    alert('Security prerequisite: Full primary display screen sharing is required.');
     return;
   }
 
   // 2. Access Camera and microphone WebRTC streams
   const mediaStreamsOk = await initProctorMediaStreams();
   if (!mediaStreamsOk) {
-    if (document.fullscreenElement) document.exitFullscreen().catch(err=>{});
+    cleanupStreams();
     alert('Security prerequisite: Both microphone and webcam feed must be active.');
     return;
   }
 
-  // 3. Capture Screen Sharing
-  const screenShared = await initScreenShare();
-  if (!screenShared) {
+  // 3. Enforce Full Screen LAST
+  try {
+    await document.documentElement.requestFullscreen();
+  } catch (err) {
+    alert('Security prerequisite: Full Screen mode must be permitted to unlock high-security assessments.');
     cleanupStreams();
-    if (document.fullscreenElement) document.exitFullscreen().catch(err=>{});
-    alert('Security prerequisite: Full primary display screen sharing is required.');
     return;
   }
 
