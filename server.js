@@ -144,33 +144,56 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static website files from current directory
-app.use(express.static(__dirname, {
-  dotfiles: 'deny',  // Don't serve .env, .git, etc.
-  maxAge: '1h'
-}));
+// ═══════════════════════════════════════════════════════════════
+// STATIC FILE SERVING
+// ═══════════════════════════════════════════════════════════════
+// Read HTML files at module load time — this guarantees Node File Trace
+// detects them and bundles them into the Vercel serverless function zip.
+// Serving from memory is also faster than disk I/O per request.
 
-// Route helpers for Vercel and local multi-directory resolution
-function serveHTML(fileName) {
+function loadHTML(fileName) {
+  const candidates = [
+    path.join(__dirname, fileName),
+    path.join(process.cwd(), fileName),
+    path.join(__dirname, '..', fileName)
+  ];
+  for (const p of candidates) {
+    try {
+      return fs.readFileSync(p, 'utf8');
+    } catch (_) { /* try next */ }
+  }
+  console.error(`[WARN] Could not load ${fileName} from any path`);
+  return null;
+}
+
+const PAGE_CACHE = {
+  'index.html':        loadHTML('index.html'),
+  'github-login.html': loadHTML('github-login.html'),
+  'google-login.html': loadHTML('google-login.html')
+};
+
+// Serve cached HTML pages
+function serveCachedHTML(fileName) {
   return (req, res) => {
-    const possiblePaths = [
-      path.join(process.cwd(), fileName),
-      path.join(__dirname, fileName),
-      path.join(__dirname, '..', fileName)
-    ];
-    for (const p of possiblePaths) {
-      if (fs.existsSync(p)) {
-        return res.sendFile(p);
-      }
+    const html = PAGE_CACHE[fileName];
+    if (html) {
+      res.type('html').send(html);
+    } else {
+      res.status(404).send(`${fileName} not found`);
     }
-    res.status(404).send(`${fileName} not found`);
   };
 }
 
-app.get('/', serveHTML('index.html'));
-app.get('/index.html', serveHTML('index.html'));
-app.get('/github-login.html', serveHTML('github-login.html'));
-app.get('/google-login.html', serveHTML('google-login.html'));
+app.get('/', serveCachedHTML('index.html'));
+app.get('/index.html', serveCachedHTML('index.html'));
+app.get('/github-login.html', serveCachedHTML('github-login.html'));
+app.get('/google-login.html', serveCachedHTML('google-login.html'));
+
+// Serve other static assets (CSS, JS, images) from the project directory
+app.use(express.static(__dirname, {
+  dotfiles: 'deny',
+  maxAge: '1h'
+}));
 // ═══════════════════════════════════════════════════════════════
 // PROMISE WRAPPERS FOR SQLITE (used throughout)
 // ═══════════════════════════════════════════════════════════════
