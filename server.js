@@ -1148,23 +1148,32 @@ app.get('/api/student/schedules', async (req, res) => {
     const student = await dbGet('SELECT id FROM users WHERE email = ?', [studentEmail]);
     if (!student) return res.status(404).json({ error: 'Student not found' });
 
+    // Get schedules matching claimed skills OR any company-dispatched schedules (recruiter tests)
     const claimedSkills = await dbAll('SELECT skill_id FROM student_skills WHERE student_id = ?', [student.id]);
     const skillIds = claimedSkills.map(cs => cs.skill_id);
 
+    let schedules;
     if (skillIds.length === 0) {
-      return res.json([]);
+      // Even without claimed skills, show all company-dispatched schedules
+      schedules = await dbAll(
+        `SELECT es.*, s.name as skill_name, c.name as company_name, c.domain as company_domain
+         FROM exam_schedules es
+         JOIN skills s ON es.skill_id = s.id
+         LEFT JOIN companies c ON es.company_id = c.id
+         ORDER BY es.start_time DESC`
+      );
+    } else {
+      const placeholders = skillIds.map(() => '?').join(',');
+      schedules = await dbAll(
+        `SELECT es.*, s.name as skill_name, c.name as company_name, c.domain as company_domain
+         FROM exam_schedules es
+         JOIN skills s ON es.skill_id = s.id
+         LEFT JOIN companies c ON es.company_id = c.id
+         WHERE es.skill_id IN (${placeholders}) OR es.company_id IS NOT NULL
+         ORDER BY es.start_time DESC`,
+        skillIds
+      );
     }
-
-    const placeholders = skillIds.map(() => '?').join(',');
-    const schedules = await dbAll(
-      `SELECT es.*, s.name as skill_name, c.name as company_name, c.domain as company_domain
-       FROM exam_schedules es
-       JOIN skills s ON es.skill_id = s.id
-       LEFT JOIN companies c ON es.company_id = c.id
-       WHERE es.skill_id IN (${placeholders})
-       ORDER BY es.start_time DESC`,
-      skillIds
-    );
     res.json(schedules);
   } catch (err) {
     console.error('Fetch student schedules error:', err.message);
