@@ -619,6 +619,57 @@ body.dark-theme .demo-details strong {
   font-size: 11px;
   color: var(--gray-500);
 }
+
+/* ── RESPONSIVE BREAKPOINTS ── */
+@media (max-width: 1200px) {
+  .student-dashboard-layout { grid-template-columns: 240px 1fr; gap: 24px; }
+  .arena-grid { grid-template-columns: 240px 1fr; gap: 20px; }
+}
+@media (max-width: 1024px) {
+  .nav-links { display: none; }
+  .student-dashboard-layout { grid-template-columns: 1fr; }
+  .student-sidebar { flex-direction: row; flex-wrap: wrap; gap: 12px; }
+  .student-profile-card { min-width: 260px; flex: 1; }
+  .student-nav-menu { display: flex; flex-direction: row; flex-wrap: wrap; gap: 4px; flex: 2; min-width: 300px; }
+  .student-nav-item { padding: 8px 12px !important; font-size: 12px !important; }
+  .arena-grid { grid-template-columns: 1fr; }
+  .proctor-sidebar { flex-direction: row; flex-wrap: wrap; gap: 12px; }
+  .proctor-sidebar > .proctor-box { flex: 1; min-width: 240px; }
+  .hero-stats { grid-template-columns: repeat(2, 1fr); }
+  .scores-row { grid-template-columns: repeat(2, 1fr); }
+  .steps-grid { grid-template-columns: 1fr; }
+  .footer-top { flex-direction: column; }
+  .admin-cards-grid { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 768px) {
+  nav { padding: 0 16px; }
+  .nav-inner { height: 56px; }
+  .logo { font-size: 18px; }
+  .nav-cta { padding: 7px 14px; font-size: 12px; }
+  .nav-login { padding: 6px 10px; font-size: 12px; }
+  .view-container { padding: 80px 16px 60px; }
+  .hero { padding: 80px 16px 60px; }
+  h1 { font-size: clamp(32px, 6vw, 52px); letter-spacing: -1.5px; }
+  .hero-sub { font-size: 15px; margin: 20px 0 32px; }
+  .hero-stats { grid-template-columns: repeat(2, 1fr); max-width: 100%; }
+  .hero-stat { padding: 16px; }
+  .hero-stat-num { font-size: 22px; }
+  section { padding: 60px 16px; }
+  .scores-row { grid-template-columns: 1fr; }
+  .student-sidebar { flex-direction: column; }
+  .student-nav-menu { flex-direction: column; }
+  .oauth-modal-box { padding: 24px 20px; max-width: 100%; }
+  .auth-panel { padding: 24px 20px; }
+  .footer-cols { gap: 32px; }
+  .footer-bottom { flex-direction: column; align-items: flex-start; }
+}
+@media (max-width: 480px) {
+  .hero-actions { flex-direction: column; width: 100%; }
+  .btn-primary, .btn-ghost { width: 100%; justify-content: center; text-align: center; }
+  .hero-stats { grid-template-columns: 1fr 1fr; }
+  .nav-right { gap: 6px; }
+  .skills-selector-grid { grid-template-columns: 1fr !important; }
+}
 </style>
 </head>
 <body>
@@ -1086,6 +1137,15 @@ body.dark-theme .demo-details strong {
 
       <textarea id="code-editor" class="editor-textarea" spellcheck="false"></textarea>
 
+      <!-- Test Cases Panel -->
+      <div id="test-cases-panel" style="background:var(--gray-50); border:1px solid var(--gray-200); border-radius:var(--radius-md); padding:16px; margin-bottom:16px;">
+        <div style="font-family:var(--font-display); font-size:13px; font-weight:700; margin-bottom:10px; color:var(--gray-700); display:flex; align-items:center; gap:8px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Test Cases &amp; Edge Cases
+        </div>
+        <div id="test-cases-list" style="display:grid; gap:6px; font-family:monospace; font-size:12px;"></div>
+      </div>
+
       <div style="display: flex; justify-content: flex-end; gap: 12px;">
         <button onclick="submitExam()" class="btn-primary" style="padding: 12px 28px;">Submit Solution</button>
       </div>
@@ -1437,6 +1497,7 @@ let selectProvider = "";
 let currentExamsList = [];
 let pendingExamQuestionId = null;
 let pendingScheduleId = null;
+let examGracePeriod = true;  // Grace period flag - skip violations for 3s after exam starts
 
 // Check layout restrictions — only block during EXAM, not whole site
 function runLockdownIntegrityCheck() {
@@ -1895,18 +1956,19 @@ function renderProgressiveVerifier(claimed) {
             stepHard.className = 'progress-step active';
           }
 
-          // Build dynamic question verifier challenge card
+          // Build dynamic question verifier challenge card — hide question title, only show skill + difficulty
           const q = data.question;
           const qCard = document.createElement('div');
           qCard.className = 'q-card';
           qCard.style.borderLeft = '4px solid var(--orange)';
           qCard.innerHTML = `
             <div class="q-details">
-              <h3>${q.title}</h3>
+              <h3>${c.skill_name} — ${q.difficulty.charAt(0).toUpperCase() + q.difficulty.slice(1)} Tier Challenge</h3>
               <div class="q-badges">
                 <span class="q-badge ${q.difficulty}">${q.difficulty} Tier</span>
                 <span class="q-badge" style="background:var(--gray-50); color:var(--gray-700)">${q.expiration_minutes} Mins Expiry</span>
               </div>
+              <div style="font-size:12px; color:var(--gray-500); margin-top:6px;">🔒 Question details revealed after entering the proctored arena</div>
             </div>
             <button onclick="openExamRulesModal('${q.id}')" class="btn-primary" style="padding:10px 20px;">Unlock Arena →</button>
           `;
@@ -2031,6 +2093,9 @@ async function startExam(questionId) {
 
     currentExam = data;
     activeProctorViolations = false;
+    // Enable grace period — skip violations for 3 seconds after exam starts
+    examGracePeriod = true;
+    setTimeout(() => { examGracePeriod = false; }, 3000);
     document.getElementById('disqualify-alert').style.display = 'none';
     document.getElementById('active-question-title').innerText = currentExam.questionTitle || 'Timed Coding Challenge';
     document.getElementById('code-editor').value = currentExam.codeTemplate;
@@ -2059,6 +2124,9 @@ async function startExam(questionId) {
     showView('exam');
     startCountdown(currentExam.expirationMinutes * 60);
     bindFocusIntegrity();
+
+    // Render test cases
+    renderTestCases(currentExam.testCases);
   })
   .catch(err => {
     console.error('Failed to create timed session:', err);
@@ -2072,14 +2140,17 @@ async function initProctorMediaStreams() {
   const placeholder = document.getElementById('camera-placeholder');
 
   try {
-    // Request webcam
-    videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    // Request webcam + microphone in a single call for better browser compatibility
+    const combinedStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    
+    // Separate video and audio tracks
+    videoStream = new MediaStream(combinedStream.getVideoTracks());
+    audioStream = new MediaStream(combinedStream.getAudioTracks());
+    
     videoEl.srcObject = videoStream;
+    await videoEl.play().catch(() => {});  // Ensure video starts playing
     placeholder.style.display = 'none';
     videoEl.style.display = 'block';
-
-    // Request active audio microphone
-    audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     
     // Bind microphone decibel analysis simulation
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -2163,6 +2234,34 @@ function startCountdown(durationSeconds) {
 }
 
 // Anti-Cheat security listeners: focus blur and fullscreen exiting
+// Render test cases in exam view
+function renderTestCases(testCases) {
+  const list = document.getElementById('test-cases-list');
+  if (!list) return;
+  list.innerHTML = '';
+  if (!testCases || testCases.length === 0) {
+    list.innerHTML = '<div style="color:var(--gray-500); font-family:var(--font-body);">No specific test cases for this challenge.</div>';
+    return;
+  }
+  testCases.forEach((tc, i) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:grid; grid-template-columns:auto 1fr 1fr; gap:10px; padding:8px 10px; background:var(--white); border:1px solid var(--gray-200); border-radius:6px; align-items:center;';
+    const statusDot = `<span style="width:8px;height:8px;border-radius:50%;background:var(--gray-300);display:inline-block;" id="tc-dot-${i}"></span>`;
+    row.innerHTML = `
+      ${statusDot}
+      <div>
+        <div style="font-weight:600; color:var(--gray-700); font-size:11px; margin-bottom:2px;">${tc.description}</div>
+        <div style="color:var(--gray-500);">Input: <code style="background:var(--gray-50); padding:1px 4px; border-radius:3px;">${tc.input}</code></div>
+      </div>
+      <div style="text-align:right;">
+        <div style="color:var(--gray-500); font-size:11px;">Expected:</div>
+        <code style="color:var(--orange-deep); font-weight:600;">${tc.expected}</code>
+      </div>
+    `;
+    list.appendChild(row);
+  });
+}
+
 function bindFocusIntegrity() {
   // Focus exits
   window.onblur = () => {
@@ -2194,6 +2293,8 @@ function bindFocusIntegrity() {
 // Log infractions to database
 function logViolation(violationType) {
   if (!currentExam) return;
+  // Skip violations during grace period (first 3 seconds after exam start)
+  if (examGracePeriod) return;
 
   fetch('/api/exams/violation', {
     method: 'POST',
@@ -3127,6 +3228,8 @@ async function startScheduledExam(scheduleId) {
 
     currentExam = data; // Includes examId, startedAt, expirationMinutes, codeTemplate, questionTitle, questionList, currentQuestionIndex, scheduleId
     activeProctorViolations = false;
+    examGracePeriod = true;
+    setTimeout(() => { examGracePeriod = false; }, 3000);
     document.getElementById('disqualify-alert').style.display = 'none';
     document.getElementById('active-question-title').innerText = currentExam.questionTitle || 'Scheduled Coding Challenge';
     document.getElementById('code-editor').value = currentExam.codeTemplate;

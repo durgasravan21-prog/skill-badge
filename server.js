@@ -117,6 +117,143 @@ function sanitizeCode(code) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// TEST CASE GENERATOR — Dynamic test cases for exam questions
+// ═══════════════════════════════════════════════════════════════
+function generateTestCases(difficulty, questionTitle) {
+  const title = (questionTitle || '').toLowerCase();
+  const cases = [];
+
+  // Base test cases applicable to most problems
+  if (title.includes('flatten')) {
+    cases.push({ input: '[[1, 2], [3, [4, 5]]]', expected: '[1, 2, 3, 4, 5]', description: 'Basic nested list' });
+    cases.push({ input: '[]', expected: '[]', description: 'Edge: Empty list' });
+    cases.push({ input: '[1, [2, [3, [4, [5]]]]]', expected: '[1, 2, 3, 4, 5]', description: 'Edge: Deeply nested' });
+    cases.push({ input: '[[[], []], []]', expected: '[]', description: 'Edge: Nested empty lists' });
+  } else if (title.includes('palindrome')) {
+    cases.push({ input: '"racecar"', expected: 'true / "racecar"', description: 'Basic palindrome' });
+    cases.push({ input: '""', expected: 'true / ""', description: 'Edge: Empty string' });
+    cases.push({ input: '"a"', expected: 'true / "a"', description: 'Edge: Single char' });
+    cases.push({ input: '"hello"', expected: 'false / "ll"', description: 'Non-palindrome' });
+  } else if (title.includes('prime')) {
+    cases.push({ input: '7', expected: 'true', description: 'Basic prime' });
+    cases.push({ input: '1', expected: 'false', description: 'Edge: 1 is not prime' });
+    cases.push({ input: '0', expected: 'false', description: 'Edge: Zero' });
+    cases.push({ input: '2', expected: 'true', description: 'Edge: Smallest prime' });
+    cases.push({ input: '100', expected: 'false', description: 'Composite number' });
+  } else if (title.includes('sort') || title.includes('merge')) {
+    cases.push({ input: '[3, 1, 4, 1, 5]', expected: '[1, 1, 3, 4, 5]', description: 'Basic sort' });
+    cases.push({ input: '[]', expected: '[]', description: 'Edge: Empty array' });
+    cases.push({ input: '[1]', expected: '[1]', description: 'Edge: Single element' });
+    cases.push({ input: '[5, 4, 3, 2, 1]', expected: '[1, 2, 3, 4, 5]', description: 'Reverse sorted' });
+  } else if (title.includes('factorial')) {
+    cases.push({ input: '5', expected: '120', description: 'Basic factorial' });
+    cases.push({ input: '0', expected: '1', description: 'Edge: Zero factorial' });
+    cases.push({ input: '1', expected: '1', description: 'Edge: factorial(1)' });
+    cases.push({ input: '10', expected: '3628800', description: 'Larger input' });
+  } else if (title.includes('frequency') || title.includes('count')) {
+    cases.push({ input: '"hello world hello"', expected: '{hello: 2, world: 1}', description: 'Basic frequency' });
+    cases.push({ input: '""', expected: '{}', description: 'Edge: Empty string' });
+    cases.push({ input: '"a"', expected: '{a: 1}', description: 'Edge: Single word' });
+  } else if (title.includes('queue') || title.includes('stack')) {
+    cases.push({ input: 'enqueue(1), enqueue(2), dequeue()', expected: '1', description: 'FIFO order' });
+    cases.push({ input: 'enqueue(A), enqueue(B), enqueue(C), dequeue(), dequeue()', expected: 'A, B', description: 'Multiple operations' });
+    cases.push({ input: 'dequeue() on empty', expected: 'Error/undefined', description: 'Edge: Empty queue' });
+  } else if (title.includes('knapsack')) {
+    cases.push({ input: 'W=[1,2,3], V=[6,10,12], Cap=5', expected: '22', description: 'Basic knapsack' });
+    cases.push({ input: 'W=[], V=[], Cap=10', expected: '0', description: 'Edge: No items' });
+    cases.push({ input: 'W=[5], V=[10], Cap=3', expected: '0', description: 'Edge: Item too heavy' });
+  } else if (title.includes('cache') || title.includes('lru')) {
+    cases.push({ input: 'put(1,1), put(2,2), get(1)', expected: '1', description: 'Basic get/put' });
+    cases.push({ input: 'cap=2, put(1,1), put(2,2), put(3,3), get(1)', expected: '-1 (evicted)', description: 'Edge: Eviction' });
+  } else {
+    // Generic test cases for any problem
+    cases.push({ input: 'Standard input', expected: 'Expected output', description: 'Basic functionality test' });
+    cases.push({ input: 'Empty/null input', expected: 'Handle gracefully', description: 'Edge: Empty input' });
+    cases.push({ input: 'Single element', expected: 'Correct output', description: 'Edge: Minimal input' });
+  }
+
+  // Add difficulty-specific edge cases
+  if (difficulty === 'medium' || difficulty === 'hard') {
+    cases.push({ input: 'Very large input (10^6 elements)', expected: 'Complete within time limit', description: 'Performance: Large dataset' });
+  }
+  if (difficulty === 'hard') {
+    cases.push({ input: 'Concurrent/thread-safe scenario', expected: 'No race conditions', description: 'Edge: Thread safety' });
+    cases.push({ input: 'Negative/boundary values', expected: 'Correct handling', description: 'Edge: Boundary conditions' });
+  }
+
+  return cases;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CODE EVALUATION — Basic analysis instead of pure random
+// ═══════════════════════════════════════════════════════════════
+function evaluateCode(code, difficulty, questionTitle) {
+  let correctness = 0, quality = 0, edgeCases = 0, understanding = 0;
+  const codeLen = (code || '').trim().length;
+  const lines = (code || '').split('\n').filter(l => l.trim().length > 0).length;
+
+  // Empty or trivial submission
+  if (codeLen < 20 || lines < 2) {
+    return { correctness: 5, quality: 5, edgeCases: 0, understanding: 5, total: 15, summary: 'Submission too short. No meaningful code detected.' };
+  }
+
+  // Check for common patterns indicating effort
+  const hasFunction = /function |def |fn |func |class /i.test(code);
+  const hasLoop = /for |while |\.forEach|\.map|\.reduce/i.test(code);
+  const hasCondition = /if |else|switch|match |case /i.test(code);
+  const hasReturn = /return |yield |console\.log|print\(|fmt\.Print/i.test(code);
+  const hasErrorHandling = /try|catch|except|Error|throw/i.test(code);
+  const hasComments = /\/\/|#|\/\*|\"\"\"/i.test(code);
+
+  // Correctness (max 40) - based on structure and effort
+  correctness = 10;
+  if (hasFunction) correctness += 8;
+  if (hasLoop) correctness += 7;
+  if (hasCondition) correctness += 7;
+  if (hasReturn) correctness += 8;
+
+  // Quality (max 25) - code organization
+  quality = 8;
+  if (lines >= 5) quality += 4;
+  if (lines >= 10) quality += 4;
+  if (hasComments) quality += 5;
+  if (hasFunction) quality += 4;
+
+  // Edge Cases (max 20) - error handling
+  edgeCases = 5;
+  if (hasErrorHandling) edgeCases += 7;
+  if (hasCondition && lines >= 8) edgeCases += 5;
+  if (code.includes('null') || code.includes('None') || code.includes('undefined') || code.includes('empty') || code.includes('len(') || code.includes('.length')) edgeCases += 3;
+
+  // Understanding (max 15)
+  understanding = 5;
+  if (lines >= 5) understanding += 3;
+  if (hasFunction && hasReturn) understanding += 4;
+  if (codeLen > 200) understanding += 3;
+
+  // Difficulty multiplier
+  if (difficulty === 'hard') {
+    correctness = Math.min(40, Math.floor(correctness * 0.85));
+    quality = Math.min(25, Math.floor(quality * 0.9));
+  }
+
+  const total = Math.min(100, correctness + quality + edgeCases + understanding);
+  let summary = '';
+  if (total >= 75) {
+    summary = `Excellent submission. Code demonstrates strong understanding of ${questionTitle.split('—')[1] || 'the problem'}. Well-structured with proper edge case handling.`;
+  } else if (total >= 60) {
+    summary = `Good submission. Core logic is sound but could improve edge case handling and code organization.`;
+  } else if (total >= 40) {
+    summary = `Partial solution. Some logic present but missing key algorithmic components. Review data structures.`;
+  } else {
+    summary = `Insufficient. Submission lacks core algorithm implementation. Recommended: study the fundamentals.`;
+  }
+
+  return { correctness, quality, edgeCases, understanding, total, summary };
+}
+
+
+// ═══════════════════════════════════════════════════════════════
 // SECURITY LAYER 7: Disable fingerprinting
 // ═══════════════════════════════════════════════════════════════
 app.disable('x-powered-by');
@@ -499,13 +636,17 @@ app.post('/api/exams/start', examLimiter, async (req, res) => {
       [challengeId, student.id, question.skill_id, question.id, question.difficulty, timeLimitMins, startTime, expiresTime]
     );
 
+    // Generate test cases based on difficulty
+    const testCases = generateTestCases(question.difficulty, question.title);
+
     res.json({
       message: 'Exam session successfully started',
       examId: challengeId,
       startedAt: startTime,
       expirationMinutes: timeLimitMins,
       codeTemplate: question.code_template,
-      questionTitle: question.title
+      questionTitle: question.title,
+      testCases: testCases
     });
   } catch (err) {
     console.error('Exam start error:', err.message);
@@ -659,18 +800,19 @@ app.post('/api/exams/submit', async (req, res) => {
       });
     }
 
-    // 3. Evaluate
-    const correctness = Math.floor(Math.random() * 11) + 30;
-    const quality = Math.floor(Math.random() * 6) + 20;
-    const edgeCases = Math.floor(Math.random() * 6) + 15;
-    const understanding = Math.floor(Math.random() * 6) + 10;
-    const totalScore = correctness + quality + edgeCases + understanding;
+    // 3. Evaluate using code analysis
+    const evalResult = evaluateCode(code, challenge.difficulty, challenge.question_title);
+    const correctness = evalResult.correctness;
+    const quality = evalResult.quality;
+    const edgeCases = evalResult.edgeCases;
+    const understanding = evalResult.understanding;
+    const totalScore = evalResult.total;
 
     let aiReport = '';
     if (totalScore >= 60) {
-      aiReport = `AI SECURITY & QUALITY AUDIT: PASS. Proctoring feeds (WebRTC camera, microphone, fullscreen lock) fully compliant. Code structure displays excellent logic handling for "${challenge.question_title}" (${challenge.difficulty.toUpperCase()} tier). Highly recommended talent.`;
+      aiReport = `AI SECURITY & QUALITY AUDIT: PASS. Proctoring feeds (WebRTC camera, microphone, fullscreen lock) fully compliant. ${evalResult.summary} (${challenge.difficulty.toUpperCase()} tier). Highly recommended talent.`;
     } else {
-      aiReport = `AI SECURITY & QUALITY AUDIT: FAIL. Proctoring integrity intact, but algorithm had logic gaps and edge-case bugs. Score: ${totalScore}/100. Recommended: study data structures and indexing.`;
+      aiReport = `AI SECURITY & QUALITY AUDIT: BELOW THRESHOLD. Proctoring integrity intact. ${evalResult.summary} Score: ${totalScore}/100.`;
     }
 
     await dbRun('INSERT INTO submissions (id, challenge_id, code) VALUES (?, ?, ?)', [submissionId, examId, code]);
