@@ -11,6 +11,9 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
+// Trust Vercel's reverse proxy — required for rate limiting and correct client IP detection
+app.set('trust proxy', 1);
+
 // ═══════════════════════════════════════════════════════════════
 // SECURITY LAYER 1: Helmet — Secure HTTP Response Headers
 // ═══════════════════════════════════════════════════════════════
@@ -77,24 +80,28 @@ const globalLimiter = rateLimit({
   max: 300,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: false,
   message: { error: 'Too many requests. Please try again later.' }
 });
 
 const authLimiter = rateLimit({
   windowMs: 60 * 1000,  // 1 minute
   max: 10,
+  validate: false,
   message: { error: 'Too many authentication attempts. Please wait 1 minute.' }
 });
 
 const bulkLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 20,
+  validate: false,
   message: { error: 'Too many bulk operations. Please wait 1 minute.' }
 });
 
 const examLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 20,
+  validate: false,
   message: { error: 'Too many exam attempts. Please wait 1 minute.' }
 });
 
