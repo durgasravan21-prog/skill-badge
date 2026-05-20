@@ -18,34 +18,13 @@ app.set('trust proxy', 1);
 // SECURITY LAYER 1: Helmet — Secure HTTP Response Headers
 // ═══════════════════════════════════════════════════════════════
 app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      // 'unsafe-inline' required for inline <script> blocks in SPA + popup pages
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-      // Allow Google Fonts stylesheets + inline styles
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
-      fontSrc: ["'self'", "data:", "https://fonts.gstatic.com", "https://fonts.googleapis.com"],
-      imgSrc: ["'self'", "data:", "blob:", "https:"],
-      // Allow fetch to self + blob URLs used by camera/mic streams
-      connectSrc: ["'self'", "blob:"],
-      mediaSrc: ["'self'", "blob:"],
-      // Allow same-origin popup windows (OAuth login pages)
-      frameSrc: ["'self'"],
-      objectSrc: ["'none'"],
-      baseUri: ["'self'"],
-      formAction: ["'self'"],
-      // NO upgradeInsecureRequests — breaks HTTP on localhost
-      workerSrc: ["'self'", "blob:"],
-      // Allow inline onclick/onsubmit handlers used throughout the SPA
-      scriptSrcAttr: ["'unsafe-inline'"]
-    }
-  },
+  // Disable CSP — the SPA uses inline onclick handlers extensively
+  // and CSP conflicts with them on Vercel's edge network
+  contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false,  // Required for getUserMedia in exam
   // Allow popups to postMessage back (OAuth handshake)
   crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-  // Only send HSTS on production HTTPS — skip on HTTP localhost
   hsts: false,
   xContentTypeOptions: true,
   xFrameOptions: { action: 'sameorigin' },
