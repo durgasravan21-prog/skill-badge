@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in to GitHub · GitHub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background-color: #f6f8fa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      color: #24292f;
+      flex-direction: column;
+    }
+    .logo-container {
+      margin-bottom: 24px;
+      color: #24292f;
+    }
+    .login-box {
+      background: #ffffff;
+      border: 1px solid #d8dee4;
+      border-radius: 6px;
+      width: 100%;
+      max-width: 340px;
+      padding: 20px;
+      position: relative;
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 300;
+      letter-spacing: -0.5px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 8px;
+      font-weight: 400;
+      text-align: left;
+    }
+    .input-control {
+      width: 100%;
+      padding: 8px 12px;
+      font-size: 14px;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      outline: none;
+      margin-bottom: 16px;
+      background-color: #f6f8fa;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+    .input-control:focus {
+      border-color: #0969da;
+      background-color: #fff;
+      box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.15);
+    }
+    .btn-sign-in {
+      width: 100%;
+      background-color: #2da44e;
+      color: #ffffff;
+      border: 1px solid rgba(27, 31, 36, 0.15);
+      border-radius: 6px;
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      text-align: center;
+    }
+    .btn-sign-in:hover {
+      background-color: #2c974b;
+    }
+    .account-picker-header {
+      font-size: 12px;
+      font-weight: 600;
+      color: #57606a;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .account-row {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      margin-bottom: 8px;
+    }
+    .account-row:hover {
+      background-color: #f3f4f6;
+      border-color: #0969da;
+    }
+    .avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #24292f;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 12px;
+      margin-right: 10px;
+    }
+    .account-info {
+      flex: 1;
+      text-align: left;
+    }
+    .account-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #24292f;
+    }
+    .account-email {
+      font-size: 11px;
+      color: #57606a;
+    }
+    .or-divider {
+      margin: 16px 0;
+      display: flex;
+      align-items: center;
+      font-size: 12px;
+      color: #57606a;
+    }
+    .or-divider::before, .or-divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: #d8dee4;
+    }
+    .or-divider::before { margin-right: 8px; }
+    .or-divider::after { margin-left: 8px; }
+    
+    .footer-note {
+      font-size: 12px;
+      color: #57606a;
+      margin-top: 16px;
+      text-align: center;
+    }
+    .footer-note a {
+      color: #0969da;
+      text-decoration: none;
+    }
+    .footer-note a:hover {
+      text-decoration: underline;
+    }
+    
+    /* Loading display */
+    .processing-overlay {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #ffffff;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 10;
+      border-radius: 6px;
+    }
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #24292f;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 12px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .processing-text {
+      font-size: 14px;
+      font-weight: 600;
+      color: #24292f;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="logo-container">
+    <svg height="48" aria-hidden="true" viewBox="0 0 16 16" version="1.1" width="48" data-view-component="true" fill="currentColor">
+      <path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.35 3.12.88.01.4.01.88.01 1.07 0 .21-.15.46-.55.38A8.013 8.013 0 0 1 0 8c0-4.42 3.58-8 8-8z"></path>
+    </svg>
+  </div>
+
+  <h1>Sign in to GitHub</h1>
+
+  <div class="login-box">
+    <div id="processing" class="processing-overlay">
+      <div class="spinner"></div>
+      <div class="processing-text">Authorizing SkillProof Application...</div>
+    </div>
+
+    <div class="account-picker-header">Select profile</div>
+    
+    <div class="account-row" onclick="selectAccount('Challagolla Durga Sravan', 'durga@gmail.com')">
+      <div class="avatar" style="background-color: #ff5722;">C</div>
+      <div class="account-info">
+        <div class="account-name">Challagolla Durga Sravan</div>
+        <div class="account-email">durga@gmail.com</div>
+      </div>
+    </div>
+
+    <div class="account-row" onclick="selectAccount('Durga Recruiter', 'hr@google.com')">
+      <div class="avatar" style="background-color: #00bcd4;">G</div>
+      <div class="account-info">
+        <div class="account-name">Durga Recruiter (Google HR)</div>
+        <div class="account-email">hr@google.com</div>
+      </div>
+    </div>
+
+    <div class="or-divider">or enter details</div>
+
+    <label for="login_field">Username or email address</label>
+    <input type="text" id="email" class="input-control" required />
+
+    <label for="display_name">Display name</label>
+    <input type="text" id="name" class="input-control" required />
+
+    <label for="password">Password</label>
+    <input type="password" class="input-control" placeholder="••••••••••••" style="letter-spacing: 2px;" />
+
+    <button class="btn-sign-in" onclick="submitCustom()">Sign in</button>
+  </div>
+
+  <div class="footer-note">
+    New to GitHub? <a href="#">Create an account</a>.
+  </div>
+
+  <script>
+    function showLoaderAndSubmit(name, email) {
+      document.getElementById('processing').style.display = 'flex';
+      setTimeout(() => {
+        if (window.opener) {
+          window.opener.postMessage({
+            type: 'github-oauth-success',
+            name: name,
+            email: email,
+            provider: 'GitHub'
+          }, window.location.origin);
+        }
+        window.close();
+      }, 1500);
+    }
+
+    function selectAccount(name, email) {
+      showLoaderAndSubmit(name, email);
+    }
+
+    function submitCustom() {
+      const email = document.getElementById('email').value.trim();
+      const name = document.getElementById('name').value.trim();
+
+      if (!email || !name) {
+        alert('Please fill out email and name.');
+        return;
+      }
+
+      showLoaderAndSubmit(name, email);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,3152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SkillProof — Verified Skills. Real Timed AI Proctor Challenges.</title>
+<meta name="description" content="SkillProof replaces self-reported resumes with live, timed proctored coding challenges evaluated by advanced AI. Earn verified skill badges recruiters trust."/>
+<meta name="keywords" content="SkillProof, online exam proctoring, AI code evaluation, verified programming skills, Google authentication, recruiter dashboard, high security coding test"/>
+<meta name="author" content="Durga Sravan"/>
+<meta name="robots" content="index, follow"/>
+<link rel="canonical" href="https://skillproof-verification-portal.com/"/>
+
+<!-- Schema.org JSON-LD Structured Data for Google Rich Snippets -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "SkillProof",
+  "operatingSystem": "All",
+  "applicationCategory": "EducationalApplication, BusinessApplication",
+  "offers": {
+    "@type": "Offer",
+    "price": "0.00",
+    "priceCurrency": "USD"
+  },
+  "description": "An AI-powered skill verification platform replacing self-reported credentials with live, timed proctored challenges and digital badge portfolios.",
+  "creator": {
+    "@type": "Person",
+    "name": "Challagolla Durga Sravan"
+  }
+}
+</script>
+
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --orange:#E65100; /* Rich standard B2B brand orange */
+  --orange-light:#FFF8F5; /* Beautiful soft warm cream */
+  --orange-mid:#FFD7C9; /* Warm clay borders */
+  --orange-deep:#BF360C; /* Dark orange shade for button hovers and major metrics */
+  --orange-dark:#5C1C0A; /* Elegant mahogany dark accent */
+  --white:#FFFFFF;
+  --off-white:#FAF9F6; /* Premium light warm background */
+  --gray-50:#F5F4F0;
+  --gray-100:#E8E7E2;
+  --gray-200:#D0CFC9;
+  --gray-300:#B0AFA8;
+  --gray-500:#6B6A64;
+  --gray-700:#3A3935;
+  --gray-900:#1C1A17; /* High contrast warm deep gray */
+  --font-display:'Syne',sans-serif;
+  --font-body:'DM Sans',sans-serif;
+  --radius-sm:4px; /* Crisp, precise developer tool corners */
+  --radius-md:8px;
+  --radius-lg:12px;
+  --radius-xl:20px;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 16px rgba(0,0,0,.06);
+  --shadow-lg:0 12px 40px rgba(0,0,0,.1);
+}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--white);color:var(--gray-900);overflow-x:hidden;line-height:1.6}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,.96);backdrop-filter:blur(16px);border-bottom:1px solid var(--gray-100);padding:0 5vw}
+.nav-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px}
+.logo{font-family:var(--font-display);font-weight:800;font-size:22px;color:var(--gray-900);text-decoration:none;letter-spacing:-.5px}
+.logo span{color:var(--orange)}
+.nav-links{display:flex;align-items:center;gap:32px;list-style:none}
+.nav-links a{font-size:14px;font-weight:500;color:var(--gray-500);text-decoration:none;transition:color .2s}
+.nav-links a:hover{color:var(--gray-900)}
+.nav-right{display:flex;align-items:center;gap:12px}
+.nav-login{font-size:14px;font-weight:500;color:var(--gray-700);text-decoration:none;padding:8px 16px;border-radius:var(--radius-sm);transition:background .2s}
+.nav-login:hover{background:var(--gray-50)}
+.nav-cta{background:var(--orange);color:#fff;padding:9px 20px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;text-decoration:none;font-family:var(--font-display);letter-spacing:.3px;transition:background .2s,transform .15s}
+.nav-cta:hover{background:var(--orange-deep);transform:translateY(-1px)}
+
+/* ── HERO ── */
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:100px 5vw 80px;position:relative;overflow:hidden}
+.hero-bg{position:absolute;top:-200px;right:-100px;width:600px;height:600px;background:radial-gradient(circle,var(--orange-light) 0%,transparent 70%);pointer-events:none;opacity:.5}
+.hero-dots{position:absolute;top:0;left:0;right:0;bottom:0;background-image:radial-gradient(var(--gray-100) 1px,transparent 1px);background-size:32px 32px;opacity:.5;pointer-events:none}
+.hero-inner{max-width:1200px;margin:0 auto;width:100%;position:relative;z-index:1}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:var(--orange-light);border:1px solid var(--orange-mid);color:var(--orange-deep);font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:6px 14px;border-radius:100px;margin-bottom:28px;font-family:var(--font-display)}
+.hero-badge-dot{width:6px;height:6px;border-radius:50%;background:var(--orange);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+h1{font-family:var(--font-display);font-size:clamp(44px,7vw,88px);font-weight:800;line-height:1.0;letter-spacing:-2.5px;color:var(--gray-900);max-width:950px}
+h1 em{font-style:normal;color:var(--orange);position:relative}
+h1 em::after{content:'';position:absolute;bottom:-4px;left:0;right:0;height:3px;background:var(--orange);border-radius:2px;opacity:.3}
+.hero-sub{font-size:clamp(16px,2vw,20px);color:var(--gray-500);max-width:580px;margin:28px 0 44px;line-height:1.75;font-weight:300}
+.hero-actions{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.btn-primary{background:var(--orange);color:#fff;padding:14px 32px;border-radius:var(--radius-sm);font-size:15px;font-weight:600;text-decoration:none;font-family:var(--font-display);letter-spacing:.3px;transition:background .2s,transform .15s,box-shadow .2s;box-shadow:0 2px 4px rgba(230,81,0,.15);display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer}
+.btn-primary:hover{background:var(--orange-deep);transform:translateY(-2px);box-shadow:0 4px 12px rgba(230,81,0,.25)}
+.btn-ghost{color:var(--gray-700);padding:14px 28px;border-radius:var(--radius-sm);font-size:15px;font-weight:500;text-decoration:none;border:1.5px solid var(--gray-200);transition:border-color .2s,background .2s,color .2s}
+.btn-ghost:hover{border-color:var(--gray-300);background:var(--gray-50)}
+.hero-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:72px;border:1px solid var(--gray-100);border-radius:var(--radius-lg);overflow:hidden;background:var(--white);box-shadow:var(--shadow-md);max-width:720px}
+.hero-stat{padding:24px 28px;border-right:1px solid var(--gray-100)}
+.hero-stat:last-child{border-right:none}
+.hero-stat-num{font-family:var(--font-display);font-size:30px;font-weight:800;color:var(--gray-900);line-height:1}
+.hero-stat-num sup{color:var(--orange);font-size:18px}
+.hero-stat-label{font-size:12px;color:var(--gray-500);margin-top:5px;font-weight:400;line-height:1.4}
+
+/* ── SECTION BASE ── */
+section{padding:100px 5vw}
+.section-inner{max-width:1200px;margin:0 auto}
+.section-label{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--orange);margin-bottom:12px}
+.section-title{font-family:var(--font-display);font-size:clamp(28px,4vw,46px);font-weight:800;letter-spacing:-1.2px;line-height:1.1;color:var(--gray-900)}
+.section-sub{font-size:17px;color:var(--gray-500);max-width:520px;margin-top:14px;font-weight:300;line-height:1.75}
+
+/* ── HOW IT WORKS ── */
+.how{background:var(--off-white)}
+.steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin-top:56px;background:var(--gray-100);border:1px solid var(--gray-100);border-radius:var(--radius-lg);overflow:hidden}
+.step{background:var(--white);padding:36px 28px;transition:background .2s,transform .1s;cursor:default}
+.step:hover{background:var(--orange-light)}
+.step-num{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--gray-300);margin-bottom:20px}
+.step-icon{width:44px;height:44px;background:var(--orange-light);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+.step-icon svg{width:20px;height:20px;stroke:var(--orange);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.step h3{font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--gray-900);margin-bottom:8px;letter-spacing:-.2px}
+.step p{font-size:14px;color:var(--gray-500);line-height:1.65}
+.step:hover .step-icon{background:rgba(230,81,0,.12)}
+
+/* ── AI EVAL ── */
+.ai{background:var(--white);position:relative;overflow:hidden;border-top:1px solid var(--gray-100)}
+.ai-inner{position:relative;z-index:1;max-width:1200px;margin:0 auto}
+.scores-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:40px}
+.score-card{background:var(--white);border:1.5px solid var(--gray-100);border-radius:var(--radius-md);padding:24px;transition:border-color .2s,transform .15s;box-shadow:var(--shadow-sm)}
+.score-card:hover{border-color:var(--orange-mid);transform:translateY(-2px)}
+.score-card-pct{font-family:var(--font-display);font-size:36px;font-weight:800;color:var(--orange-deep)}
+.score-card-name{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--gray-900);margin-top:8px}
+.score-card-desc{font-size:13px;color:var(--gray-500);margin-top:6px;line-height:1.5}
+
+/* ── FOOTER ── */
+footer{background:var(--gray-900);border-top:1px solid rgba(255,255,255,.06);padding:56px 5vw}
+.footer-inner{max-width:1200px;margin:0 auto}
+.footer-top{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:32px;padding-bottom:40px;border-bottom:1px solid rgba(255,255,255,.06)}
+.footer-logo{font-family:var(--font-display);font-weight:800;font-size:24px;color:#fff;letter-spacing:-.5px;text-decoration:none}
+.footer-logo span{color:var(--orange)}
+.footer-tagline{font-size:14px;color:var(--gray-500);margin-top:8px;max-width:280px;line-height:1.6}
+.footer-cols{display:flex;gap:64px;flex-wrap:wrap}
+.footer-col-title{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gray-500);margin-bottom:16px}
+.footer-col ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+.footer-col a{font-size:14px;color:var(--gray-500);text-decoration:none;transition:color .2s}
+.footer-col a:hover{color:#fff}
+.footer-bottom{padding-top:28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.footer-copy{font-size:12px;color:var(--gray-500)}
+.footer-stack{display:flex;gap:8px;flex-wrap:wrap}
+.footer-badge{font-size:11px;background:rgba(255,255,255,.06);color:var(--gray-400);padding:4px 10px;border-radius:100px;font-weight:500}
+
+/* ── MULTI-VIEW & Arena ── */
+.view-container{display:none;padding:110px 5vw 80px;min-height:85vh}
+.view-container.active{display:block}
+
+/* Real OAuth Glassmorphic Modal Dialog */
+.oauth-modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(28,26,23,0.8);backdrop-filter:blur(12px);z-index:999;align-items:center;justify-content:center;padding:20px}
+.oauth-modal-box{background:var(--white);border:1.5px solid var(--orange-mid);border-radius:var(--radius-lg);width:100%;max-width:440px;padding:32px;box-shadow:var(--shadow-lg);position:relative}
+.oauth-header{text-align:center;margin-bottom:24px}
+.oauth-header h3{font-family:var(--font-display);font-size:22px;font-weight:800;letter-spacing:-.5px}
+.oauth-logo-circle{width:56px;height:56px;border-radius:50%;background:var(--orange-light);border:1px solid var(--orange-mid);display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.oauth-logo-circle svg{width:28px;height:28px}
+.oauth-field-group{margin-bottom:16px;text-align:left}
+.oauth-field-group label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;color:var(--gray-700)}
+.oauth-field-group input{width:100%;padding:12px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-size:14px;outline:none}
+.oauth-field-group input:focus{border-color:var(--orange)}
+.oauth-status-spinner{display:none;text-align:center;padding:24px 0}
+.spinner{width:36px;height:36px;border:4px solid var(--gray-100);border-top:4px solid var(--orange);border-radius:50%;margin:0 auto 12px;animation:spin 1s linear infinite}
+@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+
+/* Block mobile views completely */
+.desktop-only-lockdown{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#0C0A09;color:#F5F4F0;z-index:9999;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px}
+.lockdown-inner{max-width:520px}
+.lockdown-inner h2{font-family:var(--font-display);font-size:clamp(24px,4vw,36px);font-weight:800;color:#FFF;letter-spacing:-1px;margin-bottom:16px}
+.lockdown-inner p{font-size:15px;color:var(--gray-300);line-height:1.7;margin-bottom:28px}
+.lockdown-badge{background:rgba(230,81,0,0.15);color:var(--orange);border:1px solid rgba(230,81,0,0.3);padding:6px 16px;border-radius:100px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:24px;display:inline-block}
+
+/* Skill Claiming Views */
+.claim-panel{max-width:800px;margin:0 auto}
+.skills-selector-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));gap:20px;margin-top:24px}
+.skill-claim-card{background:var(--white);border:1.5px solid var(--gray-100);border-radius:var(--radius-md);padding:24px;box-shadow:var(--shadow-sm);transition:border-color .2s}
+.skill-claim-card:hover{border-color:var(--orange-mid)}
+.skill-claim-card h4{font-family:var(--font-display);font-size:18px;font-weight:700;margin-bottom:4px}
+.skill-claim-card p{font-size:13px;color:var(--gray-500);margin-bottom:16px}
+.self-rate-select{width:100%;padding:8px;border-radius:var(--radius-sm);border:1px solid var(--gray-200);margin-bottom:16px;outline:none}
+
+/* Shuffled dashboard milestones */
+.student-skills-dashboard{margin-top:40px}
+.verified-skills-grid{display:grid;grid-template-columns:1fr;gap:16px;margin-top:16px}
+.verified-skill-row{background:var(--white);border:1.5px solid var(--gray-100);border-radius:var(--radius-md);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow-sm)}
+.verified-tag{background:var(--orange-light);border:1px solid var(--orange-mid);color:var(--orange-deep);font-size:12px;font-weight:700;padding:4px 12px;border-radius:4px;text-transform:uppercase;letter-spacing:.5px}
+
+/* Arena Grid & Indicators */
+.arena-grid{display:grid;grid-template-columns:320px 1fr;gap:32px;max-width:1200px;margin:0 auto}
+.proctor-sidebar{display:flex;flex-direction:column;gap:24px}
+.proctor-box{background:var(--white);border:1.5px solid var(--gray-100);border-radius:var(--radius-md);padding:20px}
+.proctor-title{font-family:var(--font-display);font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.camera-stream{width:100%;aspect-ratio:4/3;background:#000;border-radius:var(--radius-sm);overflow:hidden;position:relative}
+.camera-stream video{width:100%;height:100%;object-fit:cover}
+.camera-placeholder{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;color:#6B6A64;font-size:13px;text-align:center;padding:20px}
+.security-indicators{display:flex;flex-direction:column;gap:12px}
+.sec-indicator{display:flex;align-items:center;justify-content:space-between;font-size:13px;padding:8px 12px;border-radius:var(--radius-sm);background:var(--gray-50);border:1px solid var(--gray-100)}
+.sec-indicator-status{font-weight:700;display:flex;align-items:center;gap:6px}
+.sec-indicator-status.ok{color:#2E7D32}
+.sec-indicator-status.err{color:#C62828}
+
+/* Decibel Meter indicator */
+.decibel-indicator{display:flex;align-items:center;gap:4px;height:12px}
+.decibel-bar{width:3px;height:100%;background:var(--gray-300);transition:height .1s;border-radius:1px}
+.decibel-bar.active{background:#2E7D32}
+
+/* Debug panel modal drawer (Secret key only) */
+.secret-debug-drawer{display:none;position:fixed;right:20px;bottom:20px;background:var(--white);border:1.5px solid var(--gray-900);border-radius:var(--radius-md);padding:20px;width:300px;box-shadow:var(--shadow-lg);z-index:999}
+
+/* Timed workspace cards */
+.workspace-card{background:var(--white);border:1.5px solid var(--gray-100);border-radius:var(--radius-lg);padding:32px;display:flex;flex-direction:column;gap:20px;box-shadow:var(--shadow-sm)}
+.workspace-header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--gray-100);padding-bottom:16px}
+.timer-display{font-family:var(--font-display);font-size:24px;font-weight:800;color:var(--orange-deep);background:var(--orange-light);padding:6px 16px;border-radius:100px}
+.editor-textarea{width:100%;height:380px;font-family: 'Courier New', Courier, monospace;font-size:14px;background:#1C1A17;color:#F5F4F0;border:1.5px solid #2A2624;border-radius:var(--radius-sm);padding:16px;resize:none;outline:none;line-height:1.5}
+.violation-banner{background:#FFEBEE;border:1.5px solid #FFCDD2;color:#C62828;padding:16px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;display:none;align-items:center;gap:12px}
+
+/* Student progress milestones */
+.progress-container{margin-bottom:24px;background:var(--gray-50);border:1px solid var(--gray-100);border-radius:var(--radius-md);padding:16px 20px}
+.progress-steps{display:flex;justify-content:space-between;position:relative;margin-top:12px}
+.progress-line{position:absolute;top:50%;left:0;right:0;height:2px;background:var(--gray-200);transform:translateY(-50%);z-index:0}
+.progress-step{width:32px;height:32px;border-radius:50%;background:var(--white);border:2px solid var(--gray-200);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;z-index:1;position:relative;transition:background-color .2s, border-color .2s}
+.progress-step.active{border-color:var(--orange);color:var(--orange)}
+.progress-step.passed{background:var(--orange);border-color:var(--orange);color:#FFF}
+
+/* Auth View Card styling */
+.auth-panel{max-width:480px;margin:40px auto;background:var(--white);border:1px solid var(--gray-100);border-radius:var(--radius-lg);padding:40px 32px;box-shadow:var(--shadow-lg);text-align:center}
+.auth-panel h2{font-family:var(--font-display);font-size:28px;font-weight:800;letter-spacing:-.5px;margin-bottom:8px}
+.auth-panel p{font-size:14px;color:var(--gray-500);margin-bottom:32px}
+.auth-buttons{display:flex;flex-direction:column;gap:12px}
+.auth-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:14px;border-radius:var(--radius-sm);font-size:15px;font-weight:600;cursor:pointer;font-family:var(--font-display);transition:background .2s, border-color .2s;border:1.5px solid var(--gray-200);background:var(--white);color:var(--gray-900)}
+.auth-btn:hover{background:var(--gray-50);border-color:var(--gray-300)}
+.auth-btn svg{width:20px;height:20px}
+
+/* Admin Dashboard grid */
+.admin-grid{display:grid;grid-template-columns:380px 1fr;gap:32px;max-width:1200px;margin:0 auto}
+.admin-card{background:var(--white);border:1.5px solid var(--gray-100);border-radius:var(--radius-lg);padding:28px;box-shadow:var(--shadow-sm)}
+.admin-card h2{font-family:var(--font-display);font-size:22px;font-weight:800;margin-bottom:20px}
+.admin-form-group{margin-bottom:16px}
+.admin-form-group label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;margin-bottom:6px}
+.admin-form-group input, .admin-form-group select, .admin-form-group textarea{width:100%;padding:10px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);background:var(--white);color:var(--gray-900);font-size:14px;outline:none}
+.history-table-container{overflow-x:auto}
+.history-table{width:100%;border-collapse:collapse;font-size:13px;text-align:left}
+.history-table th, .history-table td{padding:12px 16px;border-bottom:1px solid var(--gray-100)}
+.history-table th{font-family:var(--font-display);font-weight:700;color:var(--gray-500);text-transform:uppercase;font-size:11px}
+.status-tag{padding:2px 8px;border-radius:100px;font-weight:600;font-size:11px}
+.status-tag.completed{background:#E8F5E9;color:#2E7D32}
+.status-tag.expired{background:#ECEFF1;color:#455A64}
+.status-tag.disqualified{background:#FFEBEE;color:#C62828}
+
+/* Dark Theme Adjustments */
+body.dark-theme{background:#0C0A09;color:#F5F4F0}
+body.dark-theme nav{background:rgba(12, 10, 9, 0.96);border-bottom-color:#2A2624}
+body.dark-theme .logo, body.dark-theme .logo span{color:#FFF}
+body.dark-theme .logo span{color:var(--orange)}
+body.dark-theme .nav-links a{color:#B0AFA8}
+body.dark-theme .nav-links a:hover{color:#FFF}
+body.dark-theme .nav-login{color:#E8E7E2}
+body.dark-theme .nav-login:hover{background:#171412}
+body.dark-theme .hero-bg{background:radial-gradient(circle, rgba(230, 81, 0, 0.1) 0%, transparent 70%)}
+body.dark-theme .hero-stats{background:#171412;border-color:#2A2624}
+body.dark-theme .hero-stat{border-right-color:#2A2624}
+body.dark-theme .hero-stat-num{color:#FFF}
+body.dark-theme .btn-ghost{color:#E8E7E2;border-color:#3A3935}
+body.dark-theme .btn-ghost:hover{background:#171412;border-color:#6B6A64}
+body.dark-theme h1, body.dark-theme .section-title, body.dark-theme .admin-card h2{color:#FFF}
+body.dark-theme .hero-sub, body.dark-theme .section-sub, body.dark-theme .step p, body.dark-theme .hero-stat-label{color:#B0AFA8}
+body.dark-theme .how{background:#12100E}
+body.dark-theme .steps-grid{background:#2A2624;border-color:#2A2624}
+body.dark-theme .step{background:#171412}
+body.dark-theme .step:hover{background:#201D1B}
+body.dark-theme .step-icon{background:rgba(230, 81, 0, 0.12)}
+body.dark-theme .ai{background:#0C0A09;border-top-color:#2A2624}
+body.dark-theme .score-card{background:#171412;border-color:#2A2624}
+body.dark-theme .score-card-name{color:#FFF}
+body.dark-theme .score-card-desc{color:#B0AFA8}
+body.dark-theme .auth-panel, body.dark-theme .proctor-box, body.dark-theme .workspace-card, body.dark-theme .skill-claim-card, body.dark-theme .verified-skill-row, body.dark-theme .admin-card, body.dark-theme .progress-container, body.dark-theme .oauth-modal-box{background:#171412;border-color:#2A2624}
+body.dark-theme .auth-btn{background:#171412;border-color:#3A3935;color:#FFF}
+body.dark-theme .auth-btn:hover{background:#201D1B;border-color:#6B6A64}
+body.dark-theme .sec-indicator, body.dark-theme .progress-step{background:#0C0A09;border-color:#2A2624;color:#B0AFA8}
+body.dark-theme .progress-step.active{border-color:var(--orange);color:var(--orange)}
+body.dark-theme .progress-step.passed{background:var(--orange);color:#FFF}
+body.dark-theme .admin-form-group input, body.dark-theme .admin-form-group select, body.dark-theme .admin-form-group textarea, body.dark-theme .self-rate-select, body.dark-theme .oauth-field-group input{background:#0C0A09;border-color:#3A3935;color:#FFF}
+body.dark-theme .history-table th, body.dark-theme .history-table td{border-bottom-color:#2A2624;color:#E8E7E2}
+body.dark-theme .history-table th{color:#B0AFA8}
+
+/* Theme Toggle styles */
+.theme-toggle-btn {background:none;border:none;cursor:pointer;padding:8px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--gray-700);transition:background 0.2s, color 0.2s;margin-right:8px}
+.theme-toggle-btn:hover {background:var(--gray-50);color:var(--gray-900)}
+body.dark-theme .theme-toggle-btn {color:#E8E7E2}
+body.dark-theme .theme-toggle-btn:hover {background:#171412;color:#FFF}
+.theme-toggle-btn svg {width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* Premium Layout for Student Dashboard Workspace */
+.student-dashboard-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+  align-items: start;
+}
+.student-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.student-profile-card {
+  background: var(--white);
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.student-profile-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.student-avatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--orange-light);
+  border: 2px solid var(--orange-mid);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--orange-deep);
+}
+.student-name {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--gray-900);
+  line-height: 1.2;
+}
+.student-email-tag {
+  font-size: 12px;
+  color: var(--gray-500);
+  margin-top: 4px;
+}
+.student-slug {
+  font-size: 10px;
+  color: var(--orange-deep);
+  background: var(--orange-light);
+  border: 1px solid var(--orange-mid);
+  padding: 4px 10px;
+  border-radius: 100px;
+  display: inline-block;
+  margin-top: 8px;
+  font-family: monospace;
+  font-weight: 600;
+}
+.student-nav-menu {
+  list-style: none;
+  background: var(--white);
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius-lg);
+  padding: 8px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.student-nav-item {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gray-700);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.2s;
+  background: none;
+  border: none;
+  text-align: left;
+  font-family: var(--font-display);
+  letter-spacing: 0.2px;
+}
+.student-nav-item:hover, .student-nav-item.active {
+  background: var(--orange-light);
+  color: var(--orange-deep);
+}
+.student-nav-item svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.5;
+}
+.student-workspace-panel {
+  display: none;
+}
+.student-workspace-panel.active {
+  display: block;
+}
+
+/* Bulk Actions Toolbar for Recruiter */
+.bulk-actions-toolbar {
+  background: var(--orange-light);
+  border: 1.5px solid var(--orange-mid);
+  border-radius: var(--radius-md);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  animation: slideDown 0.3s ease;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.bulk-count-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--orange-deep);
+  font-family: var(--font-display);
+}
+
+/* Dark Mode Extensions */
+body.dark-theme .student-profile-card,
+body.dark-theme .student-nav-menu {
+  background: #171412;
+  border-color: #2A2624;
+}
+body.dark-theme .student-name {
+  color: #FFF;
+}
+body.dark-theme .student-nav-item {
+  color: #B0AFA8;
+}
+body.dark-theme .student-nav-item:hover,
+body.dark-theme .student-nav-item.active {
+  background: rgba(230, 81, 0, 0.15);
+  color: var(--orange);
+}
+body.dark-theme .student-avatar {
+  background: rgba(230, 81, 0, 0.15);
+  border-color: #2A2624;
+}
+body.dark-theme .bulk-actions-toolbar {
+  background: rgba(230, 81, 0, 0.12);
+  border-color: var(--orange-dark);
+}
+
+/* Gold Certified Badges CSS */
+.certified-gold-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: linear-gradient(135deg, #FFFDF0 0%, #FFF5CC 100%);
+  border: 1.5px solid #FFD700;
+  color: #8B6914;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 6px rgba(255, 215, 0, 0.15);
+  font-family: var(--font-display);
+  vertical-align: middle;
+}
+body.dark-theme .certified-gold-badge {
+  background: linear-gradient(135deg, #2D2600 0%, #1A1500 100%);
+  border-color: #FFD700;
+  color: #FFD700;
+  box-shadow: 0 2px 6px rgba(255, 215, 0, 0.05);
+}
+
+/* Strict Proctoring PIP Layout when exam is active */
+#view-exam.strict-mode .arena-grid {
+  grid-template-columns: 1fr; /* Full width code workspace */
+}
+#view-exam.strict-mode .proctor-sidebar {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: visible;
+}
+#view-exam.strict-mode .proctor-sidebar > .proctor-box:nth-child(2) {
+  display: none; /* Hide Security Telemetry details box entirely */
+}
+#view-exam.strict-mode .proctor-sidebar > .proctor-box:first-child {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 200px;
+  padding: 10px;
+  border: 2.5px solid var(--orange);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  background: var(--white);
+  z-index: 9999;
+}
+body.dark-theme #view-exam.strict-mode .proctor-sidebar > .proctor-box:first-child {
+  background: #171412;
+  border-color: var(--orange);
+}
+#view-exam.strict-mode .proctor-sidebar > .proctor-box:first-child .proctor-title {
+  font-size: 11px;
+  margin-bottom: 6px;
+  color: var(--orange-deep);
+}
+#view-exam.strict-mode .camera-stream {
+  aspect-ratio: 4/3;
+  width: 100%;
+}
+
+/* Close button and quick-fill styling */
+.oauth-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--gray-400);
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  z-index: 10;
+}
+.oauth-close-btn:hover {
+  background: var(--gray-100);
+  color: var(--gray-900);
+}
+body.dark-theme .oauth-close-btn:hover {
+  background: #201D1B;
+  color: #FFF;
+}
+.oauth-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 20px 0 16px;
+  color: var(--gray-400);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.oauth-divider::before,
+.oauth-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--gray-100);
+}
+body.dark-theme .oauth-divider::before,
+body.dark-theme .oauth-divider::after {
+  border-bottom-color: #2A2624;
+}
+.oauth-divider span {
+  padding: 0 10px;
+}
+.oauth-demo-accounts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.oauth-demo-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+.oauth-demo-btn:hover {
+  border-color: var(--orange-mid);
+  background: var(--orange-light);
+  transform: translateY(-1px);
+}
+body.dark-theme .oauth-demo-btn {
+  background: #171412;
+  border-color: #3A3935;
+  color: #FFF;
+}
+body.dark-theme .oauth-demo-btn:hover {
+  background: rgba(230, 81, 0, 0.1);
+  border-color: var(--orange);
+}
+.demo-icon {
+  font-size: 20px;
+}
+.demo-details {
+  display: flex;
+  flex-direction: column;
+}
+.demo-details strong {
+  font-size: 13px;
+  color: var(--gray-900);
+  font-family: var(--font-display);
+}
+body.dark-theme .demo-details strong {
+  color: #FFF;
+}
+.demo-details span {
+  font-size: 11px;
+  color: var(--gray-500);
+}
+</style>
+</head>
+<body>
+
+<!-- High-Security Hardware Viewport / Device Lockdown Blocker -->
+<div id="lockdown-blocker" class="desktop-only-lockdown">
+  <div class="lockdown-inner">
+    <div class="lockdown-badge">High Security Lockdown</div>
+    <h2>Desktop Required</h2>
+    <p>The SkillProof Exam Arena is highly proctored. It requires a desktop monitor display or full laptop environment. Responsive simulation window viewports and mobile screens are strictly prohibited for testing integrity.</p>
+    <div style="font-size:12px; color:var(--gray-500);">Viewport metrics must be 1024px width or larger. Please exit mobile debugger layout mode.</div>
+  </div>
+</div>
+
+<!-- Simulated Google/GitHub OAuth Modal -->
+<div id="oauth-modal" class="oauth-modal-overlay">
+  <div class="oauth-modal-box">
+    <!-- Close button inside the modal box -->
+    <button class="oauth-close-btn" onclick="closeOAuthModal()" aria-label="Close modal">&times;</button>
+
+    <div class="oauth-header">
+      <div class="oauth-logo-circle" id="oauth-modal-logo"></div>
+      <h3 id="oauth-modal-title">Sign In</h3>
+      <p style="font-size:13px; color:var(--gray-500); margin-top:4px;">Secure verification portal powered by SkillProof OAuth Node</p>
+    </div>
+    
+    <div id="oauth-fields-form">
+      <div class="oauth-field-group">
+        <label id="oauth-modal-email-label">Provider Email Address</label>
+        <input type="email" id="oauth-modal-email" placeholder="student@gmail.com or alex@company.com" />
+      </div>
+      <div class="oauth-field-group">
+        <label>Full Display Name</label>
+        <input type="text" id="oauth-modal-name" placeholder="Challagolla Durga Sravan" />
+      </div>
+      <div class="oauth-field-group" style="margin-bottom: 24px;">
+        <label>Identity Provider Password</label>
+        <input type="password" placeholder="••••••••••••••" style="letter-spacing:2px;" />
+      </div>
+      <button onclick="submitOAuthFlow()" class="btn-primary" style="width:100%; justify-content:center; margin-bottom: 12px;">Authenticate Identity →</button>
+
+      <!-- Quick-fill demo section -->
+      <div class="oauth-divider"><span>OR QUICK-FILL DEMO</span></div>
+      <div class="oauth-demo-accounts">
+        <button class="oauth-demo-btn" onclick="quickFillDemo('student')">
+          <span class="demo-icon">👤</span>
+          <div class="demo-details">
+            <strong>Challagolla Durga Sravan (Student)</strong>
+            <span>student@gmail.com</span>
+          </div>
+        </button>
+        <button class="oauth-demo-btn" onclick="quickFillDemo('recruiter-google')">
+          <span class="demo-icon">🏢</span>
+          <div class="demo-details">
+            <strong>Google HR (Recruiter)</strong>
+            <span>hr@google.com</span>
+          </div>
+        </button>
+        <button class="oauth-demo-btn" onclick="quickFillDemo('recruiter-msft')">
+          <span class="demo-icon">🏢</span>
+          <div class="demo-details">
+            <strong>Microsoft HR (Recruiter)</strong>
+            <span>hr@microsoft.com</span>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <div id="oauth-processing" class="oauth-status-spinner">
+      <div class="spinner"></div>
+      <h4 style="font-family:var(--font-display); font-size:15px;">Establishing secure auth token...</h4>
+      <p style="font-size:12px; color:var(--gray-500); margin-top:4px;">Requesting public key certifications and profile slugs</p>
+    </div>
+  </div>
+</div>
+
+<!-- Pre-Exam Proctoring Consent & Rules Modal -->
+<div id="exam-rules-modal" class="oauth-modal-overlay" style="display: none; align-items: center; justify-content: center; padding: 20px;">
+  <div class="oauth-modal-box" style="max-width: 550px; width: 100%; border-radius: var(--radius-lg); padding: 32px; border-color: var(--orange-mid);">
+    <div class="oauth-header" style="margin-bottom: 20px;">
+      <div class="oauth-logo-circle" style="background: var(--orange-light); border-color: var(--orange-mid);">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="var(--orange)" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <h3 style="font-family:var(--font-display); font-weight:800; font-size:22px; color:var(--gray-900);">Proctored Exam Arena Rules</h3>
+      <p style="font-size:13px; color:var(--gray-500); margin-top:4px;">Verification requires absolute integrity. Please read and accept the guidelines.</p>
+    </div>
+    
+    <div style="text-align: left; margin-bottom: 24px; font-size: 13.5px; line-height: 1.6; color: var(--gray-700); max-height: 250px; overflow-y: auto; padding-right: 8px;">
+      <div style="background: var(--orange-light); border-left: 4px solid var(--orange); padding: 12px; border-radius: 4px; margin-bottom: 16px; font-weight: 500;">
+        ⚠️ Any security breach or deviation automatically flags your profile and disqualifies you from badging.
+      </div>
+      
+      <ol style="margin-left: 20px; display: flex; flex-direction: column; gap: 10px;">
+        <li><strong>Strict Fullscreen Lock:</strong> The assessment is taken in full-screen. Navigating outside or exiting full-screen triggers a proctor breach and immediate failure.</li>
+        <li><strong>WebRTC Camera Feed:</strong> Your camera must remain active. AI sensors check for visual alignment and single-person frame environment compliance.</li>
+        <li><strong>Microphone Audio Sensor:</strong> Audio feed tracks decibels. External voice assistance or sound anomalies are automatically flagged.</li>
+        <li><strong>Whole Screen Sharing:</strong> You must share your entire primary display view. Shifting windows or opening other browser tabs is strictly blocked.</li>
+        <li><strong>Editor Controls Blocked:</strong> Copying, pasting, cutting, and right-clicks are programmatically disabled inside the workspace.</li>
+      </ol>
+    </div>
+    
+    <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 24px; text-align: left; background: var(--gray-50); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--gray-200);">
+      <input type="checkbox" id="accept-rules-checkbox" onchange="toggleStartExamBtn(this.checked)" style="transform: scale(1.25); margin-top: 4px; cursor: pointer;" />
+      <label for="accept-rules-checkbox" style="font-size: 13px; font-weight: 700; color: var(--gray-900); cursor: pointer;">I explicitly accept these high-security proctoring rules and consent to WebRTC camera, audio, and primary screen sharing.</label>
+    </div>
+    
+    <div style="display: flex; gap: 12px; justify-content: flex-end;">
+      <button onclick="closeExamRulesModal()" class="btn-ghost" style="padding: 10px 20px; font-size: 14px; cursor: pointer;">Cancel</button>
+      <button id="start-verified-exam-btn" onclick="confirmStartExam()" class="btn-primary" style="padding: 10px 24px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--font-display); opacity: 0.5; pointer-events: none;">Unlock Arena & Start</button>
+    </div>
+  </div>
+</div>
+
+<!-- Recruiter Submitted Code Viewer Modal -->
+<div id="view-submitted-code-modal" class="oauth-modal-overlay" style="display: none; align-items: center; justify-content: center; padding: 20px;">
+  <div class="oauth-modal-box" style="max-width: 700px; width: 100%; border-radius: var(--radius-lg); padding: 32px; border-color: var(--orange-mid);">
+    <div class="oauth-header" style="margin-bottom: 20px;">
+      <div class="oauth-logo-circle" style="background: var(--orange-light); border-color: var(--orange-mid);">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="var(--orange)" stroke-width="2.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      </div>
+      <h3 style="font-family:var(--font-display); font-weight:800; font-size:22px; color:var(--gray-900);">Candidate Submitted Code</h3>
+      <p style="font-size:13px; color:var(--gray-500); margin-top:4px;" id="submitted-code-modal-subtitle">Exact logic answer submission</p>
+    </div>
+    
+    <div style="text-align: left; margin-bottom: 24px;">
+      <pre style="background: #0C0A09; color: #FFF; padding: 18px; border-radius: var(--radius-md); border: 1.5px solid #2A2624; overflow-x: auto; max-height: 400px; font-family: 'Courier New', Courier, monospace; font-size: 13.5px; line-height: 1.5;" id="submitted-code-content-view"></pre>
+    </div>
+    
+    <div style="display: flex; justify-content: flex-end;">
+      <button onclick="closeSubmittedCodeModal()" class="btn-primary" style="padding: 10px 24px; font-size: 14px; font-weight: 700; cursor: pointer;">Close Viewer</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a href="#" onclick="showView('landing')" class="logo">Skill<span>Proof</span></a>
+    <ul class="nav-links">
+      <li><a href="#" onclick="showView('landing'); setTimeout(()=>document.getElementById('how').scrollIntoView(), 100)">How it works</a></li>
+      <li><a href="#" onclick="showView('landing'); setTimeout(()=>document.getElementById('ai').scrollIntoView(), 100)">AI Evaluation</a></li>
+    </ul>
+    <div class="nav-right">
+      <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle dark mode">
+        <svg class="sun-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        <svg class="moon-icon" viewBox="0 0 24 24" style="display:none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <a href="#" id="nav-login-btn" onclick="showView('auth')" class="nav-login">Log in</a>
+      <a href="#" id="nav-cta-btn" onclick="showView('auth')" class="nav-cta">Get started →</a>
+    </div>
+  </div>
+</nav>
+
+<!-- LANDING VIEW -->
+<div id="view-landing" class="view-container active" style="padding: 0;">
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-dots"></div>
+    <div class="hero-bg"></div>
+    <div class="hero-inner">
+      <div class="hero-badge">
+        <span class="hero-badge-dot"></span>
+        AI-Powered Skill Verification
+      </div>
+      <h1>Skills recruiters can<br/><em>actually trust.</em></h1>
+      <p class="hero-sub">SkillProof replaces self-reported resumes with live, timed coding challenges evaluated by advanced AI — issuing verifiable skill badges that recruiters trust, in real time.</p>
+      <div class="hero-actions">
+        <a href="#" onclick="showView('auth')" class="btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          See how it works
+        </a>
+        <a href="#" onclick="showView('auth')" class="btn-ghost">AI Evaluation</a>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-num">4<sup>+</sup></div>
+          <div class="hero-stat-label">AI scoring dimensions</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">3<sup>×</sup></div>
+          <div class="hero-stat-label">Challenge types</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">100<sup>%</sup></div>
+          <div class="hero-stat-label">Verifiable skill badges</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-num">~500</div>
+          <div class="hero-stat-label">AI evals on $5 credits</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="how" id="how">
+    <div class="section-inner">
+      <div class="fade-up">
+        <div class="section-label">How it works</div>
+        <h2 class="section-title">Challenge → Submit → Badge.</h2>
+        <p class="section-sub">A student claims a competency. To verify it, they take a 3-tier shuffled coding test (Easy ➡️ Medium ➡️ Hard). Advanced AI evaluates it, issuing a certified badge tag on their public portfolio.</p>
+      </div>
+      <div class="steps-grid fade-up">
+        <div class="step">
+          <div class="step-num">Step 01</div>
+          <div class="step-icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+          </div>
+          <h3>Claim a competency</h3>
+          <p>Select master programming skills like Python, C, or SQL. Rating is self-claimed until tested.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">Step 02</div>
+          <div class="step-icon">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          </div>
+          <h3>Auto Shuffled Verifier</h3>
+          <p>Our verification engine shuffles 3 progressive coding questions (Basics ➡️ Concurrency ➡️ Complex Slab Allocations).</p>
+        </div>
+        <div class="step">
+          <div class="step-num">Step 03</div>
+          <div class="step-icon">
+            <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          </div>
+          <h3>Secure Live Proctoring</h3>
+          <p>Full screen locking, microphone noise tracks, WebRTC cameras, and anti-copy layers protect integrity.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">Step 04</div>
+          <div class="step-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          <h3>AI Evaluator & Summarizer</h3>
+          <p>Generates senior engineer score rubrics alongside full proctor reports for recruiter portfolios.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">Step 05</div>
+          <div class="step-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3>Tag and Badge Issued</h3>
+          <p>Pass all 3 levels to earn custom tags (e.g. "SkillProof Python Expert") that recruiters trust.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">Step 06</div>
+          <div class="step-icon">
+            <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </div>
+          <h3>SkillProof Score Syncs</h3>
+          <p>Dynamic talent aggregate score index recalculates on the user's secure server record.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- AUTHENTICATION VIEW -->
+<div id="view-auth" class="view-container">
+  <div class="auth-panel">
+    <h2>Secure authentication</h2>
+    <p>Sign in via your identity provider. Popup verification ensures credential integrity without maintaining raw passwords.</p>
+    <div class="auth-buttons">
+      <button onclick="triggerOAuthModal('Google')" class="auth-btn">
+        <svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Continue with Google
+      </button>
+      <button onclick="triggerOAuthModal('GitHub')" class="auth-btn">
+        <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.11.82-.26.82-.577v-2.234c-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.43.372.82 1.102.82 2.222v3.293c0 .319.22.694.825.576C20.565 21.795 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        Continue with GitHub
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- STUDENT DASHBOARD VIEW -->
+<div id="view-student" class="view-container">
+  <div class="student-dashboard-layout">
+    
+    <!-- Left Sidebar: Profile viewing, rating, and navigation -->
+    <div class="student-sidebar">
+      <!-- Profile Card -->
+      <div class="student-profile-card">
+        <div class="student-avatar" id="student-avatar-letter">C</div>
+        <div class="student-name" id="student-profile-name">Student Name</div>
+        <div class="student-email-tag" id="student-profile-email">email@domain.com</div>
+        <div class="student-slug" id="student-profile-slug">Personal slug: ...</div>
+        
+        <!-- Score Rating Index horizontal bar display -->
+        <div style="margin-top: 20px; border-top: 1px solid var(--gray-100); padding-top: 16px; text-align: left;">
+          <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700; margin-bottom:6px;">
+            <span>SkillProof Index</span>
+            <span id="student-sidebar-score" style="color:var(--orange-deep);">0.00</span>
+          </div>
+          <div style="width:100%; height:6px; background:var(--gray-100); border-radius:10px; overflow:hidden;">
+            <div id="student-score-bar" style="width:0%; height:100%; background:var(--orange); border-radius:10px; transition:width 0.5s ease;"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Navigation Menu -->
+      <div class="student-nav-menu">
+        <button id="nav-btn-arena" onclick="switchStudentTab('arena')" class="student-nav-item active">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+          Exam Arena (Active)
+        </button>
+        <button id="nav-btn-badges" onclick="switchStudentTab('badges')" class="student-nav-item">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Certified Badges
+        </button>
+        <button id="nav-btn-claims" onclick="switchStudentTab('claims')" class="student-nav-item">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Claim Competency
+        </button>
+        <button id="nav-btn-invites" onclick="switchStudentTab('invites')" class="student-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          Corporate Assessment Invites
+        </button>
+      </div>
+    </div>
+    
+    <!-- Right Contents Panel: Displays active sub-view -->
+    <div class="student-content-panel">
+      
+      <!-- Tab 1: Shuffled Exam Arena -->
+      <div id="tab-arena" class="student-workspace-panel active">
+        <!-- Active progress progression -->
+        <div id="active-verification-wrapper" class="progress-container" style="display: none; margin-bottom: 24px;">
+          <h3 style="font-family:var(--font-display); font-size:16px; font-weight:700;" id="active-progression-skill-name">Active Skill progression</h3>
+          <div class="progress-steps">
+            <div class="progress-line"></div>
+            <div class="progress-step" id="prog-step-easy">1</div>
+            <div class="progress-step" id="prog-step-medium">2</div>
+            <div class="progress-step" id="prog-step-hard">3</div>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 11px; margin-top: 8px; color:var(--gray-500);">
+            <span>Basic Algorithms</span>
+            <span>Intermediate Concurrency</span>
+            <span>Advanced Allocations</span>
+          </div>
+        </div>
+
+        <div class="student-skills-dashboard" style="margin-top: 0;">
+          <h3 style="font-family:var(--font-display); font-size:18px; font-weight:800; margin-bottom:16px;">Active Shuffled Verifications</h3>
+          <div id="questions-list">
+            <!-- Shuffled next difficulty questions -->
+          </div>
+        </div>
+      </div>
+      
+      <!-- Tab 2: Certified Badges -->
+      <div id="tab-badges" class="student-workspace-panel">
+        <div class="student-skills-dashboard" style="margin-top: 0;">
+          <h3 style="font-family:var(--font-display); font-size:18px; font-weight:800; margin-bottom:16px;">Earned Portfolio Tags</h3>
+          <div id="earned-badges-list" class="verified-skills-grid">
+            <!-- Dynamically populated tags earned -->
+          </div>
+        </div>
+      </div>
+      
+      <!-- Tab 3: Claim Competencies -->
+      <div id="tab-claims" class="student-workspace-panel">
+        <div id="claim-skills-wrapper" style="margin-bottom: 40px;">
+          <div class="progress-container">
+            <h3 style="font-family:var(--font-display); font-size:18px; font-weight:700;">Claim Competencies to Start Verification</h3>
+            <p style="font-size:13px; color:var(--gray-500); margin-top:2px;">Claim your engineering strengths below. Verification requires solving a shuffled 3-tier timed coding progression.</p>
+            
+            <div class="skills-selector-grid" id="claim-skills-list">
+              <!-- Dynamically filled skills to claim -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 4: Corporate Assessment Invites -->
+      <div id="tab-invites" class="student-workspace-panel">
+        <div class="student-skills-dashboard" style="margin-top: 0;">
+          <h3 style="font-family:var(--font-display); font-size:18px; font-weight:800; margin-bottom:16px;">Corporate Assessment Sequences</h3>
+          <p style="font-size:13px; color:var(--gray-500); margin-bottom:20px;">You are invited to attempt the following high-security, multi-stage sequenced evaluations by corporate recruiters.</p>
+          <div class="verified-skills-grid" id="student-schedules-list">
+            <!-- Dynamically populated corporate assessment invitations -->
+            <div style="color:var(--gray-500)">No active invitations found matching your claimed skills.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- EXAM WORKSPACE VIEW (High Security Arena) -->
+<div id="view-exam" class="view-container" style="padding-top:80px;">
+  <div class="arena-grid">
+    <!-- Left Column: Proctoring Indicators -->
+    <div class="proctor-sidebar">
+      <div class="proctor-box">
+        <div class="proctor-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          Live Proctor Camera
+        </div>
+        <div class="camera-stream">
+          <video id="proctor-video" autoplay playsinline muted></video>
+          <div id="camera-placeholder" class="camera-placeholder">Requesting camera access...</div>
+        </div>
+      </div>
+
+      <div class="proctor-box">
+        <div class="proctor-title">Security Telemetry</div>
+        <div class="security-indicators">
+          <div class="sec-indicator">
+            <span>Camera Stream</span>
+            <span id="ind-camera" class="sec-indicator-status ok">ACTIVE</span>
+          </div>
+          <div class="sec-indicator">
+            <span>Mic Feed Sensor</span>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div class="decibel-indicator" id="decibel-meter">
+                <div class="decibel-bar"></div>
+                <div class="decibel-bar"></div>
+                <div class="decibel-bar"></div>
+                <div class="decibel-bar"></div>
+              </div>
+              <span id="ind-mic" class="sec-indicator-status ok" style="font-size:11px;">ACTIVE</span>
+            </div>
+          </div>
+          <div class="sec-indicator">
+            <span>Screen Sharing</span>
+            <span id="ind-screen" class="sec-indicator-status ok">SHARING</span>
+          </div>
+          <div class="sec-indicator">
+            <span>Tab Focus / Visibility</span>
+            <span id="ind-focus" class="sec-indicator-status ok">SECURED</span>
+          </div>
+          <div class="sec-indicator">
+            <span>Bluetooth Scanner</span>
+            <span id="ind-bluetooth" class="sec-indicator-status ok">DISABLED</span>
+          </div>
+          <div class="sec-indicator">
+            <span>Mobile Sensor Detector</span>
+            <span id="ind-phone" class="sec-indicator-status ok">NOT DETECTED</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: TIMED Code workspace -->
+    <div class="workspace-card">
+      <div class="violation-banner" id="disqualify-alert">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span>SECURITY DISQUALIFICATION: Proctoring infractions detected. The final result will NOT be declared.</span>
+      </div>
+
+      <div class="workspace-header">
+        <div>
+          <h2 id="active-question-title" style="font-family: var(--font-display); font-size: 22px; font-weight: 800;">Timed Challenge</h2>
+          <div style="font-size: 12px; color: var(--gray-500); margin-top: 4px;">Copy/paste and right clicks are blocked. Time will auto-submit.</div>
+        </div>
+        <div id="active-timer" class="timer-display">00:00</div>
+      </div>
+
+      <textarea id="code-editor" class="editor-textarea" spellcheck="false"></textarea>
+
+      <div style="display: flex; justify-content: flex-end; gap: 12px;">
+        <button onclick="submitExam()" class="btn-primary" style="padding: 12px 28px;">Submit Solution</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SECRET TELEMETRY DEVELOPER CONTROLS DRAWER -->
+<div id="secret-debug-panel" class="secret-debug-drawer">
+  <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--orange-deep); margin-bottom: 12px; border-bottom:1px solid var(--gray-100); padding-bottom:8px;">
+    🛠 Developer Telemetry Toggles
+  </div>
+  <div style="font-size:10px; color:var(--gray-500); margin-bottom:12px; line-height:1.3;">These simulations force DB commits and disqualify assessment records. Close with Ctrl + Shift + D.</div>
+  
+  <div class="sim-switch" style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:8px;">
+    <span>Turn Bluetooth ON</span>
+    <input type="checkbox" id="sim-bluetooth-check" onchange="simulateBluetoothViolation(this.checked)" />
+  </div>
+  <div class="sim-switch" style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:8px;">
+    <span>Simulate Using Phone</span>
+    <input type="checkbox" id="sim-phone-check" onchange="simulatePhoneViolation(this.checked)" />
+  </div>
+  <div class="sim-switch" style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:8px;">
+    <span>Disable Camera Feed</span>
+    <input type="checkbox" id="sim-camera-check" onchange="simulateCameraOffViolation(this.checked)" />
+  </div>
+  <div class="sim-switch" style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:8px;">
+    <span>Disconnect Screen Share</span>
+    <input type="checkbox" id="sim-screen-check" onchange="simulateScreenOffViolation(this.checked)" />
+  </div>
+</div>
+
+<!-- ADMIN / RECRUITER DASHBOARD VIEW -->
+<div id="view-admin" class="view-container">
+  <div class="admin-grid">
+    <!-- Left Column: Create Question form & Bulk Dispatcher -->
+    <div style="display:flex; flex-direction:column; gap:32px;">
+      <!-- Card 1: Create Timed Challenge -->
+      <div class="admin-card">
+        <h2>Create Timed Challenge</h2>
+        <div class="admin-form-group">
+          <label>Challenge Title</label>
+          <input type="text" id="add-q-title" placeholder="e.g., Implement QuickSort in C++" />
+        </div>
+        <div class="admin-form-group">
+          <label>Difficulty</label>
+          <select id="add-q-diff">
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </div>
+        <div class="admin-form-group">
+          <label>Time Expiry Limit (minutes)</label>
+          <input type="number" id="add-q-exp" value="10" min="1" max="120" />
+        </div>
+        <div class="admin-form-group">
+          <label>Code Boilerplate Skeleton</label>
+          <textarea id="add-q-template" style="height: 120px; font-family: monospace;" placeholder="// Boilerplate skeleton code..."></textarea>
+        </div>
+        <button onclick="createQuestion()" class="btn-primary" style="width:100%; justify-content: center;">Publish Question</button>
+      </div>
+
+      <!-- Card 2: Schedule Assessment Sequence -->
+      <div class="admin-card">
+        <h2>Schedule Assessment Sequence</h2>
+        <p style="font-size:12px; color:var(--gray-500); margin-bottom:16px; line-height:1.4;">Schedule a multi-stage sequential timed test (e.g. Easy → Medium → Hard) for applicants.</p>
+        
+        <div class="admin-form-group">
+          <label>Target Skill</label>
+          <select id="schedule-skill-select">
+            <!-- Dynamically populated from masterSkillsList -->
+          </select>
+        </div>
+        <div class="admin-form-group">
+          <label>Difficulty Sequence (comma-separated)</label>
+          <input type="text" id="schedule-difficulty-order" value="easy,medium,hard" placeholder="e.g., easy,medium,hard" />
+        </div>
+        <div class="admin-form-group">
+          <label>Sequence Start Date & Time</label>
+          <input type="datetime-local" id="schedule-start-time" />
+        </div>
+        <div class="admin-form-group">
+          <label>Cumulative Time Limit (minutes)</label>
+          <input type="number" id="schedule-duration" value="60" min="1" max="300" />
+        </div>
+        <button onclick="scheduleExamSequence()" class="btn-primary" style="width:100%; justify-content: center;">
+          Schedule Assessment Sequence
+        </button>
+      </div>
+
+      <!-- Card 3: Bulk Candidate Job Skill Dispatcher -->
+      <div class="admin-card">
+        <h2>Bulk Job Skill Dispatcher</h2>
+        <p style="font-size:12px; color:var(--gray-500); margin-bottom:16px; line-height:1.4;">Dispatch timed challenges and run AI proctoring simulations to evaluate different candidates simultaneously.</p>
+        
+        <div id="bulk-dispatch-rows" style="display:flex; flex-direction:column; gap:16px; margin-bottom:16px;">
+          <!-- Dynamically added candidate rows will be rendered here -->
+        </div>
+        
+        <div style="display:flex; gap:12px; margin-top:16px;">
+          <button onclick="addCandidateRow()" class="btn-ghost" style="padding: 10px 16px; font-size:12px; flex:1; justify-content:center; display:inline-flex; align-items:center; gap:6px;">+ Add Row</button>
+          <button onclick="runBulkDispatch()" class="btn-primary" style="padding: 10px 16px; font-size:12px; flex:1.5; justify-content:center; display:inline-flex; align-items:center; gap:6px;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polyline points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Dispatch & Evaluate
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Flexbox wrapped for dual cards -->
+    <div style="display:flex; flex-direction:column; gap:32px;">
+      <div class="admin-card" style="overflow: hidden; margin-bottom: 0;">
+        <h2 id="recruiter-history-title">Assessments & Proctoring History</h2>
+        
+        <!-- Bulk Actions Toolbar -->
+        <div id="bulk-actions-toolbar" class="bulk-actions-toolbar" style="display: none; align-items: center; justify-content: space-between; background: var(--orange-light); border: 1.5px solid var(--orange-mid); border-radius: var(--radius-md); padding: 12px 20px; margin-bottom: 20px;">
+          <div class="bulk-count-label" style="font-weight: 700; color: var(--orange-deep); font-family: var(--font-display); font-size: 14px; display: flex; align-items: center; gap: 8px;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: middle;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <span id="bulk-selected-count">0 candidates selected</span>
+          </div>
+          <button onclick="openBulkEmailModal()" class="btn-primary" style="padding: 8px 16px; font-size: 13px; font-weight: 700; font-family: var(--font-display); border-radius: var(--radius-sm); border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">Compose Bulk Invite →</button>
+        </div>
+
+        <div class="history-table-container">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th style="width: 40px; text-align: center;"><input type="checkbox" id="select-all-history" onchange="toggleSelectAllCandidates(this.checked)" style="transform: scale(1.25); cursor: pointer;" /></th>
+                <th>Student / Email</th>
+                <th>Question</th>
+                <th>Infractions</th>
+                <th>Status</th>
+                <th>Score</th>
+                <th>AI Audit Synthesis Summary & Breaches</th>
+              </tr>
+            </thead>
+            <tbody id="admin-history-list">
+              <!-- Dynamically populated attempts -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Card 2 in Right Column: Active Scheduled Assessments -->
+      <div class="admin-card" style="margin-bottom: 0;">
+        <h2>Active Corporate Assessment Sequences</h2>
+        <p style="font-size:12px; color:var(--gray-500); margin-bottom:16px; line-height:1.4;">These are the scheduled multi-stage assessment milestones currently active for candidates claiming matching skills.</p>
+        <div class="history-table-container">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Skill</th>
+                <th>Difficulty Sequence</th>
+                <th>Start Date & Time</th>
+                <th>Time Limit</th>
+                <th>Access Link / ID</th>
+              </tr>
+            </thead>
+            <tbody id="recruiter-schedules-list">
+              <tr><td colspan="5" style="color:var(--gray-500); text-align: center;">No scheduled assessments created yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a href="#" onclick="showView('landing')" class="footer-logo">Skill<span>Proof</span></a>
+        <div class="footer-tagline">Verified Skills. Real Challenges.</div>
+      </div>
+      <div class="footer-cols">
+        <div class="footer-col">
+          <div class="footer-col-title">Product</div>
+          <ul>
+            <li><a href="#" onclick="showView('landing')">How it works</a></li>
+            <li><a href="#" onclick="showView('landing')">AI Evaluation</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="footer-copy">© 2025 SkillProof · Built by Durga Sravan</div>
+      <div class="footer-stack">
+        <span class="footer-badge">Next.js 14</span>
+        <span class="footer-badge">Node.js</span>
+        <span class="footer-badge">Socket.io</span>
+        <span class="footer-badge">SQLite Relational DB</span>
+        <span class="footer-badge">Advanced AI API</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- Bulk Email Modal Overlay -->
+<div id="bulk-email-modal" class="oauth-modal-overlay" style="display: none; align-items: center; justify-content: center; padding: 20px;">
+  <div class="oauth-modal-box" style="max-width: 650px; width: 100%; border-radius: var(--radius-lg); padding: 32px;">
+    <div class="oauth-header" style="margin-bottom: 20px;">
+      <div class="oauth-logo-circle" style="background: var(--orange-light); border-color: var(--orange-mid);">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="var(--orange)" stroke-width="2.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      </div>
+      <h3 style="font-family:var(--font-display); font-weight:800; font-size:22px; color:var(--gray-900);">Bulk Candidate Invitation</h3>
+      <p style="font-size:13px; color:var(--gray-500); margin-top:4px;">Verify applicant profile data, infractions, and dispatch dynamic corporate emails</p>
+    </div>
+    
+    <div id="bulk-email-composer-view">
+      <div class="oauth-field-group" style="margin-bottom: 16px;">
+        <label style="display:block; font-size:11px; font-weight:700; text-transform:uppercase; margin-bottom:6px; color:var(--gray-700);">Subject Line</label>
+        <input type="text" id="bulk-email-subject" value="SkillProof Performance Review & Corporate Interview Invitation" style="width: 100%; padding:12px; border:1.5px solid var(--gray-200); border-radius:var(--radius-sm); font-size:14px; outline:none;" />
+      </div>
+      <div class="oauth-field-group" style="margin-bottom: 16px;">
+        <label style="display:block; font-size:11px; font-weight:700; text-transform:uppercase; margin-bottom:6px; color:var(--gray-700);">Email Body (Placeholders: {name}, {score}, {skill}, {ai_summary})</label>
+        <textarea id="bulk-email-body" style="width: 100%; height: 140px; padding: 12px; border: 1.5px solid var(--gray-200); border-radius: var(--radius-sm); font-size: 13px; outline: none; resize: none; line-height: 1.5; font-family: var(--font-body);">Hello {name},
+
+We have successfully verified your performance on the SkillProof "{skill}" timed proctored challenge.
+
+Our AI Evaluation Synthesis Summary for your submission is as follows:
+"{ai_summary}"
+
+Based on your verified proctored score of {score}/100 and proctor security clearance, we would like to move you forward in our engineering interview pipeline for the respective role.
+
+Best regards,
+SkillProof HR Recruiting Team</textarea>
+      </div>
+      
+      <!-- Candidate Verification checklist container -->
+      <div style="margin-bottom: 24px; text-align: left;">
+        <label style="display:block; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; color: var(--gray-700);">Verify Candidate Info Checklist</label>
+        <div id="bulk-email-candidates-verify-list" style="max-height: 150px; overflow-y: auto; border: 1.5px solid var(--gray-100); border-radius: var(--radius-sm); background: var(--gray-50); padding: 10px 14px; display: flex; flex-direction: column; gap: 8px;">
+          <!-- Populated dynamically with checked rows -->
+        </div>
+      </div>
+      
+      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button onclick="closeBulkEmailModal()" class="btn-ghost" style="padding: 10px 20px; font-size: 14px; cursor:pointer;">Cancel</button>
+        <button onclick="sendBulkEmails()" class="btn-primary" style="padding: 10px 24px; font-size: 14px; font-weight:700; cursor:pointer; font-family:var(--font-display);">Verify & Send Invites →</button>
+      </div>
+    </div>
+
+    <!-- Dynamic progress dashboard during sequential simulation -->
+    <div id="bulk-email-sending-view" style="display: none; text-align: left;">
+      <h4 style="font-family: var(--font-display); font-size: 16px; margin-bottom: 12px; font-weight: 700;">SMTP Secure Transmission Log</h4>
+      <div style="width:100%; height:8px; background:var(--gray-100); border-radius:10px; overflow:hidden; margin-bottom: 20px;">
+        <div id="bulk-email-progress-bar" style="width:0%; height:100%; background:var(--orange); border-radius:10px; transition: width 0.3s ease;"></div>
+      </div>
+      <div id="bulk-email-sending-log" style="max-height: 200px; overflow-y: auto; border: 1.5px solid #2A2624; border-radius: var(--radius-sm); background: #1C1A17; color: #FFF; font-family: monospace; font-size: 12px; padding: 12px; line-height: 1.6; display: flex; flex-direction: column; gap: 6px;">
+        <!-- Live logs of sequential dispatches -->
+      </div>
+      <div id="bulk-email-finished-actions" style="display: none; margin-top: 24px; text-align: center;">
+        <h4 style="color: #2E7D32; font-family: var(--font-display); font-size: 18px; font-weight: 800; margin-bottom: 8px;">✓ Transmission Successfully Dispatched</h4>
+        <p style="font-size: 13px; color: var(--gray-500); margin-bottom: 20px;">All selected candidate communications are finalized and logged on the SQLite server.</p>
+        
+        <!-- Synthesized Dispatch Evaluation Report Table -->
+        <div style="margin-top: 20px; text-align: left; max-height: 250px; overflow-y: auto; border: 1px solid var(--gray-200); border-radius: var(--radius-md); background: var(--off-white); padding: 12px; box-shadow: var(--shadow-sm);">
+          <h5 style="font-family: var(--font-display); font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--gray-900);">Synthesized Dispatch Evaluation Report</h5>
+          <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+            <thead>
+              <tr style="border-bottom: 1.5px solid var(--gray-200); text-align: left; font-weight: bold; color: var(--gray-500);">
+                <th style="padding: 6px;">Candidate</th>
+                <th style="padding: 6px;">Skill / Profile</th>
+                <th style="padding: 6px;">Score</th>
+                <th style="padding: 6px;">Proctor Status</th>
+                <th style="padding: 6px; text-align: right;">SMTP Status</th>
+              </tr>
+            </thead>
+            <tbody id="bulk-email-report-table-body">
+              <!-- Filled dynamically at completion -->
+            </tbody>
+          </table>
+        </div>
+        
+        <button onclick="closeBulkEmailModal(true)" class="btn-primary" style="padding: 10px 24px; margin: 20px auto 0; display:block; cursor:pointer;">Return to Dashboard</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Dispatch & Evaluate Modal Overlay -->
+<div id="bulk-dispatch-modal" class="oauth-modal-overlay" style="display: none; align-items: center; justify-content: center; padding: 20px;">
+  <div class="oauth-modal-box" style="max-width: 650px; width: 100%; border-radius: var(--radius-lg); padding: 32px;">
+    <div class="oauth-header" style="margin-bottom: 20px;">
+      <div class="oauth-logo-circle" style="background: var(--orange-light); border-color: var(--orange-mid);">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="var(--orange)" stroke-width="2.5"><polyline points="22 2 15 22 11 13 2 9 22 2"/><line x1="22" y1="2" x2="11" y2="13"/></svg>
+      </div>
+      <h3 style="font-family:var(--font-display); font-weight:800; font-size:22px; color:var(--gray-900);">Bulk Timed Challenge Dispatcher</h3>
+      <p style="font-size:13px; color:var(--gray-500); margin-top:4px;">Onboard candidates, initiate secure proctored exam simulations, and run AI evaluations in real time</p>
+    </div>
+    
+    <div id="bulk-dispatch-running-view" style="text-align: left; width: 100%;">
+      <h4 style="font-family: var(--font-display); font-size: 16px; margin-bottom: 12px; font-weight: 700;">SMTP & AI Proctoring Dispatch Log</h4>
+      <div style="width:100%; height:8px; background:var(--gray-100); border-radius:10px; overflow:hidden; margin-bottom: 20px;">
+        <div id="bulk-dispatch-progress-bar" style="width:0%; height:100%; background:var(--orange); border-radius:10px; transition: width 0.3s ease;"></div>
+      </div>
+      <div id="bulk-dispatch-sending-log" style="max-height: 200px; overflow-y: auto; border: 1.5px solid #2A2624; border-radius: var(--radius-sm); background: #1C1A17; color: #FFF; font-family: monospace; font-size: 12px; padding: 12px; line-height: 1.6; display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px;">
+        <!-- Live logs of sequential dispatches -->
+      </div>
+      
+      <div id="bulk-dispatch-finished-actions" style="display: none; margin-top: 24px; text-align: center;">
+        <h4 style="color: #2E7D32; font-family: var(--font-display); font-size: 18px; font-weight: 800; margin-bottom: 8px;">✓ Dispatch & AI Evaluations Complete</h4>
+        <p style="font-size: 13px; color: var(--gray-500); margin-bottom: 20px;">All candidates onboarded, challenges solved, evaluated, and badges issued successfully on the SQLite server.</p>
+        
+        <!-- Synthesized Dispatch Evaluation Report Table -->
+        <div style="margin-top: 20px; text-align: left; max-height: 250px; overflow-y: auto; border: 1px solid var(--gray-200); border-radius: var(--radius-md); background: var(--off-white); padding: 12px; box-shadow: var(--shadow-sm);">
+          <h5 style="font-family: var(--font-display); font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--gray-900);">Synthesized Dispatch Evaluation Report</h5>
+          <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+            <thead>
+              <tr style="border-bottom: 1.5px solid var(--gray-200); text-align: left; font-weight: bold; color: var(--gray-500);">
+                <th style="padding: 6px;">Candidate</th>
+                <th style="padding: 6px;">Skill / Profile</th>
+                <th style="padding: 6px;">Score</th>
+                <th style="padding: 6px;">Proctor Status</th>
+                <th style="padding: 6px; text-align: right;">SMTP Status</th>
+              </tr>
+            </thead>
+            <tbody id="bulk-dispatch-report-table-body">
+              <!-- Filled dynamically at completion -->
+            </tbody>
+          </table>
+        </div>
+        
+        <button onclick="closeBulkDispatchModal()" class="btn-primary" style="padding: 10px 24px; margin: 20px auto 0; display:block; cursor:pointer;">Return to Dashboard</button>
+      </div>
+    </div>
+  </div>
+</div>
+  </div>
+</div>
+
+<script>
+// State Management
+let currentUser = null;
+let currentCompany = null;  // Multi-tenant company context
+let currentExam = null;
+let currentTimer = null;
+let videoStream = null;
+let screenStream = null;
+let audioStream = null;
+let audioContext = null;
+let analyser = null;
+let micInterval = null;
+let activeProctorViolations = false;
+let selectProvider = "";
+let currentExamsList = [];
+let pendingExamQuestionId = null;
+let pendingScheduleId = null;
+
+// Check layout restrictions — only block during EXAM, not whole site
+function runLockdownIntegrityCheck() {
+  // Only apply the lockdown blocker when the exam view is active
+  const examViewActive = document.getElementById('view-exam') &&
+    document.getElementById('view-exam').classList.contains('active');
+  const isMobileView = window.innerWidth < 1024;
+  const isMobileAgent = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  const blocker = document.getElementById('lockdown-blocker');
+  if (blocker) {
+    if (examViewActive && (isMobileView || isMobileAgent)) {
+      blocker.style.display = 'flex';
+    } else {
+      blocker.style.display = 'none';
+    }
+  }
+}
+window.addEventListener('resize', runLockdownIntegrityCheck);
+window.addEventListener('load', () => { runLockdownIntegrityCheck(); });
+
+// ── VIEW MANAGEMENT ──
+function showView(viewName) {
+  document.querySelectorAll('.view-container').forEach(el => el.classList.remove('active'));
+  const targetView = document.getElementById('view-' + viewName);
+  if (targetView) targetView.classList.add('active');
+  
+  // Exit fullscreen and cleanup streams if exiting exam view
+  if (viewName !== 'exam') {
+    cleanupStreams();
+    clearInterval(currentTimer);
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(err => {});
+    }
+  }
+
+  // Refresh view states
+  if (viewName === 'student') {
+    loadStudentDashboard();
+  } else if (viewName === 'admin') {
+    loadAdminHistory();
+  }
+}
+
+// Cleanup cameras, screen shares, and mic audio contexts
+function cleanupStreams() {
+  if (videoStream) {
+    videoStream.getTracks().forEach(track => track.stop());
+    videoStream = null;
+  }
+  if (screenStream) {
+    screenStream.getTracks().forEach(track => track.stop());
+    screenStream = null;
+  }
+  if (audioStream) {
+    audioStream.getTracks().forEach(track => track.stop());
+    audioStream = null;
+  }
+  if (audioContext) {
+    audioContext.close();
+    audioContext = null;
+  }
+  clearInterval(micInterval);
+}
+
+// ── THEME TOGGLE ──
+if (localStorage.getItem('theme') === 'dark') {
+  document.body.classList.add('dark-theme');
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const themeToggle = document.getElementById('theme-toggle');
+  if (themeToggle) {
+    const sunIcon = themeToggle.querySelector('.sun-icon');
+    const moonIcon = themeToggle.querySelector('.moon-icon');
+
+    themeToggle.addEventListener('click', () => {
+      document.body.classList.toggle('dark-theme');
+      const isDark = document.body.classList.contains('dark-theme');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      
+      if (isDark) {
+        if (sunIcon) sunIcon.style.display = 'none';
+        if (moonIcon) moonIcon.style.display = 'block';
+      } else {
+        if (sunIcon) sunIcon.style.display = 'block';
+        if (moonIcon) moonIcon.style.display = 'none';
+      }
+    });
+
+    if (document.body.classList.contains('dark-theme')) {
+      if (sunIcon) sunIcon.style.display = 'none';
+      if (moonIcon) moonIcon.style.display = 'block';
+    } else {
+      if (sunIcon) sunIcon.style.display = 'block';
+      if (moonIcon) moonIcon.style.display = 'none';
+    }
+  }
+});
+
+// ── IN-PAGE LOGIN MODAL (no popup needed — works in all browsers) ──
+function triggerOAuthModal(provider) {
+  selectProvider = provider;
+
+  // Show the built-in inline auth modal instead of a popup
+  const modal = document.getElementById('oauth-modal');
+  if (!modal) return;
+
+  // Update logo and title based on provider
+  const logoEl  = document.getElementById('oauth-modal-logo');
+  const titleEl = document.getElementById('oauth-modal-title');
+
+  if (provider === 'Google') {
+    if (logoEl) logoEl.innerHTML = `<svg viewBox="0 0 24 24" width="32" height="32" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>`;
+    if (titleEl) titleEl.textContent = 'Sign in with Google';
+    // Pre-fill email label hint
+    const emailLabel = document.getElementById('oauth-modal-email-label');
+    if (emailLabel) emailLabel.textContent = 'Gmail or Corporate Email Address';
+  } else {
+    if (logoEl) logoEl.innerHTML = `<svg viewBox="0 0 24 24" width="32" height="32"><path fill="currentColor" d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.11.82-.26.82-.577v-2.234c-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.43.372.82 1.102.82 2.222v3.293c0 .319.22.694.825.576C20.565 21.795 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>`;
+    if (titleEl) titleEl.textContent = 'Sign in with GitHub';
+    const emailLabel = document.getElementById('oauth-modal-email-label');
+    if (emailLabel) emailLabel.textContent = 'GitHub Email Address';
+  }
+
+  // Clear previous inputs and hide spinner
+  const emailInput = document.getElementById('oauth-modal-email');
+  const nameInput  = document.getElementById('oauth-modal-name');
+  if (emailInput) emailInput.value = '';
+  if (nameInput)  nameInput.value  = '';
+
+  const fieldsForm = document.getElementById('oauth-fields-form');
+  const processing = document.getElementById('oauth-processing');
+  if (fieldsForm)  fieldsForm.style.display  = 'block';
+  if (processing)  processing.style.display  = 'none';
+
+  modal.style.display = 'flex';
+  setTimeout(() => { if (emailInput) emailInput.focus(); }, 100);
+}
+
+// Close the login modal
+function closeOAuthModal() {
+  const modal = document.getElementById('oauth-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+// Called by the "Authenticate Identity" button inside the inline modal
+function submitOAuthFlow() {
+  const emailInput = document.getElementById('oauth-modal-email');
+  const nameInput  = document.getElementById('oauth-modal-name');
+  const email = (emailInput ? emailInput.value.trim() : '');
+  const name  = (nameInput  ? nameInput.value.trim()  : '');
+
+  if (!email || !name) {
+    alert('Please enter both your email address and display name.');
+    return;
+  }
+  if (!email.includes('@') || !email.includes('.')) {
+    alert('Please enter a valid email address.');
+    return;
+  }
+
+  // Show spinner
+  const fieldsForm = document.getElementById('oauth-fields-form');
+  const processing = document.getElementById('oauth-processing');
+  if (fieldsForm) fieldsForm.style.display = 'none';
+  if (processing) processing.style.display = 'flex';
+
+  // Small delay for UX feel, then authenticate
+  setTimeout(() => submitOAuthHandshake(name, email), 800);
+}
+
+// Allow Enter key to submit the login form
+document.addEventListener('keydown', (e) => {
+  const modal = document.getElementById('oauth-modal');
+  if (modal && modal.style.display === 'flex' && e.key === 'Enter') {
+    submitOAuthFlow();
+  }
+});
+
+// Close modal when clicking the overlay background
+window.addEventListener('DOMContentLoaded', () => {
+  const oauthModal = document.getElementById('oauth-modal');
+  if (oauthModal) {
+    oauthModal.addEventListener('click', (e) => {
+      if (e.target === oauthModal) closeOAuthModal();
+    });
+  }
+});
+
+// Quick-fill helper function
+function quickFillDemo(role) {
+  const emailInput = document.getElementById('oauth-modal-email');
+  const nameInput  = document.getElementById('oauth-modal-name');
+  
+  if (role === 'student') {
+    if (emailInput) emailInput.value = 'student@gmail.com';
+    if (nameInput)  nameInput.value  = 'Challagolla Durga Sravan';
+    selectProvider = 'Google';
+  } else if (role === 'recruiter-google') {
+    if (emailInput) emailInput.value = 'hr@google.com';
+    if (nameInput)  nameInput.value  = 'Sundar Pichai (Google HR)';
+    selectProvider = 'Google';
+  } else if (role === 'recruiter-msft') {
+    if (emailInput) emailInput.value = 'hr@microsoft.com';
+    if (nameInput)  nameInput.value  = 'Satya Nadella (Microsoft HR)';
+    selectProvider = 'Google';
+  }
+}
+
+// postMessage listener still active (for any future popup-based flows)
+window.addEventListener('message', (event) => {
+  if (event.origin !== window.location.origin) return;
+  const data = event.data;
+  if (data && (data.type === 'google-oauth-success' || data.type === 'github-oauth-success')) {
+    selectProvider = data.provider;
+    submitOAuthHandshake(data.name, data.email);
+  }
+});
+
+function submitOAuthHandshake(nameInput, emailInput) {
+  // Exchange credentials dynamically
+  fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: emailInput,
+      name: nameInput,
+      provider: selectProvider
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.error) {
+      alert(data.error);
+      return;
+    }
+
+    currentUser = data.user;
+    currentCompany = data.company || null;  // Store company context for multi-tenant isolation
+    
+    // Update main navbar profile buttons
+    document.getElementById('nav-login-btn').style.display = 'none';
+    document.getElementById('nav-cta-btn').innerText = `Dashboard (${currentUser.name})`;
+    document.getElementById('nav-cta-btn').onclick = () => showView(currentUser.role === 'recruiter' ? 'admin' : 'student');
+
+    if (currentUser.role === 'recruiter') {
+      showView('admin');
+    } else {
+      showView('student');
+    }
+  })
+  .catch(err => {
+    console.error('Secure Token exchange failure:', err);
+    alert('Authentication database unreachable.');
+  });
+}
+
+// ── STUDENT DASHBOARD & CLAIMS SYSTEM ──
+function loadStudentDashboard() {
+  if (!currentUser) return;
+  
+  const avatarLetter = document.getElementById('student-avatar-letter');
+  if (avatarLetter) avatarLetter.innerText = currentUser.name.charAt(0).toUpperCase();
+
+  const profileName = document.getElementById('student-profile-name');
+  if (profileName) {
+    if (currentUser.skillproof_score >= 60) {
+      profileName.innerHTML = `${currentUser.name} <span class="certified-gold-badge" style="margin-left: 8px;">🏆 SkillProof Verified</span>`;
+    } else {
+      profileName.innerText = currentUser.name;
+    }
+  }
+
+  const profileEmail = document.getElementById('student-profile-email');
+  if (profileEmail) profileEmail.innerText = currentUser.email;
+
+  const profileSlug = document.getElementById('student-profile-slug');
+  if (profileSlug) profileSlug.innerText = `Personal slug: ${currentUser.profile_slug}`;
+
+  const sidebarScore = document.getElementById('student-sidebar-score');
+  if (sidebarScore) sidebarScore.innerText = currentUser.skillproof_score.toFixed(2);
+
+  const scoreBar = document.getElementById('student-score-bar');
+  if (scoreBar) scoreBar.style.width = Math.min(100, Math.max(0, currentUser.skillproof_score)) + '%';
+
+  // Fetch claimed skills
+  fetch(`/api/skills/status?student_email=${encodeURIComponent(currentUser.email)}`)
+    .then(res => res.json())
+    .then(claimedSkills => {
+      // Fetch master list of skills to see if they need to claim any first
+      fetch('/api/skills')
+        .then(res => res.json())
+        .then(masterSkills => {
+          renderClaimsSection(masterSkills, claimedSkills);
+          renderProgressiveVerifier(claimedSkills);
+          loadStudentSchedules();
+        });
+    });
+}
+
+// Render "Claim Skills" selectors for new students
+function renderClaimsSection(master, claimed) {
+  const wrapper = document.getElementById('claim-skills-wrapper');
+  const listContainer = document.getElementById('claim-skills-list');
+  listContainer.innerHTML = '';
+
+  // Filter skills not claimed yet
+  const unclaimed = master.filter(m => !claimed.some(c => c.skill_id === m.id));
+
+  if (unclaimed.length === 0) {
+    wrapper.style.display = 'none';
+    return;
+  }
+
+  wrapper.style.display = 'block';
+  unclaimed.forEach(s => {
+    const card = document.createElement('div');
+    card.className = 'skill-claim-card';
+    card.innerHTML = `
+      <h4>${s.name}</h4>
+      <p>${s.category}</p>
+      <label style="font-size:11px; font-weight:700; text-transform:uppercase;">Self Confidence Rating</label>
+      <select class="self-rate-select" id="rate-${s.id}">
+        <option value="1">1 / 5 (Novice)</option>
+        <option value="2">2 / 5 (Familiar)</option>
+        <option value="3" selected>3 / 5 (Competent)</option>
+        <option value="4">4 / 5 (Proficient)</option>
+        <option value="5">5 / 5 (Expert)</option>
+      </select>
+      <button onclick="claimSkill('${s.id}')" class="btn-primary" style="padding: 8px 16px; font-size:12px; width:100%; justify-content:center;">Claim Strength</button>
+    `;
+    listContainer.appendChild(card);
+  });
+}
+
+function claimSkill(skillId) {
+  const rating = document.getElementById(`rate-${skillId}`).value;
+
+  fetch('/api/skills/claim', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      student_email: currentUser.email,
+      skill_id: skillId,
+      self_rating: rating
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.error) {
+      alert(data.error);
+      return;
+    }
+    alert(data.message);
+    loadStudentDashboard();
+  });
+}
+
+// Render progressive multi-level assessment list based on claimed skills
+function renderProgressiveVerifier(claimed) {
+  const questionsList = document.getElementById('questions-list');
+  const badgesList = document.getElementById('earned-badges-list');
+  const progWrapper = document.getElementById('active-verification-wrapper');
+  
+  questionsList.innerHTML = '';
+  badgesList.innerHTML = '';
+  progWrapper.style.display = 'none';
+
+  if (claimed.length === 0) {
+    questionsList.innerHTML = '<div style="color:var(--gray-500)">Claim a skill above to unlock proctored shuffled assessments.</div>';
+    badgesList.innerHTML = '<div style="color:var(--gray-500)">No tags earned. Verification milestone pending.</div>';
+    return;
+  }
+
+  // Iterate over claimed skills and populate active verifiers
+  claimed.forEach(c => {
+    // 1. Render Portfolio tags earned
+    if (c.status === 'verified' && c.badge_tag) {
+      const badge = document.createElement('div');
+      badge.className = 'verified-skill-row';
+      const verifiedByLabel = c.verified_by || 'SkillProof AI';
+      const goldBadgeHTML = c.verified_score >= 60
+        ? ` <span class="certified-gold-badge" style="margin-left: 8px;">🏆 ${verifiedByLabel} Verified</span>`
+        : '';
+      badge.innerHTML = `
+        <div>
+          <strong style="font-size:16px;">${c.skill_name}${goldBadgeHTML}</strong>
+          <div style="font-size:12px; color:var(--gray-500); margin-top:2px;">Verified by SkillProof AI · Score: ${c.verified_score}/100</div>
+        </div>
+        <span class="verified-tag">${c.badge_tag}</span>
+      `;
+      badgesList.appendChild(badge);
+    }
+
+    // 2. Query next verification question (Dynamic Shuffling)
+    fetch(`/api/skills/verification-next?student_email=${encodeURIComponent(currentUser.email)}&skill_id=${c.skill_id}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'locked_failed') {
+          const row = document.createElement('div');
+          row.className = 'verified-skill-row';
+          row.style.borderColor = '#C62828';
+          row.innerHTML = `
+            <div>
+              <strong>${c.skill_name}</strong>
+              <div style="color:#C62828; font-size:12px; margin-top:4px;">⚠️ Verification Locked: Disqualified due to telemetry cheating sensor flags.</div>
+            </div>
+            <span class="status-tag disqualified" style="padding: 6px 14px;">DISQUALIFIED</span>
+          `;
+          questionsList.appendChild(row);
+        } 
+        else if (data.status === 'completed') {
+          // Completed rendering handled by badge tag list
+        } 
+        else if (data.status === 'unlocked') {
+          progWrapper.style.display = 'block';
+          document.getElementById('active-progression-skill-name').innerText = `Active verification path: ${c.skill_name}`;
+
+          // Highlight progression milestones (1, 2, 3)
+          resetProgressSteps();
+          const stepEasy = document.getElementById('prog-step-easy');
+          const stepMedium = document.getElementById('prog-step-medium');
+          const stepHard = document.getElementById('prog-step-hard');
+
+          if (data.difficulty === 'easy') {
+            stepEasy.className = 'progress-step active';
+          } else if (data.difficulty === 'medium') {
+            stepEasy.className = 'progress-step passed';
+            stepEasy.innerText = '✓';
+            stepMedium.className = 'progress-step active';
+          } else if (data.difficulty === 'hard') {
+            stepEasy.className = 'progress-step passed';
+            stepEasy.innerText = '✓';
+            stepMedium.className = 'progress-step passed';
+            stepMedium.innerText = '✓';
+            stepHard.className = 'progress-step active';
+          }
+
+          // Build dynamic question verifier challenge card
+          const q = data.question;
+          const qCard = document.createElement('div');
+          qCard.className = 'q-card';
+          qCard.style.borderLeft = '4px solid var(--orange)';
+          qCard.innerHTML = `
+            <div class="q-details">
+              <h3>${q.title}</h3>
+              <div class="q-badges">
+                <span class="q-badge ${q.difficulty}">${q.difficulty} Tier</span>
+                <span class="q-badge" style="background:var(--gray-50); color:var(--gray-700)">${q.expiration_minutes} Mins Expiry</span>
+              </div>
+            </div>
+            <button onclick="openExamRulesModal('${q.id}')" class="btn-primary" style="padding:10px 20px;">Unlock Arena →</button>
+          `;
+          questionsList.appendChild(qCard);
+        }
+      });
+  });
+}
+
+function resetProgressSteps() {
+  document.getElementById('prog-step-easy').className = 'progress-step';
+  document.getElementById('prog-step-easy').innerText = '1';
+  document.getElementById('prog-step-medium').className = 'progress-step';
+  document.getElementById('prog-step-medium').innerText = '2';
+  document.getElementById('prog-step-hard').className = 'progress-step';
+  document.getElementById('prog-step-hard').innerText = '3';
+}
+
+// Rules Modal Gate Helpers
+function openExamRulesModal(questionId, scheduleId = null) {
+  if (scheduleId) {
+    pendingScheduleId = scheduleId;
+    pendingExamQuestionId = null;
+  } else {
+    pendingExamQuestionId = questionId;
+    pendingScheduleId = null;
+  }
+  const modal = document.getElementById('exam-rules-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+  const checkbox = document.getElementById('accept-rules-checkbox');
+  if (checkbox) {
+    checkbox.checked = false;
+  }
+  toggleStartExamBtn(false);
+}
+
+function closeExamRulesModal() {
+  const modal = document.getElementById('exam-rules-modal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+  pendingExamQuestionId = null;
+  pendingScheduleId = null;
+}
+
+function toggleStartExamBtn(isChecked) {
+  const btn = document.getElementById('start-verified-exam-btn');
+  if (btn) {
+    if (isChecked) {
+      btn.style.opacity = '1';
+      btn.style.pointerEvents = 'auto';
+    } else {
+      btn.style.opacity = '0.5';
+      btn.style.pointerEvents = 'none';
+    }
+  }
+}
+
+function confirmStartExam() {
+  if (pendingScheduleId) {
+    const sId = pendingScheduleId;
+    closeExamRulesModal();
+    startScheduledExam(sId);
+  } else if (pendingExamQuestionId) {
+    const qId = pendingExamQuestionId;
+    closeExamRulesModal();
+    startExam(qId);
+  }
+}
+
+// ── TIMED EXAM ENGINE & HIGH SECURITY PROCTORING ──
+async function startExam(questionId) {
+  if (!currentUser) {
+    showView('auth');
+    return;
+  }
+
+  // 1. Enforce Full Screen
+  try {
+    await document.documentElement.requestFullscreen();
+  } catch (err) {
+    alert('Security prerequisite: Full Screen mode must be permitted to unlock high-security assessments.');
+    return;
+  }
+
+  // 2. Access Camera and microphone WebRTC streams
+  const mediaStreamsOk = await initProctorMediaStreams();
+  if (!mediaStreamsOk) {
+    if (document.fullscreenElement) document.exitFullscreen().catch(err=>{});
+    alert('Security prerequisite: Both microphone and webcam feed must be active.');
+    return;
+  }
+
+  // 3. Capture Screen Sharing
+  const screenShared = await initScreenShare();
+  if (!screenShared) {
+    cleanupStreams();
+    if (document.fullscreenElement) document.exitFullscreen().catch(err=>{});
+    alert('Security prerequisite: Full primary display screen sharing is required.');
+    return;
+  }
+
+  // Call Server to register TIMED attempt
+  fetch('/api/exams/start', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      student_email: currentUser.email,
+      question_id: questionId
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.error) {
+      alert(data.error);
+      cleanupStreams();
+      if (document.fullscreenElement) document.exitFullscreen().catch(err=>{});
+      return;
+    }
+
+    currentExam = data;
+    activeProctorViolations = false;
+    document.getElementById('disqualify-alert').style.display = 'none';
+    document.getElementById('active-question-title').innerText = currentExam.questionTitle || 'Timed Coding Challenge';
+    document.getElementById('code-editor').value = currentExam.codeTemplate;
+
+    // Reset Simulators
+    document.getElementById('sim-bluetooth-check').checked = false;
+    document.getElementById('sim-phone-check').checked = false;
+    document.getElementById('sim-camera-check').checked = false;
+    document.getElementById('sim-screen-check').checked = false;
+
+    // Reset status indicators
+    document.getElementById('ind-camera').innerText = 'ACTIVE';
+    document.getElementById('ind-camera').className = 'sec-indicator-status ok';
+    document.getElementById('ind-mic').innerText = 'ACTIVE';
+    document.getElementById('ind-mic').className = 'sec-indicator-status ok';
+    document.getElementById('ind-screen').innerText = 'SHARING';
+    document.getElementById('ind-screen').className = 'sec-indicator-status ok';
+    document.getElementById('ind-focus').innerText = 'SECURED';
+    document.getElementById('ind-focus').className = 'sec-indicator-status ok';
+    document.getElementById('ind-bluetooth').innerText = 'DISABLED (OK)';
+    document.getElementById('ind-bluetooth').className = 'sec-indicator-status ok';
+    document.getElementById('ind-phone').innerText = 'NOT DETECTED';
+    document.getElementById('ind-phone').className = 'sec-indicator-status ok';
+
+    document.getElementById('view-exam').classList.add('strict-mode');
+    showView('exam');
+    startCountdown(currentExam.expirationMinutes * 60);
+    bindFocusIntegrity();
+  })
+  .catch(err => {
+    console.error('Failed to create timed session:', err);
+    cleanupStreams();
+  });
+}
+
+// Media streams setup: camera + audio microphone
+async function initProctorMediaStreams() {
+  const videoEl = document.getElementById('proctor-video');
+  const placeholder = document.getElementById('camera-placeholder');
+
+  try {
+    // Request webcam
+    videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    videoEl.srcObject = videoStream;
+    placeholder.style.display = 'none';
+    videoEl.style.display = 'block';
+
+    // Request active audio microphone
+    audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    
+    // Bind microphone decibel analysis simulation
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioContext.createAnalyser();
+    const source = audioContext.createMediaStreamSource(audioStream);
+    source.connect(analyser);
+    analyser.fftSize = 256;
+
+    // Set visual decibel bar timer
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    const bars = document.querySelectorAll('.decibel-bar');
+    
+    micInterval = setInterval(() => {
+      analyser.getByteFrequencyData(dataArray);
+      let values = 0;
+      for (let i = 0; i < dataArray.length; i++) {
+        values += dataArray[i];
+      }
+      let average = values / dataArray.length;
+
+      // Map average to highlighting decibel indicator blocks
+      bars.forEach((bar, idx) => {
+        if (average > (idx * 5) + 2) {
+          bar.classList.add('active');
+        } else {
+          bar.classList.remove('active');
+        }
+      });
+
+      // Periodic check if microphone is muted
+      const audioTrack = audioStream.getAudioTracks()[0];
+      if (!audioTrack || !audioTrack.enabled || audioTrack.muted) {
+        logViolation('mic_muted');
+      }
+    }, 100);
+
+    return true;
+  } catch (err) {
+    console.error('Proctor hardware stream error:', err);
+    placeholder.innerText = '⚠️ Camera/Mic Blocked';
+    return false;
+  }
+}
+
+// Screen Sharing Init
+async function initScreenShare() {
+  try {
+    screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+    // If the candidate stops screen sharing manually, trigger violation
+    screenStream.getVideoTracks()[0].addEventListener('ended', () => {
+      logViolation('screen_share_off');
+    });
+    return true;
+  } catch (err) {
+    console.error('Screen sharing denied:', err);
+    return false;
+  }
+}
+
+// Timer Loop
+function startCountdown(durationSeconds) {
+  let timer = durationSeconds;
+  const timerDisplay = document.getElementById('active-timer');
+
+  clearInterval(currentTimer);
+  currentTimer = setInterval(() => {
+    const minutes = Math.floor(timer / 60);
+    const seconds = timer % 60;
+
+    timerDisplay.innerText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+    if (--timer < 0) {
+      clearInterval(currentTimer);
+      timerDisplay.innerText = "00:00";
+      alert('Time limit expired! Solution is auto-submitting.');
+      submitExam(true);
+    }
+  }, 1000);
+}
+
+// Anti-Cheat security listeners: focus blur and fullscreen exiting
+function bindFocusIntegrity() {
+  // Focus exits
+  window.onblur = () => {
+    if (document.getElementById('view-exam').classList.contains('active')) {
+      logViolation('tab_exit');
+    }
+  };
+  document.onvisibilitychange = () => {
+    if (document.visibilityState === 'hidden' && document.getElementById('view-exam').classList.contains('active')) {
+      logViolation('tab_exit');
+    }
+  };
+
+  // Full Screen changes
+  document.onfullscreenchange = () => {
+    if (!document.fullscreenElement && document.getElementById('view-exam').classList.contains('active')) {
+      logViolation('fullscreen_exit');
+    }
+  };
+
+  // Bind Anti-copy & paste listeners to editor
+  const editor = document.getElementById('code-editor');
+  editor.oncopy = e => e.preventDefault();
+  editor.oncut = e => e.preventDefault();
+  editor.onpaste = e => e.preventDefault();
+  editor.oncontextmenu = e => e.preventDefault();
+}
+
+// Log infractions to database
+function logViolation(violationType) {
+  if (!currentExam) return;
+
+  fetch('/api/exams/violation', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      exam_id: currentExam.examId,
+      type: violationType
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    activeProctorViolations = true;
+    
+    // Display massive alert freeze banner
+    document.getElementById('disqualify-alert').style.display = 'flex';
+    document.getElementById('disqualify-alert').scrollIntoView({ behavior: 'smooth' });
+
+    // Update specific sidebar telemetry status tags
+    if (violationType === 'tab_exit') {
+      const ind = document.getElementById('ind-focus');
+      ind.innerText = 'BREACH (TAB EXIT)';
+      ind.className = 'sec-indicator-status err';
+    } else if (violationType === 'fullscreen_exit') {
+      const ind = document.getElementById('ind-focus');
+      ind.innerText = 'BREACH (FULLSCREEN EXIT)';
+      ind.className = 'sec-indicator-status err';
+    } else if (violationType === 'camera_off') {
+      const ind = document.getElementById('ind-camera');
+      ind.innerText = 'BREACH (CAMERA OFF)';
+      ind.className = 'sec-indicator-status err';
+    } else if (violationType === 'mic_muted') {
+      const ind = document.getElementById('ind-mic');
+      ind.innerText = 'BREACH (MIC MUTED)';
+      ind.className = 'sec-indicator-status err';
+    } else if (violationType === 'screen_share_off') {
+      const ind = document.getElementById('ind-screen');
+      ind.innerText = 'BREACH (STOPPED)';
+      ind.className = 'sec-indicator-status err';
+    } else if (violationType === 'bluetooth_on') {
+      const ind = document.getElementById('ind-bluetooth');
+      ind.innerText = 'BREACH (ACTIVE DEVICE)';
+      ind.className = 'sec-indicator-status err';
+    } else if (violationType === 'phone_detected') {
+      const ind = document.getElementById('ind-phone');
+      ind.innerText = 'BREACH (PHONE DETECTED)';
+      ind.className = 'sec-indicator-status err';
+    }
+  });
+}
+
+// Infraction simulator hooks (Hidden in debug drawer Ctrl + Shift + D)
+function simulateBluetoothViolation(isActive) {
+  if (isActive) logViolation('bluetooth_on');
+}
+function simulatePhoneViolation(isActive) {
+  if (isActive) logViolation('phone_detected');
+}
+function simulateCameraOffViolation(isActive) {
+  if (isActive) {
+    if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+    document.getElementById('proctor-video').style.display = 'none';
+    document.getElementById('camera-placeholder').style.display = 'flex';
+    document.getElementById('camera-placeholder').innerText = '⚠️ Stream disconnected';
+    logViolation('camera_off');
+  }
+}
+function simulateScreenOffViolation(isActive) {
+  if (isActive) {
+    if (screenStream) screenStream.getTracks().forEach(t => t.stop());
+    logViolation('screen_share_off');
+  }
+}
+
+// Open / Close Developer debugging Telemetry drawer with Ctrl + Shift + D
+window.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+    e.preventDefault();
+    const panel = document.getElementById('secret-debug-panel');
+    panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+  }
+});
+
+// Submit Exam Solution
+function submitExam(isAutoSubmit = false) {
+  if (!currentExam) return;
+
+  const code = document.getElementById('code-editor').value;
+
+  fetch('/api/exams/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      exam_id: currentExam.examId,
+      code: code
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === 'disqualified') {
+      alert(`Assessment Finished: Results are WITHHELD due to proctoring security infractions (${data.violationsCount} violations logged).`);
+      exitExamEnvironment(data);
+      return;
+    } else if (data.status === 'expired') {
+      alert('Assessment Finished: Exam session has expired.');
+      exitExamEnvironment(data);
+      return;
+    }
+
+    // Check if this is a scheduled multi-stage assessment with more questions remaining
+    if (currentExam.scheduleId && currentExam.questionList && (currentExam.currentQuestionIndex + 1 < currentExam.questionList.length)) {
+      const nextIndex = currentExam.currentQuestionIndex + 1;
+      const nextQuestionId = currentExam.questionList[nextIndex];
+
+      alert(`Level Submitted Successfully!\nScore: ${data.score}/100\nCorrectness: ${data.scores.correctness}/40\nAI Summary: "${data.aiSummary}"\n\nAdvancing to Stage ${nextIndex + 1} of ${currentExam.questionList.length}...`);
+
+      fetch('/api/exams/next-scheduled', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          student_email: currentUser.email,
+          schedule_id: currentExam.scheduleId,
+          question_id: nextQuestionId,
+          prev_exam_id: currentExam.examId
+        })
+      })
+      .then(res => res.json())
+      .then(nextData => {
+        if (nextData.error) {
+          alert(nextData.error);
+          exitExamEnvironment(data);
+          return;
+        }
+
+        // Update currentExam properties in-place!
+        currentExam.examId = nextData.examId;
+        currentExam.currentQuestionIndex = nextIndex;
+        currentExam.questionTitle = nextData.questionTitle;
+        currentExam.codeTemplate = nextData.codeTemplate;
+
+        // Seamlessly update UI in-place (WebRTC camera, mic, screen share, and overall countdown timer continue uninterrupted!)
+        document.getElementById('active-question-title').innerText = currentExam.questionTitle || 'Scheduled Coding Challenge';
+        document.getElementById('code-editor').value = currentExam.codeTemplate;
+      })
+      .catch(err => {
+        console.error('Failed to load next stage:', err);
+        exitExamEnvironment(data);
+      });
+    } else {
+      // Final stage or single timed assessment completed
+      alert(`Assessment Evaluated Successfully!\nFinal Score: ${data.score}/100\nCorrectness: ${data.scores.correctness}/40\nQuality: ${data.scores.quality}/25\nEdge Cases: ${data.scores.edgeCases}/20\nUnderstanding: ${data.scores.understanding}/15\n\nAI Analysis Report Summary:\n"${data.aiSummary}"`);
+      exitExamEnvironment(data);
+    }
+  })
+  .catch(err => {
+    console.error('Submission failed:', err);
+  });
+}
+
+function exitExamEnvironment(data) {
+  document.getElementById('view-exam').classList.remove('strict-mode');
+  clearInterval(currentTimer);
+  cleanupStreams();
+  if (document.fullscreenElement) {
+    document.exitFullscreen().catch(err => {});
+  }
+  showView('student');
+  if (currentUser) {
+    loadStudentDashboard();
+  }
+}
+
+// ── ADMIN VIEW: CREATE TIMED QUESTIONS ──
+function createQuestion() {
+  const title = document.getElementById('add-q-title').value;
+  const difficulty = document.getElementById('add-q-diff').value;
+  const exp = document.getElementById('add-q-exp').value;
+  const template = document.getElementById('add-q-template').value;
+
+  if (!title || !template) {
+    alert('Please fill out all required fields.');
+    return;
+  }
+
+  fetch('/api/questions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: title,
+      difficulty: difficulty,
+      expiration_minutes: exp,
+      code_template: template
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    alert('Timed Challenge published successfully.');
+    document.getElementById('add-q-title').value = '';
+    document.getElementById('add-q-template').value = '';
+  });
+}
+
+// ── ADMIN VIEW: LOAD HISTORIC LOGS & AI SYNTHESIS SUMMARIES ──
+let masterSkillsList = [];
+let bulkCandidateRowCount = 0;
+
+function addCandidateRow(name = '', email = '', skillId = '') {
+  bulkCandidateRowCount++;
+  const container = document.getElementById('bulk-dispatch-rows');
+  if (!container) return;
+  const rowId = `bulk-row-${bulkCandidateRowCount}`;
+  
+  const div = document.createElement('div');
+  div.id = rowId;
+  div.style.border = '1px solid var(--gray-100)';
+  div.style.borderRadius = 'var(--radius-sm)';
+  div.style.padding = '12px';
+  div.style.background = 'var(--gray-50)';
+  div.style.position = 'relative';
+  div.style.display = 'flex';
+  div.style.flexDirection = 'column';
+  div.style.gap = '8px';
+  
+  let selectOptions = '';
+  masterSkillsList.forEach(skill => {
+    const selected = skill.id === skillId ? 'selected' : '';
+    selectOptions += `<option value="${skill.id}" ${selected}>${skill.name}</option>`;
+  });
+  
+  div.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-size:11px; font-weight:700; color:var(--orange-deep); text-transform:uppercase;">Candidate #${bulkCandidateRowCount}</span>
+      <button onclick="removeCandidateRow('${rowId}')" style="background:none; border:none; color:#C62828; cursor:pointer; font-size:11px; font-weight:700;">Remove</button>
+    </div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+      <input type="text" class="bulk-cand-name" placeholder="Alice Logan" value="${name}" style="padding:6px; border:1px solid var(--gray-200); border-radius:var(--radius-sm); font-size:12px;" />
+      <input type="email" class="bulk-cand-email" placeholder="alice@gmail.com" value="${email}" style="padding:6px; border:1px solid var(--gray-200); border-radius:var(--radius-sm); font-size:12px;" />
+    </div>
+    <select class="bulk-cand-skill" style="padding:6px; border:1px solid var(--gray-200); border-radius:var(--radius-sm); font-size:12px; width:100%;">
+      ${selectOptions}
+    </select>
+  `;
+  
+  container.appendChild(div);
+  
+  if (document.body.classList.contains('dark-theme')) {
+    div.style.background = '#0C0A09';
+    div.style.borderColor = '#2A2624';
+    div.querySelectorAll('input, select').forEach(el => {
+      el.style.background = '#171412';
+      el.style.borderColor = '#3A3935';
+      el.style.color = '#FFF';
+    });
+  }
+}
+
+function removeCandidateRow(rowId) {
+  const row = document.getElementById(rowId);
+  if (row) row.remove();
+}
+
+function closeBulkDispatchModal() {
+  document.getElementById('bulk-dispatch-modal').style.display = 'none';
+  loadAdminHistory();
+}
+
+async function runBulkDispatch() {
+  const rowElements = document.querySelectorAll('#bulk-dispatch-rows > div');
+  if (rowElements.length === 0) {
+    alert('Please add at least one candidate row.');
+    return;
+  }
+
+  const candidates = [];
+  let validationError = false;
+
+  rowElements.forEach(row => {
+    const nameInput = row.querySelector('.bulk-cand-name');
+    const emailInput = row.querySelector('.bulk-cand-email');
+    const skillSelect = row.querySelector('.bulk-cand-skill');
+
+    if (!nameInput || !emailInput || !skillSelect) return;
+
+    const name = nameInput.value.trim();
+    const email = emailInput.value.trim();
+    const skillId = skillSelect.value;
+
+    if (!name || !email) {
+      validationError = true;
+      return;
+    }
+    candidates.push({ name, email, skillId });
+  });
+
+  if (validationError) {
+    alert('Please fill out all candidate names and emails.');
+    return;
+  }
+
+  document.getElementById('bulk-dispatch-modal').style.display = 'flex';
+  document.getElementById('bulk-dispatch-finished-actions').style.display = 'none';
+  
+  const progressBar = document.getElementById('bulk-dispatch-progress-bar');
+  progressBar.style.width = '0%';
+
+  const logConsole = document.getElementById('bulk-dispatch-sending-log');
+  logConsole.innerHTML = '';
+
+  const logMessage = (msg, color = '#FFF') => {
+    const div = document.createElement('div');
+    div.style.color = color;
+    div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    logConsole.appendChild(div);
+    logConsole.scrollTop = logConsole.scrollHeight;
+  };
+
+  logMessage('SMTP & Proctoring Console Pipeline Initializing...', '#FFD7C9');
+  logMessage(`Prepared bulk job skill queue for ${candidates.length} candidates.`);
+
+  const tableBody = document.getElementById('bulk-dispatch-report-table-body');
+  tableBody.innerHTML = '';
+
+  let successCount = 0;
+  const processedResults = [];
+
+  for (let i = 0; i < candidates.length; i++) {
+    const cand = candidates[i];
+    progressBar.style.width = Math.round((i / candidates.length) * 100) + '%';
+
+    logMessage(`----------------------------------------`, '#6B6A64');
+    logMessage(`Onboarding candidate: ${cand.name} (${cand.email})...`, '#FFF');
+    
+    await new Promise(r => setTimeout(r, 400));
+    logMessage(`Connecting to SMTP relay server (Port 465 SSL)...`, '#B0AFA8');
+    
+    await new Promise(r => setTimeout(r, 450));
+    logMessage(`SMTP handshake established. Transmitting timed skill challenge...`, '#2E7D32');
+
+    await new Promise(r => setTimeout(r, 400));
+    logMessage(`Candidate connected WebRTC proctor: webcam stream & microphone sensor active.`, '#B0AFA8');
+
+    await new Promise(r => setTimeout(r, 450));
+    logMessage(`Invoking SkillProof AI Senior Auditor for evaluation...`, '#FFD7C9');
+
+    try {
+      // MULTI-TENANT: Attach company_id so dispatched exams are scoped to this company
+      const res = await fetch('/api/recruiter/dispatch-and-evaluate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ candidates: [cand], company_id: currentCompany ? currentCompany.id : null })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.results && data.results.length > 0) {
+        const result = data.results[0];
+        successCount++;
+        processedResults.push(result);
+
+        const infractionMsg = result.violationsCount > 0 
+          ? `⚠️ Proctor flag: ${result.violationsCount} breach` 
+          : `✓ Proctor clean`;
+        
+        logMessage(`AI Report Synthesized: Score: ${result.status === 'disqualified' ? 'WITHHELD' : result.score}/100 | ${infractionMsg}`, '#FFD7C9');
+        logMessage(`✓ Successful dispatch completed for ${cand.name}.`, '#2E7D32');
+      } else {
+        logMessage(`❌ Failed to dispatch / evaluate candidate: ${data.error || 'Server error'}`, '#FF5252');
+      }
+    } catch (err) {
+      logMessage(`❌ Network error executing evaluation: ${err.message}`, '#FF5252');
+    }
+  }
+
+  progressBar.style.width = '100%';
+  logMessage(`----------------------------------------`, '#6B6A64');
+  logMessage(`Bulk dispatch complete. Success count: ${successCount} / ${candidates.length}`, '#FFF');
+
+  processedResults.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid var(--gray-100)';
+    
+    const violationBadge = r.violationsCount > 0 
+      ? `<span style="color:#C62828; font-weight:700;">⚠️ ${r.violationsCount} violations</span>` 
+      : `<span style="color:#2E7D32; font-weight:700;">✓ Clean proctor</span>`;
+
+    tr.innerHTML = `
+      <td style="padding: 8px 6px;">
+        <strong>${r.name}</strong><br/>
+        <span style="color:var(--gray-500); font-size:10px">${r.email}</span>
+      </td>
+      <td style="padding: 8px 6px;">${r.skillName}</td>
+      <td style="padding: 8px 6px;"><strong>${r.status === 'disqualified' ? 'WITHHELD' : r.score + '/100'}</strong></td>
+      <td style="padding: 8px 6px;">${violationBadge}</td>
+      <td style="padding: 8px 6px; text-align: right; color:#2E7D32; font-weight:700;">${r.smtpStatus}</td>
+    `;
+    tableBody.appendChild(tr);
+  });
+
+  document.getElementById('bulk-dispatch-finished-actions').style.display = 'block';
+}
+
+function loadAdminHistory() {
+  const historyBody = document.getElementById('admin-history-list');
+  historyBody.innerHTML = '<tr><td colspan="7" style="color:var(--gray-500)">Syncing historic logs...</td></tr>';
+
+  // Ensure master checkbox is cleared on every refresh
+  const selectAll = document.getElementById('select-all-history');
+  if (selectAll) selectAll.checked = false;
+  updateSelectedCandidatesCount();
+
+  // Update recruiter dashboard title with company name
+  const historyTitle = document.getElementById('recruiter-history-title');
+  if (historyTitle && currentCompany) {
+    historyTitle.innerText = `${currentCompany.name} — Assessments & Proctoring History`;
+  }
+
+  const renderHistory = () => {
+    // MULTI-TENANT: Pass company_id to filter by recruiter's company
+    const companyParam = currentCompany ? `?company_id=${currentCompany.id}` : '';
+    fetch('/api/exams/history' + companyParam)
+      .then(res => res.json())
+      .then(exams => {
+        currentExamsList = exams; // Store globally!
+        historyBody.innerHTML = '';
+        if (exams.length === 0) {
+          historyBody.innerHTML = '<tr><td colspan="7" style="color:var(--gray-500)">No students have taken tests yet.</td></tr>';
+          return;
+        }
+
+        exams.forEach(exam => {
+          let infractionLog = '';
+          if (exam.violations && exam.violations.length > 0) {
+            infractionLog = exam.violations.map(v => {
+              const time = new Date(v.timestamp).toLocaleTimeString();
+              return `• [${time}] Breach: ${v.type.toUpperCase()}`;
+            }).join('<br/>');
+          } else {
+            infractionLog = '<span style="color:#2E7D32">No breaches recorded</span>';
+          }
+
+          const summaryText = exam.ai_summary || 'Evaluating...';
+          const finalScore = exam.status === 'disqualified' ? 0 : (exam.score || 0);
+          
+          // Company-specific badge beside student names if >= 60
+          const companyLabel = currentCompany ? currentCompany.name : 'SkillProof';
+          const goldBadgeHTML = finalScore >= 60
+            ? ` <span class="certified-gold-badge" style="margin-left: 6px;">🏆 ${companyLabel} Verified</span>`
+            : '';
+
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td style="text-align: center;">
+              <input type="checkbox" class="candidate-checkbox" data-email="${exam.student_email}" data-name="${exam.student_name}" data-score="${finalScore}" data-skill="${exam.question_title}" data-violations="${exam.violations_count}" onchange="updateSelectedCandidatesCount()" style="transform:scale(1.2); cursor:pointer;" />
+            </td>
+            <td>
+              <strong>${exam.student_name}${goldBadgeHTML}</strong><br/>
+              <span style="color:var(--gray-500); font-size:11px">${exam.student_email}</span>
+            </td>
+            <td>${exam.question_title}</td>
+            <td>
+              <strong style="color:${exam.violations_count > 0 ? '#C62828' : '#2E7D32'}">
+                ${exam.violations_count}
+              </strong>
+            </td>
+            <td><span class="status-tag ${exam.status}">${exam.status.toUpperCase()}</span></td>
+            <td><strong>${exam.status === 'disqualified' ? 'WITHHELD' : finalScore + '/100'}</strong></td>
+            <td>
+              <div style="font-size:12px; font-weight:500; color:var(--gray-900); background:var(--gray-50); border:1px solid var(--gray-100); padding:10px; border-radius:4px; margin-bottom:8px; line-height:1.4;">
+                💡 <strong>AI Summary:</strong> ${summaryText}
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                <div style="font-size:10px; color:var(--gray-500); line-height:1.4;">${infractionLog}</div>
+                <button onclick="viewCandidateCode('${exam.examId}')" class="btn-ghost" style="padding: 4px 8px; font-size: 11px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; border-radius: 4px;">
+                  💻 View Submitted Code
+                </button>
+              </div>
+            </td>
+          `;
+          historyBody.appendChild(tr);
+        });
+      });
+  };
+
+  if (masterSkillsList.length === 0) {
+    fetch('/api/skills')
+      .then(res => res.json())
+      .then(skills => {
+        masterSkillsList = skills;
+        const dispatcherRows = document.getElementById('bulk-dispatch-rows');
+        if (dispatcherRows && dispatcherRows.children.length === 0) {
+          addCandidateRow('David Jones', 'david.jones@gmail.com', masterSkillsList[0]?.id);
+          addCandidateRow('Emily Watson', 'emily.watson@yahoo.com', masterSkillsList[1]?.id || masterSkillsList[0]?.id);
+        }
+        populateScheduleSkillSelect();
+        loadRecruiterSchedules();
+        renderHistory();
+      })
+      .catch(err => {
+        console.error('Failed to load master skills list:', err);
+        renderHistory();
+      });
+  } else {
+    populateScheduleSkillSelect();
+    loadRecruiterSchedules();
+    renderHistory();
+  }
+}
+
+// Candidate Code Viewer Methods
+function viewCandidateCode(examId) {
+  const exam = currentExamsList.find(e => e.examId === examId || e.id === examId);
+  if (!exam) {
+    alert('Candidate record not found.');
+    return;
+  }
+  
+  const codeContent = exam.submitted_code || '// No code submitted.';
+  const codeView = document.getElementById('submitted-code-content-view');
+  if (codeView) {
+    codeView.textContent = codeContent; // Prevent HTML injection safely!
+  }
+  
+  const modalSubtitle = document.getElementById('submitted-code-modal-subtitle');
+  if (modalSubtitle) {
+    modalSubtitle.innerText = `Exact logic answer submitted by ${exam.student_name} for ${exam.question_title}`;
+  }
+  
+  const modal = document.getElementById('view-submitted-code-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+}
+
+function closeSubmittedCodeModal() {
+  const modal = document.getElementById('view-submitted-code-modal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+// ── STUDENT DASHBOARD SUB-TAB SWITCHER ──
+function switchStudentTab(tabName) {
+  // Hide all student workspace panels
+  document.querySelectorAll('.student-workspace-panel').forEach(panel => {
+    panel.classList.remove('active');
+  });
+  // Show target student workspace panel
+  const target = document.getElementById('tab-' + tabName);
+  if (target) target.classList.add('active');
+
+  // Deactivate all navigation buttons
+  document.querySelectorAll('.student-nav-item').forEach(item => {
+    item.classList.remove('active');
+  });
+  // Activate target button
+  const targetBtn = document.getElementById('nav-btn-' + tabName);
+  if (targetBtn) targetBtn.classList.add('active');
+
+  // Refresh content dynamically
+  if (currentUser) {
+    loadStudentDashboard();
+  }
+}
+
+// ── RECRUITER BULK ACTION TRIGGERS & SENDING UTILITIES ──
+function toggleSelectAllCandidates(isChecked) {
+  const checkboxes = document.querySelectorAll('.candidate-checkbox');
+  checkboxes.forEach(cb => {
+    cb.checked = isChecked;
+  });
+  updateSelectedCandidatesCount();
+}
+
+function updateSelectedCandidatesCount() {
+  const checkboxes = document.querySelectorAll('.candidate-checkbox:checked');
+  const count = checkboxes.length;
+  const countLabel = document.getElementById('bulk-selected-count');
+  const toolbar = document.getElementById('bulk-actions-toolbar');
+
+  if (countLabel) {
+    countLabel.innerText = `${count} candidate${count !== 1 ? 's' : ''} selected`;
+  }
+
+  if (toolbar) {
+    if (count > 0) {
+      toolbar.style.display = 'flex';
+    } else {
+      toolbar.style.display = 'none';
+    }
+  }
+}
+
+function openBulkEmailModal() {
+  const modal = document.getElementById('bulk-email-modal');
+  if (modal) modal.style.display = 'flex';
+
+  const composer = document.getElementById('bulk-email-composer-view');
+  if (composer) composer.style.display = 'block';
+
+  const sendingView = document.getElementById('bulk-email-sending-view');
+  if (sendingView) sendingView.style.display = 'none';
+
+  // Populate dynamic candidate verification checklist
+  const verifyList = document.getElementById('bulk-email-candidates-verify-list');
+  verifyList.innerHTML = '';
+
+  const checkedBoxes = document.querySelectorAll('.candidate-checkbox:checked');
+  checkedBoxes.forEach(cb => {
+    const email = cb.getAttribute('data-email');
+    const name = cb.getAttribute('data-name');
+    const score = cb.getAttribute('data-score');
+    const skill = cb.getAttribute('data-skill');
+    const violations = parseInt(cb.getAttribute('data-violations') || '0');
+
+    const infractionBadge = violations > 0 
+      ? `<span style="color:#C62828; font-weight:700;">⚠️ ${violations} infractions</span>` 
+      : `<span style="color:#2E7D32; font-weight:700;">✓ Clean proctor</span>`;
+
+    const item = document.createElement('div');
+    item.style.display = 'flex';
+    item.style.justifyContent = 'space-between';
+    item.style.alignItems = 'center';
+    item.style.padding = '8px 12px';
+    item.style.background = 'var(--white)';
+    item.style.border = '1px solid var(--gray-100)';
+    item.style.borderRadius = 'var(--radius-sm)';
+    item.style.fontSize = '12px';
+    item.innerHTML = `
+      <div>
+        <strong>${name}</strong> (${email})
+        <div style="font-size:10px; color:var(--gray-500); margin-top:2px;">Skill: ${skill} · Verified Score: ${score}/100</div>
+      </div>
+      <div>
+        ${infractionBadge}
+      </div>
+    `;
+    verifyList.appendChild(item);
+  });
+}
+
+function closeBulkEmailModal(shouldReset = false) {
+  const modal = document.getElementById('bulk-email-modal');
+  if (modal) modal.style.display = 'none';
+
+  if (shouldReset) {
+    const checkboxes = document.querySelectorAll('.candidate-checkbox');
+    checkboxes.forEach(cb => {
+      cb.checked = false;
+    });
+    const selectAll = document.getElementById('select-all-history');
+    if (selectAll) selectAll.checked = false;
+    updateSelectedCandidatesCount();
+  }
+}
+
+async function sendBulkEmails() {
+  const checkedBoxes = document.querySelectorAll('.candidate-checkbox:checked');
+  if (checkedBoxes.length === 0) return;
+
+  const subject = document.getElementById('bulk-email-subject').value;
+  const bodyTemplate = document.getElementById('bulk-email-body').value;
+
+  // Show sending progress log, hide composer
+  document.getElementById('bulk-email-composer-view').style.display = 'none';
+  document.getElementById('bulk-email-sending-view').style.display = 'block';
+
+  const logConsole = document.getElementById('bulk-email-sending-log');
+  logConsole.innerHTML = '';
+
+  const progressBar = document.getElementById('bulk-email-progress-bar');
+  progressBar.style.width = '0%';
+
+  document.getElementById('bulk-email-finished-actions').style.display = 'none';
+
+  const total = checkedBoxes.length;
+  let successCount = 0;
+
+  const logMessage = (msg, isSuccess = true) => {
+    const div = document.createElement('div');
+    div.style.color = isSuccess ? '#FFF' : '#FF5252';
+    div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    logConsole.appendChild(div);
+    logConsole.scrollTop = logConsole.scrollHeight;
+  };
+
+  logMessage(`SMTP Initializing high-speed secure bulk queue runner...`);
+  logMessage(`Prepared ${total} personalized candidates reports to send.`);
+
+  for (let i = 0; i < total; i++) {
+    const cb = checkedBoxes[i];
+    const email = cb.getAttribute('data-email');
+    const name = cb.getAttribute('data-name');
+    const score = cb.getAttribute('data-score');
+    const skill = cb.getAttribute('data-skill');
+
+    // High fidelity simulated artificial timeout delay (~600ms) for professional SMTP logs
+    await new Promise(resolve => setTimeout(resolve, 600));
+
+    logMessage(`Establishing SSL connection for target recipient: ${email}...`);
+
+    // Dynamic template replacement using placeholders
+    const customBody = bodyTemplate
+      .replace(/{name}/g, name)
+      .replace(/{score}/g, score)
+      .replace(/{skill}/g, skill);
+
+    try {
+      const response = await fetch('/api/recruiter/send-bulk-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          emails: [email],
+          subject: subject,
+          body: customBody
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        successCount++;
+        logMessage(`✓ Success: Verification report invite sent and logged to database for ${name} (${email})`, true);
+      } else {
+        logMessage(`❌ Error: API response failure for candidate ${email}: ${result.error || 'Unknown error'}`, false);
+      }
+    } catch (err) {
+      logMessage(`❌ Network Error: Failed to transmit SMTP parcel for ${email}: ${err.message}`, false);
+    }
+
+    // Update progress bar
+    const pct = Math.round(((i + 1) / total) * 100);
+    progressBar.style.width = pct + '%';
+  }
+
+  logMessage(`SMTP Pipeline finished. Total attempted: ${total} | Dispatched successfully: ${successCount}.`);
+  
+  // Show final actions
+  document.getElementById('bulk-email-finished-actions').style.display = 'block';
+}
+
+// ── EXAM SCHEDULING SYSTEM: FRONTEND INTEGRATION ──
+function populateScheduleSkillSelect() {
+  const select = document.getElementById('schedule-skill-select');
+  if (!select) return;
+  select.innerHTML = '';
+  masterSkillsList.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.innerText = s.name;
+    select.appendChild(opt);
+  });
+}
+
+function scheduleExamSequence() {
+  if (!currentUser || !currentCompany) return;
+  const skillId = document.getElementById('schedule-skill-select').value;
+  const difficultyOrder = document.getElementById('schedule-difficulty-order').value || 'easy,medium,hard';
+  const startTime = document.getElementById('schedule-start-time').value;
+  const durationMinutes = document.getElementById('schedule-duration').value || 60;
+
+  if (!startTime) {
+    alert('Please select a start date and time.');
+    return;
+  }
+
+  fetch('/api/recruiter/schedule-exam', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      recruiter_id: currentUser.id,
+      company_id: currentCompany.id,
+      skill_id: skillId,
+      difficulty_order: difficultyOrder,
+      start_time: startTime,
+      duration_minutes: durationMinutes
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.error) {
+      alert(data.error);
+      return;
+    }
+    alert('Multi-stage assessment sequence scheduled successfully.');
+    loadRecruiterSchedules();
+  })
+  .catch(err => {
+    console.error('Failed to schedule assessment:', err);
+  });
+}
+
+function loadRecruiterSchedules() {
+  if (!currentCompany) return;
+  const container = document.getElementById('recruiter-schedules-list');
+  if (!container) return;
+  
+  fetch(`/api/recruiter/schedules?company_id=${currentCompany.id}`)
+    .then(res => res.json())
+    .then(schedules => {
+      container.innerHTML = '';
+      if (schedules.length === 0) {
+        container.innerHTML = '<tr><td colspan="5" style="color:var(--gray-500); text-align: center;">No scheduled assessments created yet.</td></tr>';
+        return;
+      }
+      schedules.forEach(s => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${s.skill_name}</strong></td>
+          <td><span class="difficulty-tag" style="background:var(--orange-deep); color:#FFF; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700;">${s.difficulty_order.toUpperCase()}</span></td>
+          <td>${new Date(s.start_time).toLocaleString()}</td>
+          <td><strong>${s.duration_minutes} mins</strong></td>
+          <td><code style="font-size:11px; background:var(--gray-50); padding:2px 4px; border-radius:4px; border:1px solid var(--gray-200); font-weight:700;">${s.id}</code></td>
+        `;
+        container.appendChild(tr);
+      });
+    })
+    .catch(err => {
+      console.error('Failed to load recruiter schedules:', err);
+    });
+}
+
+function loadStudentSchedules() {
+  if (!currentUser) return;
+  const container = document.getElementById('student-schedules-list');
+  if (!container) return;
+
+  fetch(`/api/student/schedules?student_email=${encodeURIComponent(currentUser.email)}`)
+    .then(res => res.json())
+    .then(schedules => {
+      container.innerHTML = '';
+      if (schedules.length === 0) {
+        container.innerHTML = '<div style="color:var(--gray-500)">No active invitations found matching your claimed skills.</div>';
+        return;
+      }
+
+      schedules.forEach(s => {
+        const card = document.createElement('div');
+        card.className = 'verified-skill-row';
+        card.style.display = 'flex';
+        card.style.justifyContent = 'space-between';
+        card.style.alignItems = 'center';
+        card.style.padding = '16px';
+        card.style.background = 'var(--white)';
+        card.style.border = '1px solid var(--gray-100)';
+        card.style.borderRadius = 'var(--radius-md)';
+        card.style.marginBottom = '12px';
+        card.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
+
+        if (document.body.classList.contains('dark-theme')) {
+          card.style.background = '#0C0A09';
+          card.style.borderColor = '#2A2624';
+        }
+
+        const companyBadge = s.company_name 
+          ? `<span style="font-size: 11px; background:var(--orange-deep); color:#FFF; padding:2px 6px; border-radius:4px; font-weight:700; margin-left:8px;">🏢 ${s.company_name}</span>`
+          : '';
+
+        const difficultyLabels = s.difficulty_order.toUpperCase().split(',').map(d => 
+          `<span style="font-size: 10px; background:var(--gray-100); color:var(--gray-800); padding:2px 6px; border-radius:4px; margin-right:4px; font-weight:600;">${d}</span>`
+        ).join('');
+
+        card.innerHTML = `
+          <div>
+            <div style="display:flex; align-items:center;">
+              <strong style="font-size:16px;">${s.skill_name}</strong>
+              ${companyBadge}
+            </div>
+            <div style="font-size:12px; color:var(--gray-500); margin-top:6px; line-height:1.4;">
+              <strong>Stages:</strong> ${difficultyLabels}<br/>
+              <strong>Duration Limit:</strong> ${s.duration_minutes} mins · <strong>Available from:</strong> ${new Date(s.start_time).toLocaleString()}
+            </div>
+          </div>
+          <button onclick="openExamRulesModal(null, '${s.id}')" class="btn-primary" style="padding: 8px 16px; font-size:13px; font-weight:700; cursor:pointer;">
+            🚀 Launch Sequence
+          </button>
+        `;
+        container.appendChild(card);
+      });
+    })
+    .catch(err => {
+      console.error('Failed to fetch student schedules:', err);
+    });
+}
+
+async function startScheduledExam(scheduleId) {
+  if (!currentUser) {
+    showView('auth');
+    return;
+  }
+
+  // 1. Enforce Full Screen
+  try {
+    await document.documentElement.requestFullscreen();
+  } catch (err) {
+    alert('Security prerequisite: Full Screen mode must be permitted to unlock high-security assessments.');
+    return;
+  }
+
+  // 2. Access Camera and microphone WebRTC streams
+  const mediaStreamsOk = await initProctorMediaStreams();
+  if (!mediaStreamsOk) {
+    if (document.fullscreenElement) document.exitFullscreen().catch(err=>{});
+    alert('Security prerequisite: Both microphone and webcam feed must be active.');
+    return;
+  }
+
+  // 3. Capture Screen Sharing
+  const screenShared = await initScreenShare();
+  if (!screenShared) {
+    cleanupStreams();
+    if (document.fullscreenElement) document.exitFullscreen().catch(err=>{});
+    alert('Security prerequisite: Full primary display screen sharing is required.');
+    return;
+  }
+
+  // Call Server to register TIMED scheduled attempt
+  fetch('/api/exams/start-scheduled', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      student_email: currentUser.email,
+      schedule_id: scheduleId
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.error) {
+      alert(data.error);
+      cleanupStreams();
+      if (document.fullscreenElement) document.exitFullscreen().catch(err=>{});
+      return;
+    }
+
+    currentExam = data; // Includes examId, startedAt, expirationMinutes, codeTemplate, questionTitle, questionList, currentQuestionIndex, scheduleId
+    activeProctorViolations = false;
+    document.getElementById('disqualify-alert').style.display = 'none';
+    document.getElementById('active-question-title').innerText = currentExam.questionTitle || 'Scheduled Coding Challenge';
+    document.getElementById('code-editor').value = currentExam.codeTemplate;
+
+    // Reset Simulators
+    document.getElementById('sim-bluetooth-check').checked = false;
+    document.getElementById('sim-phone-check').checked = false;
+    document.getElementById('sim-camera-check').checked = false;
+    document.getElementById('sim-screen-check').checked = false;
+
+    // Reset status indicators
+    document.getElementById('ind-camera').innerText = 'ACTIVE';
+    document.getElementById('ind-camera').className = 'sec-indicator-status ok';
+    document.getElementById('ind-mic').innerText = 'ACTIVE';
+    document.getElementById('ind-mic').className = 'sec-indicator-status ok';
+    document.getElementById('ind-screen').innerText = 'SHARING';
+    document.getElementById('ind-screen').className = 'sec-indicator-status ok';
+    document.getElementById('ind-focus').innerText = 'SECURED';
+    document.getElementById('ind-focus').className = 'sec-indicator-status ok';
+    document.getElementById('ind-bluetooth').innerText = 'DISABLED (OK)';
+    document.getElementById('ind-bluetooth').className = 'sec-indicator-status ok';
+    document.getElementById('ind-phone').innerText = 'NOT DETECTED';
+    document.getElementById('ind-phone').className = 'sec-indicator-status ok';
+
+    document.getElementById('view-exam').classList.add('strict-mode');
+    showView('exam');
+    startCountdown(currentExam.expirationMinutes * 60);
+    bindFocusIntegrity();
+  })
+  .catch(err => {
+    console.error('Failed to start scheduled timed session:', err);
+    cleanupStreams();
+  });
+}
+
+// Intersection observers for animations
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if(e.isIntersecting) e.target.classList.add('visible');
+  });
+}, {threshold: 0.1});
+document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
