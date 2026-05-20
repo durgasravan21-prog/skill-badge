@@ -5,6 +5,8 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const hpp = require('hpp');
 const db = require('./database');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -147,6 +149,27 @@ app.use(express.static(__dirname, {
   dotfiles: 'deny',  // Don't serve .env, .git, etc.
   maxAge: '1h'
 }));
+
+// Route helpers for Vercel and local multi-directory resolution
+function serveHTML(fileName) {
+  return (req, res) => {
+    const possiblePaths = [
+      path.join(__dirname, fileName),
+      path.join(__dirname, '..', fileName)
+    ];
+    for (const p of possiblePaths) {
+      if (fs.existsSync(p)) {
+        return res.sendFile(p);
+      }
+    }
+    res.status(404).send(`${fileName} not found`);
+  };
+}
+
+app.get('/', serveHTML('index.html'));
+app.get('/index.html', serveHTML('index.html'));
+app.get('/github-login.html', serveHTML('github-login.html'));
+app.get('/google-login.html', serveHTML('google-login.html'));
 
 // ═══════════════════════════════════════════════════════════════
 // PROMISE WRAPPERS FOR SQLITE (used throughout)
