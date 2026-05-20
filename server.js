@@ -36,7 +36,9 @@ app.use(helmet({
       baseUri: ["'self'"],
       formAction: ["'self'"],
       // NO upgradeInsecureRequests — breaks HTTP on localhost
-      workerSrc: ["'self'", "blob:"]
+      workerSrc: ["'self'", "blob:"],
+      // Allow inline onclick/onsubmit handlers used throughout the SPA
+      scriptSrcAttr: ["'unsafe-inline'"]
     }
   },
   crossOriginEmbedderPolicy: false,  // Required for getUserMedia in exam
