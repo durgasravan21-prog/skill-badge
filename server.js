@@ -316,59 +316,101 @@ function evaluateCode(code, difficulty, questionTitle) {
 
   // Empty or trivial submission
   if (codeLen < 20 || lines < 2) {
-    return { correctness: 5, quality: 5, edgeCases: 0, understanding: 5, total: 15, summary: 'Submission too short. No meaningful code detected.' };
+    return { correctness: 2, quality: 2, edgeCases: 0, understanding: 1, total: 5, summary: 'Submission too short. No meaningful code detected.' };
   }
 
-  // Check for common patterns indicating effort
-  const hasFunction = /function |def |fn |func |class /i.test(code);
-  const hasLoop = /for |while |\.forEach|\.map|\.reduce/i.test(code);
-  const hasCondition = /if |else|switch|match |case /i.test(code);
-  const hasReturn = /return |yield |console\.log|print\(|fmt\.Print/i.test(code);
-  const hasErrorHandling = /try|catch|except|Error|throw/i.test(code);
-  const hasComments = /\/\/|#|\/\*|\"\"\"/i.test(code);
+  // Detect language from code patterns
+  const isPython = /def |import |print\(|lambda |class .*:/.test(code);
+  const isJS = /function |const |let |var |=>|require\(|module\.exports/.test(code);
+  const isSQL = /SELECT |INSERT |UPDATE |DELETE |CREATE TABLE|JOIN |WHERE /i.test(code);
+  const isC = /#include|int main|printf|scanf|void /.test(code);
+  const isGo = /func |package |fmt\.|import \(/.test(code);
 
-  // Correctness (max 40) - based on structure and effort
-  correctness = 10;
+  // Check for common patterns indicating effort
+  const hasFunction = /function |def |fn |func |class |CREATE /i.test(code);
+  const hasLoop = /for |while |\.forEach|\.map|\.reduce|LOOP|CURSOR/i.test(code);
+  const hasCondition = /if |else|switch|match |case |WHEN |WHERE /i.test(code);
+  const hasReturn = /return |yield |console\.log|print\(|fmt\.Print|SELECT/i.test(code);
+  const hasErrorHandling = /try|catch|except|Error|throw|RAISE|BEGIN/i.test(code);
+  const hasComments = /\/\/|#|\\/\\*|"""|--/.test(code);
+  const hasDataStructures = /\[\]|{}|dict|list|array|map|set|queue|stack|heap|tree|graph|linked/i.test(code);
+  const hasAlgorithm = /sort|search|binary|recursive|dynamic|greedy|bfs|dfs|dijkstra|merge|quick/i.test(code);
+  const hasImports = /import |require\(|from |#include|use /.test(code);
+
+  // Multi-answer acceptance: Check if the code addresses the problem keywords
+  const problemKeywords = (questionTitle || '').toLowerCase();
+  let relevanceBonus = 0;
+  const relevantTerms = ['palindrome','sort','merge','queue','stack','cache','lru','knapsack',
+    'fibonacci','factorial','prime','linked list','binary','tree','graph','hash','csv','reverse',
+    'flatten','frequency','debounce','promise','observable','memoize','diff','retry','lazy',
+    'sliding window','materialized','event sourcing','cte','recursive','schema','security','rate',
+    'circuit','token','bucket','priority','thread','concurrent'];
+  for (const term of relevantTerms) {
+    if (problemKeywords.includes(term) && code.toLowerCase().includes(term.split(' ')[0])) {
+      relevanceBonus += 3;
+    }
+  }
+  relevanceBonus = Math.min(10, relevanceBonus);
+
+  // Correctness (max 40) - strict structure analysis
+  correctness = 5;
   if (hasFunction) correctness += 8;
   if (hasLoop) correctness += 7;
-  if (hasCondition) correctness += 7;
-  if (hasReturn) correctness += 8;
+  if (hasCondition) correctness += 6;
+  if (hasReturn) correctness += 6;
+  if (hasDataStructures) correctness += 4;
+  if (hasAlgorithm) correctness += 4;
+  correctness = Math.min(40, correctness + relevanceBonus);
 
   // Quality (max 25) - code organization
-  quality = 8;
-  if (lines >= 5) quality += 4;
-  if (lines >= 10) quality += 4;
-  if (hasComments) quality += 5;
-  if (hasFunction) quality += 4;
+  quality = 3;
+  if (lines >= 5) quality += 3;
+  if (lines >= 10) quality += 3;
+  if (lines >= 20) quality += 3;
+  if (hasComments) quality += 4;
+  if (hasFunction) quality += 3;
+  if (hasImports) quality += 3;
+  if (codeLen > 300) quality += 3;
+  quality = Math.min(25, quality);
 
-  // Edge Cases (max 20) - error handling
-  edgeCases = 5;
-  if (hasErrorHandling) edgeCases += 7;
-  if (hasCondition && lines >= 8) edgeCases += 5;
-  if (code.includes('null') || code.includes('None') || code.includes('undefined') || code.includes('empty') || code.includes('len(') || code.includes('.length')) edgeCases += 3;
+  // Edge Cases (max 20) - error handling & robustness
+  edgeCases = 2;
+  if (hasErrorHandling) edgeCases += 6;
+  if (hasCondition && lines >= 8) edgeCases += 4;
+  if (/null|None|undefined|empty|len\(|\.length|\.size|boundary|edge|overflow|negative/i.test(code)) edgeCases += 4;
+  if (/assert|test|expect|should|describe/i.test(code)) edgeCases += 4;
+  edgeCases = Math.min(20, edgeCases);
 
   // Understanding (max 15)
-  understanding = 5;
-  if (lines >= 5) understanding += 3;
-  if (hasFunction && hasReturn) understanding += 4;
-  if (codeLen > 200) understanding += 3;
+  understanding = 2;
+  if (lines >= 5) understanding += 2;
+  if (hasFunction && hasReturn) understanding += 3;
+  if (codeLen > 200) understanding += 2;
+  if (hasAlgorithm) understanding += 3;
+  if (hasDataStructures) understanding += 3;
+  understanding = Math.min(15, understanding);
 
-  // Difficulty multiplier
+  // Difficulty multiplier - harder questions score stricter
   if (difficulty === 'hard') {
-    correctness = Math.min(40, Math.floor(correctness * 0.85));
-    quality = Math.min(25, Math.floor(quality * 0.9));
+    correctness = Math.min(40, Math.floor(correctness * 0.8));
+    quality = Math.min(25, Math.floor(quality * 0.85));
+    edgeCases = Math.min(20, Math.floor(edgeCases * 0.85));
+  } else if (difficulty === 'medium') {
+    correctness = Math.min(40, Math.floor(correctness * 0.9));
   }
 
   const total = Math.min(100, correctness + quality + edgeCases + understanding);
   let summary = '';
-  if (total >= 75) {
-    summary = `Excellent submission. Code demonstrates strong understanding of ${questionTitle.split('—')[1] || 'the problem'}. Well-structured with proper edge case handling.`;
-  } else if (total >= 60) {
-    summary = `Good submission. Core logic is sound but could improve edge case handling and code organization.`;
-  } else if (total >= 40) {
-    summary = `Partial solution. Some logic present but missing key algorithmic components. Review data structures.`;
+  if (total >= 80) {
+    summary = `Outstanding submission. Code demonstrates expert-level understanding of ${(questionTitle.split('—')[1] || 'the problem').trim()}. Excellent structure, edge case coverage, and code quality.`;
+  } else if (total >= 65) {
+    summary = `Strong submission. Core algorithm is well-implemented. Minor improvements possible in edge case handling and documentation.`;
+  } else if (total >= 45) {
+    summary = `Partial solution. Some logic is present but missing key algorithmic components or proper error handling.`;
+  } else if (total >= 25) {
+    summary = `Below expectations. Submission shows basic understanding but lacks core implementation. Needs significant improvement.`;
   } else {
-    summary = `Insufficient. Submission lacks core algorithm implementation. Recommended: study the fundamentals.`;
+    summary = `Insufficient. Submission does not demonstrate adequate problem-solving ability for this challenge level.`;
   }
 
   return { correctness, quality, edgeCases, understanding, total, summary };
@@ -952,7 +994,7 @@ app.post('/api/exams/violation', async (req, res) => {
       return res.status(400).json({ error: 'Missing required infraction fields' });
     }
 
-    const validTypes = ['tab_exit', 'fullscreen_exit', 'camera_off', 'mic_muted', 'screen_share_off', 'bluetooth_on', 'phone_detected'];
+    const validTypes = ['tab_exit', 'fullscreen_exit', 'camera_off', 'mic_muted', 'screen_share_off', 'bluetooth_on', 'phone_detected', 'screenshot_attempt', 'copy_paste_attempt', 'restricted_key_pressed'];
     if (!validTypes.includes(type)) {
       return res.status(400).json({ error: 'Invalid violation type' });
     }
