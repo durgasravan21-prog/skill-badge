@@ -1024,6 +1024,54 @@ app.post('/api/exams/violation', async (req, res) => {
       [examId]
     );
 
+    // PHONE DETECTED: Send notification to all recruiters in the company
+    if (type === 'phone_detected') {
+      const challenge = await dbGet(
+        `SELECT c.student_id, c.company_id, c.recruiter_id, u.name as student_name, s.name as skill_name
+         FROM challenges c
+         JOIN users u ON c.student_id = u.id
+         JOIN skills s ON c.skill_id = s.id
+         WHERE c.id = ?`,
+        [examId]
+      );
+
+      if (challenge) {
+        // Get all recruiters to notify (company recruiters + direct recruiter)
+        let recruiters = [];
+        if (challenge.company_id) {
+          recruiters = await dbAll(
+            `SELECT DISTINCT u.id FROM users u JOIN companies c ON u.email LIKE '%' WHERE u.role = 'recruiter'`
+          );
+        }
+        if (challenge.recruiter_id) {
+          recruiters.push({ id: challenge.recruiter_id });
+        }
+        // Also notify all recruiters as a fallback
+        if (recruiters.length === 0) {
+          recruiters = await dbAll(`SELECT id FROM users WHERE role = 'recruiter'`);
+        }
+
+        // De-duplicate recruiter IDs
+        const notifiedIds = new Set();
+        for (const r of recruiters) {
+          if (notifiedIds.has(r.id)) continue;
+          notifiedIds.add(r.id);
+          await dbRun(
+            `INSERT INTO notifications (id, recipient_id, sender_id, type, title, message, is_read, created_at)
+             VALUES (?, ?, ?, 'phone_detected', ?, ?, 0, ?)`,
+            [
+              crypto.randomUUID(),
+              r.id,
+              challenge.student_id,
+              '📱 PHONE DETECTED IN EXAM',
+              `⚠️ Student "${challenge.student_name}" was caught with a PHONE during their ${challenge.skill_name} exam. The webcam AI detected a mobile device in their hand. Result has been UPHELD (disqualified). Review the proctoring photos for evidence.`,
+              timestamp
+            ]
+          );
+        }
+      }
+    }
+
     res.json({
       message: 'Infraction logged successfully.',
       infractionLogged: true,

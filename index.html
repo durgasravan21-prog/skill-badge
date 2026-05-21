@@ -4377,6 +4377,30 @@ function viewCandidateCode(examId) {
   if (modalSubtitle) {
     modalSubtitle.innerText = `Exact logic answer submitted by ${exam.student_name} for ${exam.question_title}`;
   }
+
+  // Show PHONE DETECTED warning if violations include phone_detected
+  let phoneWarningEl = document.getElementById('phone-detected-warning');
+  if (!phoneWarningEl) {
+    phoneWarningEl = document.createElement('div');
+    phoneWarningEl.id = 'phone-detected-warning';
+    const modalSubtitleParent = modalSubtitle ? modalSubtitle.parentElement : null;
+    if (modalSubtitleParent) modalSubtitleParent.insertBefore(phoneWarningEl, modalSubtitle.nextSibling);
+  }
+
+  const hasPhoneViolation = exam.violations && exam.violations.some(v => v.type === 'phone_detected');
+  if (hasPhoneViolation) {
+    phoneWarningEl.style.cssText = 'display:flex; align-items:center; gap:10px; padding:14px 18px; background:linear-gradient(135deg, #D32F2F, #B71C1C); color:#fff; border-radius:10px; margin:12px 0; font-family:var(--font-display); animation:pulse 1.5s infinite;';
+    phoneWarningEl.innerHTML = `
+      <span style="font-size:28px;">📱</span>
+      <div>
+        <div style="font-weight:800; font-size:14px; letter-spacing:0.5px;">⚠️ PHONE DETECTED IN WEBCAM</div>
+        <div style="font-size:12px; font-weight:500; opacity:0.9; margin-top:2px;">AI detected a mobile device in the student's hand during this exam. Result UPHELD — disqualified. Check proctoring photos for evidence.</div>
+      </div>
+    `;
+  } else {
+    phoneWarningEl.style.display = 'none';
+    phoneWarningEl.innerHTML = '';
+  }
   
   // Populate photo captions & thumbnails
   const photosContainer = document.getElementById('submitted-code-photos-container');
