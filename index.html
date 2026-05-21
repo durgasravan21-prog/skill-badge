@@ -4071,14 +4071,19 @@ function addCandidateRow() {
   if (!container) return;
   const row = document.createElement('div');
   row.className = 'dispatch-row';
-  row.style.cssText = 'display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:8px; align-items:center; background:var(--gray-50); padding:10px 12px; border-radius:var(--radius-sm); border:1px solid var(--gray-200);';
+  row.style.cssText = 'display:flex; flex-direction:column; gap:8px; background:var(--gray-50); padding:12px; border-radius:var(--radius-sm); border:1px solid var(--gray-200); position:relative;';
   row.innerHTML = `
-    <input type="text" placeholder="Candidate Name" class="dispatch-name" style="padding:8px 10px; border:1.5px solid var(--gray-200); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-body);" />
-    <input type="email" placeholder="Candidate Email" class="dispatch-email" style="padding:8px 10px; border:1.5px solid var(--gray-200); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-body);" />
-    <select class="dispatch-skill" style="padding:8px 10px; border:1.5px solid var(--gray-200); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-body);">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-size:11px; font-weight:700; color:var(--orange-deep); text-transform:uppercase;">Candidate Details</span>
+      <button onclick="this.closest('.dispatch-row').remove()" style="background:none; border:none; color:#C62828; cursor:pointer; font-size:11px; font-weight:700;" title="Remove">Remove</button>
+    </div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+      <input type="text" placeholder="Candidate Name" class="dispatch-name" style="padding:8px 10px; border:1.5px solid var(--gray-200); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-body); width:100%; box-sizing:border-box;" />
+      <input type="email" placeholder="Candidate Email" class="dispatch-email" style="padding:8px 10px; border:1.5px solid var(--gray-200); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-body); width:100%; box-sizing:border-box;" />
+    </div>
+    <select class="dispatch-skill" style="padding:8px 10px; border:1.5px solid var(--gray-200); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-body); width:100%; box-sizing:border-box;">
       ${(masterSkillsList || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
     </select>
-    <button onclick="this.parentElement.remove()" style="background:var(--gray-100); border:none; border-radius:var(--radius-sm); padding:8px 10px; cursor:pointer; color:var(--gray-600); font-size:16px;" title="Remove">✕</button>
   `;
   container.appendChild(row);
 }
