@@ -944,7 +944,7 @@ app.post('/api/exams/start', examLimiter, async (req, res) => {
     const question = await dbGet('SELECT * FROM questions WHERE id = ?', [questionId]);
     if (!question) return res.status(404).json({ error: 'Target question not found' });
 
-    // Strict one-attempt enforcement
+    // Strict one-attempt enforcement per question
     const existingAttempt = await dbGet(
       `SELECT id, status FROM challenges WHERE student_id = ? AND question_id = ?`,
       [student.id, questionId]
@@ -954,6 +954,18 @@ app.post('/api/exams/start', examLimiter, async (req, res) => {
         return res.status(400).json({ error: 'You already have an active session for this exam. Please reload your dashboard.' });
       }
       return res.status(400).json({ error: 'You have already attempted this exam. Only one attempt is allowed.' });
+    }
+
+    // Strict one-attempt enforcement per SKILL (same email + same course = blocked)
+    const existingSkillAttempt = await dbGet(
+      `SELECT id, status FROM challenges WHERE student_id = ? AND skill_id = ?`,
+      [student.id, question.skill_id]
+    );
+    if (existingSkillAttempt) {
+      if (existingSkillAttempt.status === 'active') {
+        return res.status(400).json({ error: 'You already have an active exam for this skill. Complete or wait for it to expire.' });
+      }
+      return res.status(400).json({ error: 'You have already attempted an exam for this skill. Only one attempt per skill is allowed. Contact the recruiter for a re-attempt.' });
     }
 
     const challengeId = crypto.randomUUID();
@@ -1173,7 +1185,7 @@ app.get('/api/exams/history', async (req, res) => {
   try {
     const companyId = sanitizeString(req.query.company_id, 50);
 
-    // Base query
+    // Base query — use subqueries for latest submission and evaluation to prevent duplicate rows
     let sql = `SELECT c.id as examId, c.status, c.violations_count, c.started_at, c.submitted_at,
                       c.company_id,
                       u.name as student_name, u.email as student_email,
@@ -1185,8 +1197,8 @@ app.get('/api/exams/history', async (req, res) => {
                JOIN users u ON c.student_id = u.id
                JOIN questions q ON c.question_id = q.id
                JOIN skills sk ON c.skill_id = sk.id
-               LEFT JOIN submissions s ON s.challenge_id = c.id
-               LEFT JOIN evaluations e ON e.challenge_id = c.id`;
+               LEFT JOIN (SELECT challenge_id, code FROM submissions GROUP BY challenge_id) s ON s.challenge_id = c.id
+               LEFT JOIN (SELECT challenge_id, total_score, ai_summary FROM evaluations GROUP BY challenge_id) e ON e.challenge_id = c.id`;
 
     let params = [];
 
@@ -1201,7 +1213,17 @@ app.get('/api/exams/history', async (req, res) => {
     const exams = await dbAll(sql, params);
     const violations = await dbAll('SELECT * FROM violations ORDER BY timestamp ASC');
 
-    const enrichedExams = exams.map(exam => ({
+    // De-duplicate by examId as an extra safety layer
+    const seenIds = new Set();
+    const uniqueExams = [];
+    for (const exam of exams) {
+      if (!seenIds.has(exam.examId)) {
+        seenIds.add(exam.examId);
+        uniqueExams.push(exam);
+      }
+    }
+
+    const enrichedExams = uniqueExams.map(exam => ({
       ...exam,
       id: exam.examId,
       score: exam.status === 'disqualified' ? 0 : (exam.score || 0),
@@ -1651,13 +1673,16 @@ app.post('/api/exams/start-scheduled', examLimiter, async (req, res) => {
       return res.status(403).json({ error: 'Invalid exam access password. Please check your email for the correct password.' });
     }
 
-    // One-attempt enforcement for scheduled exams
-    const existingScheduleAttempt = await dbGet(
-      `SELECT id, status FROM challenges WHERE student_id = ? AND skill_id = ? AND recruiter_id = ? AND status IN ('evaluated', 'submitted', 'disqualified', 'expired')`,
-      [student.id, schedule.skill_id, schedule.recruiter_id]
+    // One-attempt enforcement: same email + same skill = BLOCKED (regardless of recruiter)
+    const existingSkillAttempt = await dbGet(
+      `SELECT id, status FROM challenges WHERE student_id = ? AND skill_id = ?`,
+      [student.id, schedule.skill_id]
     );
-    if (existingScheduleAttempt) {
-      return res.status(400).json({ error: 'You have already attempted this scheduled exam. Only one attempt is allowed.' });
+    if (existingSkillAttempt) {
+      if (existingSkillAttempt.status === 'active') {
+        return res.status(400).json({ error: 'You already have an active exam for this skill. Complete it or wait for it to expire.' });
+      }
+      return res.status(400).json({ error: 'You have already attempted an exam for this skill. Only one attempt per skill is allowed. Contact the recruiter for a re-attempt.' });
     }
 
     const questionIds = schedule.question_order.split(',');
