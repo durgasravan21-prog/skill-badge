@@ -365,8 +365,8 @@ body.dark-theme .exam-pill.time { background: #221D1A; border-color: #3A3630; co
 .admin-form-group label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;margin-bottom:6px}
 .admin-form-group input, .admin-form-group select, .admin-form-group textarea{width:100%;padding:10px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);background:var(--white);color:var(--gray-900);font-size:14px;outline:none}
 .history-table-container{overflow-x:auto}
-.history-table{width:100%;border-collapse:collapse;font-size:13px;text-align:left;min-width:1100px;table-layout:fixed;}
-.history-table th, .history-table td{padding:12px 16px;border-bottom:1px solid var(--gray-100);vertical-align:top;word-wrap:break-word;}
+.history-table{width:100%;border-collapse:collapse;font-size:13px;text-align:left;table-layout:fixed;word-wrap:break-word;}
+.history-table th, .history-table td{padding:12px 16px;border-bottom:1px solid var(--gray-100);vertical-align:top;}
 .history-table th{font-family:var(--font-display);font-weight:700;color:var(--gray-500);text-transform:uppercase;font-size:11px}
 .status-tag{padding:2px 8px;border-radius:100px;font-weight:600;font-size:11px}
 .status-tag.completed{background:#E8F5E9;color:#2E7D32}
@@ -1059,6 +1059,7 @@ body.dark-theme .demo-details strong {
       </button>
       <a href="#" id="nav-login-btn" onclick="showView('auth')" class="nav-login">Log in</a>
       <a href="#" id="nav-cta-btn" onclick="showView('auth')" class="nav-cta">Get started →</a>
+      <a href="#" id="nav-logout-btn" onclick="logoutUser()" class="nav-login" style="display:none;">Log out</a>
     </div>
   </div>
 </nav>
@@ -2246,6 +2247,8 @@ window.addEventListener('DOMContentLoaded', () => {
         // Update main navbar profile buttons
         const loginBtn = document.getElementById('nav-login-btn');
         if (loginBtn) loginBtn.style.display = 'none';
+        const logoutBtn = document.getElementById('nav-logout-btn');
+        if (logoutBtn) logoutBtn.style.display = 'inline-block';
         const ctaBtn = document.getElementById('nav-cta-btn');
         if (ctaBtn) {
           ctaBtn.innerText = `Dashboard (${currentUser.name})`;
@@ -2353,6 +2356,7 @@ function submitOAuthHandshake(nameInput, emailInput) {
     
     // Update main navbar profile buttons
     document.getElementById('nav-login-btn').style.display = 'none';
+    document.getElementById('nav-logout-btn').style.display = 'inline-block';
     document.getElementById('nav-cta-btn').innerText = `Dashboard (${currentUser.name})`;
     document.getElementById('nav-cta-btn').onclick = () => showView(currentUser.role === 'recruiter' ? 'admin' : 'student');
 
@@ -2366,6 +2370,21 @@ function submitOAuthHandshake(nameInput, emailInput) {
     console.error('Secure Token exchange failure:', err);
     alert('Authentication database unreachable.');
   });
+}
+
+function logoutUser() {
+  currentUser = null;
+  currentCompany = null;
+  safeLocalStorage.removeItem('skillproof_user');
+  safeLocalStorage.removeItem('skillproof_company');
+  safeLocalStorage.removeItem('skillproof_login_time');
+  
+  document.getElementById('nav-login-btn').style.display = 'inline-block';
+  document.getElementById('nav-logout-btn').style.display = 'none';
+  document.getElementById('nav-cta-btn').innerText = 'Get started →';
+  document.getElementById('nav-cta-btn').onclick = () => showView('auth');
+  
+  showView('landing');
 }
 
 // ── Interactive Student Onboarding Helper Functions ──
