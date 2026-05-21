@@ -3871,7 +3871,7 @@ function loadAdminHistory() {
                 <button onclick="viewCandidateCode('${exam.examId}')" class="btn-ghost" style="padding: 6px; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; border-radius: 4px; width: 100%; border: 1px solid var(--gray-200);">
                   💻 View Code & Award Badge
                 </button>
-                <button onclick="alert('To invite for the next round, check the box on the left and click \\'Compose Bulk Invite\\' at the top of the table.')" class="btn-primary" style="padding: 6px; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 4px; width: 100%; border: none; background: var(--orange-deep); color: #fff;">
+                <button onclick="triggerInviteForCandidate('${exam.student_email}')" class="btn-primary" style="padding: 6px; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 4px; width: 100%; border: none; background: var(--orange-deep); color: #fff;">
                   ✉️ Invite to Next Round
                 </button>
               </div>
@@ -4199,6 +4199,28 @@ function updateSelectedCandidatesCount() {
       toolbar.style.display = 'none';
     }
   }
+}
+
+function triggerInviteForCandidate(email) {
+  // Uncheck all
+  const checkboxes = document.querySelectorAll('.candidate-checkbox');
+  checkboxes.forEach(cb => cb.checked = false);
+  
+  // Check the specific one
+  const specific = document.querySelector(`.candidate-checkbox[data-email="${email}"]`);
+  if (specific) {
+    specific.checked = true;
+  }
+  
+  // Trigger UI update and open modal
+  updateSelectedCandidatesCount();
+  
+  // Scroll to the top where the modal overlay will appear
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  
+  setTimeout(() => {
+    openBulkEmailModal();
+  }, 300);
 }
 
 function openBulkEmailModal() {

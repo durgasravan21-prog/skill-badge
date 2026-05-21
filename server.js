@@ -594,12 +594,21 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
 
     // Determine role + company
     const company = await getOrCreateCompany(email);
-    const role = company ? 'recruiter' : 'student';
+    let role = company ? 'recruiter' : 'student';
+    if (email.toLowerCase() === 'durgasravan21@gmail.com') {
+      role = 'recruiter'; // Head Admin gets recruiter dashboard automatically
+    }
 
     // Look up existing user
     let user = await dbGet('SELECT * FROM users WHERE email = ? COLLATE NOCASE', [email]);
     
     if (user) {
+      // If the E2E script or an older bug set the Head Admin to student, forcefully update them in the DB
+      if (email.toLowerCase() === 'durgasravan21@gmail.com' && user.role !== 'recruiter') {
+        await dbRun('UPDATE users SET role = ? WHERE id = ?', ['recruiter', user.id]);
+        user.role = 'recruiter';
+      }
+      
       // Update company_id if it's a recruiter and didn't have one
       if (role === 'recruiter' && company && !user.company_id) {
         await dbRun('UPDATE users SET company_id = ?, company = ? WHERE id = ?', [company.id, company.name, user.id]);
