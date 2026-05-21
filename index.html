@@ -3203,6 +3203,10 @@ function toggleStartExamBtn(isChecked) {
 }
 
 function confirmStartExam() {
+  // Save the password BEFORE closing the modal (input will be hidden after close)
+  const pwInput = document.getElementById('exam-password-input');
+  pendingExamPassword = pwInput ? pwInput.value.toUpperCase().trim() : '';
+  
   // Route through ID verification first
   closeExamRulesModal();
   openIdVerificationModal();
@@ -3212,6 +3216,7 @@ function confirmStartExam() {
 let idVerifyStream = null;
 let capturedIdPhotoData = null;
 let photoIntervalId = null;
+let pendingExamPassword = '';
 
 async function openIdVerificationModal() {
   const modal = document.getElementById('id-verify-modal');
@@ -5094,7 +5099,7 @@ async function startScheduledExam(scheduleId) {
     body: JSON.stringify({
       student_email: currentUser.email,
       schedule_id: scheduleId,
-      exam_password: ((document.getElementById('exam-password-input') || {}).value || '').toUpperCase().trim()
+      exam_password: pendingExamPassword || ((document.getElementById('exam-password-input') || {}).value || '').toUpperCase().trim()
     })
   })
   .then(res => res.json())
