@@ -1715,9 +1715,10 @@ app.post('/api/exams/start-scheduled', examLimiter, async (req, res) => {
     const schedule = await dbGet('SELECT * FROM exam_schedules WHERE id = ?', [scheduleId]);
     if (!schedule) return res.status(404).json({ error: 'Scheduled exam not found' });
 
-    // Password verification
-    const examPassword = sanitizeString(req.body.exam_password, 20);
-    if (schedule.exam_password && schedule.exam_password !== examPassword) {
+    // Password verification (case-insensitive comparison)
+    const examPassword = sanitizeString(req.body.exam_password, 20).toUpperCase().trim();
+    const storedPassword = (schedule.exam_password || '').toUpperCase().trim();
+    if (storedPassword && storedPassword !== examPassword) {
       return res.status(403).json({ error: 'Invalid exam access password. Please check your email for the correct password.' });
     }
 

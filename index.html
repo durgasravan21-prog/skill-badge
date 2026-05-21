@@ -966,7 +966,7 @@ body.dark-theme .demo-details strong {
     <!-- Exam Password Input (for scheduled exams) -->
     <div id="exam-password-section" style="display:none; margin-bottom:16px;">
       <label style="font-size:12px; font-weight:700; color:var(--gray-700); display:block; margin-bottom:6px;">🔑 Exam Access Password (check your email)</label>
-      <input type="text" id="exam-password-input" placeholder="Enter 6-character exam password" maxlength="10" style="width:100%; padding:10px 14px; border:1.5px solid var(--gray-200); border-radius:var(--radius-sm); font-family:monospace; font-size:14px; letter-spacing:2px; text-transform:uppercase;" />
+      <input type="text" id="exam-password-input" placeholder="Enter 6-character exam password" maxlength="10" oninput="this.value = this.value.toUpperCase().trim()" style="width:100%; padding:10px 14px; border:1.5px solid var(--gray-200); border-radius:var(--radius-sm); font-family:monospace; font-size:14px; letter-spacing:2px; text-transform:uppercase;" />
     </div>
     
     <div style="display: flex; gap: 12px; justify-content: flex-end;">
@@ -5094,7 +5094,7 @@ async function startScheduledExam(scheduleId) {
     body: JSON.stringify({
       student_email: currentUser.email,
       schedule_id: scheduleId,
-      exam_password: (document.getElementById('exam-password-input') || {}).value || ''
+      exam_password: ((document.getElementById('exam-password-input') || {}).value || '').toUpperCase().trim()
     })
   })
   .then(res => res.json())
