@@ -954,7 +954,7 @@ body.dark-theme .demo-details strong {
     </div>
     
     <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 16px; text-align: left; background: var(--gray-50); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--gray-200);">
-      <input type="checkbox" id="accept-rules-checkbox" onchange="toggleStartExamBtn(this.checked)" style="transform: scale(1.25); margin-top: 4px; cursor: pointer;" />
+      <input type="checkbox" id="accept-rules-checkbox" style="transform: scale(1.25); margin-top: 4px; cursor: pointer;" />
       <label for="accept-rules-checkbox" style="font-size: 13px; font-weight: 700; color: var(--gray-900); cursor: pointer;">I explicitly accept these high-security proctoring rules and consent to WebRTC camera, audio, and primary screen sharing.</label>
     </div>
 
@@ -2196,6 +2196,15 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Fix: wire checkbox directly — the CSP polyfill only converts onclick, not onchange
+  const rulesCheckbox = document.getElementById('accept-rules-checkbox');
+  if (rulesCheckbox) {
+    rulesCheckbox.addEventListener('change', function() {
+      toggleStartExamBtn(this.checked);
+    });
+  }
+
+
   // Intercept all fetch requests to dynamically refresh the sliding session window
   const originalFetch = window.fetch;
   window.fetch = function(...args) {
@@ -2710,11 +2719,13 @@ function renderProgressiveVerifier(claimed) {
     return;
   }
 
-  // ── Deduplicate by skill_id — one card per unique skill ──
+  // ── Deduplicate by both skill_id AND skill_name — one card per unique skill ──
   const seenSkills = new Set();
+  const seenNames = new Set();
   const uniqueClaimed = claimed.filter(c => {
-    if (seenSkills.has(c.skill_id)) return false;
+    if (seenSkills.has(c.skill_id) || seenNames.has(c.skill_name)) return false;
     seenSkills.add(c.skill_id);
+    seenNames.add(c.skill_name);
     return true;
   });
 
