@@ -1665,6 +1665,74 @@ SkillProof HR Recruiting Team</textarea>
 </div>
 
 <script>
+// --- Bulletproof CSP & Inline Handler Polyfill ---
+// Replaces insecure browser-blocked inline "onclick" attributes with modern programmatic event listeners.
+// Suppresses default anchor jump (#) behavior for pure single-page navigation.
+function convertOnclick(el) {
+  const handlerStr = el.getAttribute('onclick');
+  if (handlerStr) {
+    el.removeAttribute('onclick');
+    el.addEventListener('click', (e) => {
+      if (el.tagName === 'A' && el.getAttribute('href') === '#') {
+        e.preventDefault();
+      }
+      try {
+        const fn = new Function('event', handlerStr);
+        fn.call(el, e);
+      } catch (err) {
+        console.error("Error executing click handler:", err, handlerStr);
+      }
+    });
+  }
+}
+
+function initCSPPolyfill() {
+  try {
+    // 1. Process all elements currently in the DOM
+    document.querySelectorAll('[onclick]').forEach(convertOnclick);
+
+    // 2. Set up MutationObserver to dynamically intercept future onclick attributes
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach(mutation => {
+        mutation.addedNodes.forEach(node => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            if (node.hasAttribute('onclick')) {
+              convertOnclick(node);
+            }
+            node.querySelectorAll('[onclick]').forEach(convertOnclick);
+          }
+        });
+      });
+    });
+
+    observer.observe(document.documentElement, {
+      childList: true,
+      subtree: true
+    });
+  } catch (err) {
+    console.error("Failed to initialize CSP Polyfill:", err);
+  }
+}
+
+// Run immediately since script is at the bottom of the body
+initCSPPolyfill();
+
+// Safe LocalStorage Proxy to absorb SecurityError/DOMException under sandboxed privacy contexts
+const safeLocalStorage = {
+  getItem(key) {
+    try { return localStorage.getItem(key); } catch (e) { console.warn("localStorage.getItem blocked:", e); return null; }
+  },
+  setItem(key, value) {
+    try { localStorage.setItem(key, value); } catch (e) { console.warn("localStorage.setItem blocked:", e); }
+  },
+  removeItem(key) {
+    try { localStorage.removeItem(key); } catch (e) { console.warn("localStorage.removeItem blocked:", e); }
+  },
+  clear() {
+    try { localStorage.clear(); } catch (e) { console.warn("localStorage.clear blocked:", e); }
+  }
+};
+
 // State Management
 let currentUser = null;
 let currentCompany = null;  // Multi-tenant company context
@@ -1710,7 +1778,7 @@ function showView(viewName) {
   
   // Rolling session updates on user view changes
   if (currentUser) {
-    localStorage.setItem('skillproof_login_time', Date.now());
+    safeLocalStorage.setItem('skillproof_login_time', Date.now());
   }
 
   // Manage navigation display and exam padding to avoid overlaps
@@ -1746,28 +1814,44 @@ function showView(viewName) {
 
 // Cleanup cameras, screen shares, and mic audio contexts
 function cleanupStreams() {
-  if (videoStream) {
-    videoStream.getTracks().forEach(track => track.stop());
-    videoStream = null;
-  }
-  if (screenStream) {
-    screenStream.getTracks().forEach(track => track.stop());
-    screenStream = null;
-  }
-  if (audioStream) {
-    audioStream.getTracks().forEach(track => track.stop());
-    audioStream = null;
-  }
-  if (audioContext) {
-    audioContext.close();
-    audioContext = null;
-  }
+  try {
+    if (videoStream) {
+      videoStream.getTracks().forEach(track => {
+        try { track.stop(); } catch(e) {}
+      });
+      videoStream = null;
+    }
+  } catch(e) {}
+  try {
+    if (screenStream) {
+      screenStream.getTracks().forEach(track => {
+        try { track.stop(); } catch(e) {}
+      });
+      screenStream = null;
+    }
+  } catch(e) {}
+  try {
+    if (audioStream) {
+      audioStream.getTracks().forEach(track => {
+        try { track.stop(); } catch(e) {}
+      });
+      audioStream = null;
+    }
+  } catch(e) {}
+  try {
+    if (audioContext) {
+      audioContext.close().catch(() => {});
+      audioContext = null;
+    }
+  } catch(e) {}
   clearInterval(micInterval);
-  stopPhotoCaptures();
+  try {
+    stopPhotoCaptures();
+  } catch(e) {}
 }
 
 // ── THEME TOGGLE ──
-if (localStorage.getItem('theme') === 'dark') {
+if (safeLocalStorage.getItem('theme') === 'dark') {
   document.body.classList.add('dark-theme');
 }
 
@@ -1780,7 +1864,7 @@ window.addEventListener('DOMContentLoaded', () => {
     themeToggle.addEventListener('click', () => {
       document.body.classList.toggle('dark-theme');
       const isDark = document.body.classList.contains('dark-theme');
-      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      safeLocalStorage.setItem('theme', isDark ? 'dark' : 'light');
       
       if (isDark) {
         if (sunIcon) sunIcon.style.display = 'none';
@@ -1804,30 +1888,39 @@ window.addEventListener('DOMContentLoaded', () => {
 // ── REAL GOOGLE SIGN-IN (Google Identity Services) ──
 const GOOGLE_CLIENT_ID = '716420794813-6rfjccb7m8nupha86qi3jel35i0dpjev.apps.googleusercontent.com';
 
+let googleInitRetryCount = 0;
 // Initialize Google Sign-In when the GIS library loads
 function initGoogleSignIn() {
-  if (typeof google === 'undefined' || !google.accounts) {
-    // GIS not loaded yet, retry after 500ms
-    setTimeout(initGoogleSignIn, 500);
-    return;
-  }
-  google.accounts.id.initialize({
-    client_id: GOOGLE_CLIENT_ID,
-    callback: handleGoogleCredentialResponse,
-    auto_select: false,
-    cancel_on_tap_outside: true,
-  });
-  // Render the official Google button in the container
-  const container = document.getElementById('google-signin-container');
-  if (container) {
-    google.accounts.id.renderButton(container, {
-      theme: 'outline',
-      size: 'large',
-      width: 380,
-      text: 'signin_with',
-      shape: 'rectangular',
-      logo_alignment: 'left'
+  try {
+    if (typeof google === 'undefined' || !google.accounts || !google.accounts.id) {
+      googleInitRetryCount++;
+      if (googleInitRetryCount < 20) {
+        setTimeout(initGoogleSignIn, 500);
+      } else {
+        console.warn('Google Sign-In (GIS) SDK failed to load/initialize.');
+      }
+      return;
+    }
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleGoogleCredentialResponse,
+      auto_select: false,
+      cancel_on_tap_outside: true,
     });
+    // Render the official Google button in the container
+    const container = document.getElementById('google-signin-container');
+    if (container) {
+      google.accounts.id.renderButton(container, {
+        theme: 'outline',
+        size: 'large',
+        width: 380,
+        text: 'signin_with',
+        shape: 'rectangular',
+        logo_alignment: 'left'
+      });
+    }
+  } catch (err) {
+    console.error('Failed to initialize Google Sign-In:', err);
   }
 }
 window.addEventListener('load', () => { setTimeout(initGoogleSignIn, 300); });
@@ -1857,15 +1950,20 @@ function handleGoogleCredentialResponse(response) {
 
 // Manual trigger for Google Sign-In (fallback button)
 function triggerGoogleSignIn() {
-  if (typeof google !== 'undefined' && google.accounts) {
-    google.accounts.id.prompt((notification) => {
-      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-        // Fallback: use the old modal for manual entry
-        triggerOAuthModal('Google');
-      }
-    });
-  } else {
-    // GIS not loaded, fallback to manual
+  try {
+    if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+      google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          // Fallback: use the old modal for manual entry
+          triggerOAuthModal('Google');
+        }
+      });
+    } else {
+      // GIS not loaded, fallback to manual
+      triggerOAuthModal('Google');
+    }
+  } catch (err) {
+    console.error('Error during manual Google Sign-In trigger:', err);
     triggerOAuthModal('Google');
   }
 }
@@ -1974,54 +2072,66 @@ window.addEventListener('DOMContentLoaded', () => {
   const originalFetch = window.fetch;
   window.fetch = function(...args) {
     if (currentUser) {
-      localStorage.setItem('skillproof_login_time', Date.now());
+      safeLocalStorage.setItem('skillproof_login_time', Date.now());
     }
     return originalFetch.apply(this, args).then(response => {
       if (currentUser && response.ok) {
-        localStorage.setItem('skillproof_login_time', Date.now());
+        safeLocalStorage.setItem('skillproof_login_time', Date.now());
       }
       return response;
     });
   };
 
   // Restore session if available and valid (under 10 minutes)
-  const savedUser = localStorage.getItem('skillproof_user');
-  const savedCompany = localStorage.getItem('skillproof_company');
-  const savedLoginTime = localStorage.getItem('skillproof_login_time');
+  try {
+    const savedUser = safeLocalStorage.getItem('skillproof_user');
+    const savedCompany = safeLocalStorage.getItem('skillproof_company');
+    const savedLoginTime = safeLocalStorage.getItem('skillproof_login_time');
 
-  if (savedUser && savedLoginTime) {
-    const elapsed = Date.now() - parseInt(savedLoginTime, 10);
-    if (elapsed < 10 * 60 * 1000) { // 10 minutes
-      currentUser = JSON.parse(savedUser);
-      currentCompany = savedCompany ? JSON.parse(savedCompany) : null;
-      
-      // Update rolling session timestamp
-      localStorage.setItem('skillproof_login_time', Date.now());
-
-      // Update main navbar profile buttons
-      const loginBtn = document.getElementById('nav-login-btn');
-      if (loginBtn) loginBtn.style.display = 'none';
-      const ctaBtn = document.getElementById('nav-cta-btn');
-      if (ctaBtn) {
-        ctaBtn.innerText = `Dashboard (${currentUser.name})`;
-        ctaBtn.onclick = () => showView(currentUser.role === 'recruiter' ? 'admin' : 'student');
-      }
-
-      // Route to appropriate view and enforce onboarding check
-      if (currentUser.role === 'recruiter') {
-        showView('admin');
-      } else {
-        showView('student');
-        if (!currentUser.phone || currentUser.college === 'Self-Taught / University') {
-          openStudentOnboardingModal();
+    if (savedUser && savedLoginTime) {
+      const elapsed = Date.now() - parseInt(savedLoginTime, 10);
+      if (elapsed < 10 * 60 * 1000) { // 10 minutes
+        currentUser = JSON.parse(savedUser);
+        if (currentUser && typeof currentUser.skillproof_score !== 'number') {
+          currentUser.skillproof_score = 0;
         }
+        currentCompany = savedCompany ? JSON.parse(savedCompany) : null;
+        
+        // Update rolling session timestamp
+        safeLocalStorage.setItem('skillproof_login_time', Date.now());
+
+        // Update main navbar profile buttons
+        const loginBtn = document.getElementById('nav-login-btn');
+        if (loginBtn) loginBtn.style.display = 'none';
+        const ctaBtn = document.getElementById('nav-cta-btn');
+        if (ctaBtn) {
+          ctaBtn.innerText = `Dashboard (${currentUser.name})`;
+          ctaBtn.onclick = () => showView(currentUser.role === 'recruiter' ? 'admin' : 'student');
+        }
+
+        // Route to appropriate view and enforce onboarding check
+        if (currentUser.role === 'recruiter') {
+          showView('admin');
+        } else {
+          showView('student');
+          if (!currentUser.phone || currentUser.college === 'Self-Taught / University') {
+            openStudentOnboardingModal();
+          }
+        }
+      } else {
+        // Session expired
+        safeLocalStorage.removeItem('skillproof_user');
+        safeLocalStorage.removeItem('skillproof_company');
+        safeLocalStorage.removeItem('skillproof_login_time');
       }
-    } else {
-      // Session expired
-      localStorage.removeItem('skillproof_user');
-      localStorage.removeItem('skillproof_company');
-      localStorage.removeItem('skillproof_login_time');
     }
+  } catch (err) {
+    console.error('Error during initial session restoration:', err);
+    try {
+      safeLocalStorage.removeItem('skillproof_user');
+      safeLocalStorage.removeItem('skillproof_company');
+      safeLocalStorage.removeItem('skillproof_login_time');
+    } catch(e) {}
   }
 
   // Throttled session updates on mouse/key/touch activity to roll session forward
@@ -2030,7 +2140,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const now = Date.now();
     if (now - lastSessionUpdate > 30000) { // update at most every 30 seconds
       if (currentUser) {
-        localStorage.setItem('skillproof_login_time', Date.now());
+        safeLocalStorage.setItem('skillproof_login_time', Date.now());
       }
       lastSessionUpdate = now;
     }
@@ -2093,10 +2203,10 @@ function submitOAuthHandshake(nameInput, emailInput) {
     currentUser = data.user;
     currentCompany = data.company || null;  // Store company context for multi-tenant isolation
     
-    // Save session in localStorage with current time for 10-minute persistence
-    localStorage.setItem('skillproof_user', JSON.stringify(currentUser));
-    localStorage.setItem('skillproof_company', JSON.stringify(currentCompany));
-    localStorage.setItem('skillproof_login_time', Date.now());
+    // Save session in safeLocalStorage with current time for 10-minute persistence
+    safeLocalStorage.setItem('skillproof_user', JSON.stringify(currentUser));
+    safeLocalStorage.setItem('skillproof_company', JSON.stringify(currentCompany));
+    safeLocalStorage.setItem('skillproof_login_time', Date.now());
     
     // Update main navbar profile buttons
     document.getElementById('nav-login-btn').style.display = 'none';
@@ -2214,7 +2324,7 @@ function submitStudentOnboarding() {
     
     // Update local state and saved storage session
     currentUser = data.user;
-    localStorage.setItem('skillproof_user', JSON.stringify(currentUser));
+    safeLocalStorage.setItem('skillproof_user', JSON.stringify(currentUser));
 
     // Submit skill claims sequentially
     const claims = Array.from(checkboxes).map(chk => {
@@ -2258,6 +2368,11 @@ function submitStudentOnboarding() {
 // ── STUDENT DASHBOARD & CLAIMS SYSTEM ──
 function loadStudentDashboard() {
   if (!currentUser) return;
+
+  // Normalize score to fallback default of 0
+  if (typeof currentUser.skillproof_score !== 'number') {
+    currentUser.skillproof_score = 0;
+  }
 
   // Trigger onboarding modal for students if profile details are blank/default
   if (!currentUser.phone || !currentUser.college || currentUser.college === 'Self-Taught / University') {
@@ -2309,7 +2424,11 @@ function loadStudentDashboard() {
         claimedSkills = data.skills;
         if (data.user) {
           currentUser = data.user;
-          localStorage.setItem('skillproof_user', JSON.stringify(currentUser));
+          // Normalize score to fallback default of 0
+          if (typeof currentUser.skillproof_score !== 'number') {
+            currentUser.skillproof_score = 0;
+          }
+          safeLocalStorage.setItem('skillproof_user', JSON.stringify(currentUser));
           
           // Sync sidebar UI immediately with potentially self-healed database values
           const sidebarScore = document.getElementById('student-sidebar-score');

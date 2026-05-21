@@ -11,46 +11,86 @@
 const sqlite3 = require('sqlite3').verbose();
 const crypto  = require('crypto');
 const path    = require('path');
+const fs      = require('fs');
+const dbSync  = require('./dbSync');
 
-const fs = require('fs');
-let DB_PATH = path.join(__dirname, 'app.db');
-if (!fs.existsSync(DB_PATH) && fs.existsSync(path.join(process.cwd(), 'app.db'))) {
-  DB_PATH = path.join(process.cwd(), 'app.db');
-}
+let DB_PATH = dbSync.DB_PATH;
 
-if (process.env.VERCEL) {
-  const tmpPath = '/tmp/app.db';
-  if (!fs.existsSync(tmpPath)) {
-    try {
-      let srcPath = path.join(__dirname, 'app.db');
-      if (!fs.existsSync(srcPath) && fs.existsSync(path.join(process.cwd(), 'app.db'))) {
-        srcPath = path.join(process.cwd(), 'app.db');
-      }
-      if (fs.existsSync(srcPath)) {
-        fs.copyFileSync(srcPath, tmpPath);
-        console.log('[DB] Copied pre-seeded SQLite database to write-safe Vercel /tmp path.');
-      } else {
-        console.log('[DB] Pre-seeded app.db not found at ' + srcPath + ', creating empty database in /tmp.');
-      }
-    } catch (err) {
-      console.error('[DB] Failed to copy seed SQLite file to /tmp:', err.message);
+// Ensure pre-seeded DB is copied to /tmp on Vercel at cold start if not pulled yet
+if (process.env.VERCEL && !fs.existsSync(DB_PATH)) {
+  try {
+    let srcPath = path.join(__dirname, 'app.db');
+    if (!fs.existsSync(srcPath) && fs.existsSync(path.join(process.cwd(), 'app.db'))) {
+      srcPath = path.join(process.cwd(), 'app.db');
     }
+    if (fs.existsSync(srcPath)) {
+      fs.copyFileSync(srcPath, DB_PATH);
+      console.log('[DB Startup] Copied seed SQLite database to /tmp path.');
+    }
+  } catch (err) {
+    console.error('[DB Startup] Failed to copy seed SQLite file to /tmp:', err.message);
   }
-  DB_PATH = tmpPath;
 }
 
-// Open (or create) the database — always open, never closed while server is running
-const db = new sqlite3.Database(DB_PATH, (err) => {
+// Open active database instance
+let activeDb = new sqlite3.Database(DB_PATH, (err) => {
   if (err) {
     console.error('Failed to open database:', err.message);
   }
 });
 
-// Enable WAL for better concurrency and FK enforcement
-db.serialize(() => {
-  db.run('PRAGMA journal_mode = WAL;');
-  db.run('PRAGMA foreign_keys = ON;');
+// Configure database defaults
+activeDb.serialize(() => {
+  if (process.env.VERCEL) {
+    // Disable WAL on Vercel to guarantee writes write immediately to the SQLite file
+    activeDb.run('PRAGMA journal_mode = DELETE;');
+  } else {
+    activeDb.run('PRAGMA journal_mode = WAL;');
+  }
+  activeDb.run('PRAGMA foreign_keys = ON;');
 });
+
+// Transparent proxy wrapper delegating calls to the currently active sqlite3 connection
+const db = {
+  get: (sql, params, cb) => activeDb.get(sql, params, cb),
+  run: (sql, params, cb) => activeDb.run(sql, params, cb),
+  all: (sql, params, cb) => activeDb.all(sql, params, cb),
+  each: (sql, params, callback, complete) => activeDb.each(sql, params, callback, complete),
+  exec: (sql, cb) => activeDb.exec(sql, cb),
+  prepare: (sql, params, cb) => activeDb.prepare(sql, params, cb),
+  serialize: (fn) => activeDb.serialize(fn),
+  parallelize: (fn) => activeDb.parallelize(fn),
+  close: (cb) => activeDb.close(cb),
+  
+  // Custom helper to reopen the sqlite3 connection when the database file is synced from Supabase
+  reopen: () => {
+    return new Promise((resolve, reject) => {
+      console.log('[DB Sync] Closing active database connection to swap file...');
+      activeDb.close((err) => {
+        if (err) {
+          console.error('[DB Sync] Error closing database connection during reopen:', err.message);
+        }
+        activeDb = new sqlite3.Database(DB_PATH, (err2) => {
+          if (err2) {
+            console.error('[DB Sync] Failed to reopen database connection:', err2.message);
+            reject(err2);
+          } else {
+            console.log('[DB Sync] Database connection successfully swapped to fresh file.');
+            activeDb.serialize(() => {
+              if (process.env.VERCEL) {
+                activeDb.run('PRAGMA journal_mode = DELETE;');
+              } else {
+                activeDb.run('PRAGMA journal_mode = WAL;');
+              }
+              activeDb.run('PRAGMA foreign_keys = ON;');
+              resolve();
+            });
+          }
+        });
+      });
+    });
+  }
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Promise helpers

@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const hpp = require('hpp');
 const db = require('./database');
+const dbSync = require('./dbSync');
 const fs = require('fs');
 const path = require('path');
 
@@ -100,6 +101,37 @@ const examLimiter = rateLimit({
 });
 
 app.use(globalLimiter);
+
+// ═══════════════════════════════════════════════════════════════
+// DATABASE STATE SYNC MIDDLEWARE (For Vercel Serverless)
+// ═══════════════════════════════════════════════════════════════
+app.use(async (req, res, next) => {
+  if (process.env.VERCEL) {
+    try {
+      const updated = await dbSync.pullLatestDb();
+      if (updated) {
+        await db.reopen();
+      }
+    } catch (err) {
+      console.error('[DB Sync Middleware] Pull/Reopen failed:', err.message);
+    }
+
+    if (['POST', 'PUT', 'DELETE'].includes(req.method)) {
+      res.on('finish', () => {
+        dbSync.pushLatestDb()
+          .then(success => {
+            if (success) {
+              console.log('[DB Sync Middleware] Auto-pushed database successfully.');
+            }
+          })
+          .catch(err => {
+            console.error('[DB Sync Middleware] Push failed:', err.message);
+          });
+      });
+    }
+  }
+  next();
+});
 
 // ═══════════════════════════════════════════════════════════════
 // SECURITY LAYER 6: Input Validation Helpers
