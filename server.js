@@ -902,12 +902,15 @@ app.post('/api/exams/start', examLimiter, async (req, res) => {
     const question = await dbGet('SELECT * FROM questions WHERE id = ?', [questionId]);
     if (!question) return res.status(404).json({ error: 'Target question not found' });
 
-    // One-attempt enforcement
+    // Strict one-attempt enforcement
     const existingAttempt = await dbGet(
-      `SELECT id, status FROM challenges WHERE student_id = ? AND question_id = ? AND status IN ('evaluated', 'submitted', 'disqualified', 'expired')`,
+      `SELECT id, status FROM challenges WHERE student_id = ? AND question_id = ?`,
       [student.id, questionId]
     );
     if (existingAttempt) {
+      if (existingAttempt.status === 'active') {
+        return res.status(400).json({ error: 'You already have an active session for this exam. Please reload your dashboard.' });
+      }
       return res.status(400).json({ error: 'You have already attempted this exam. Only one attempt is allowed.' });
     }
 
@@ -1714,7 +1717,7 @@ app.post('/api/exams/photo', async (req, res) => {
       return res.status(400).json({ error: 'Missing photo data' });
     }
     
-    const validTypes = ['id_verify', 'selfie', 'interval', 'start'];
+    const validTypes = ['id_verify', 'selfie', 'interval', 'start', 'random_1', 'random_2', 'random_3'];
     if (!validTypes.includes(captureType)) {
       return res.status(400).json({ error: 'Invalid capture type' });
     }

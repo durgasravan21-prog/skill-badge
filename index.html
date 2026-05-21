@@ -1413,7 +1413,10 @@ body.dark-theme .demo-details strong {
             <span id="editor-lang-badge" style="display:none; background:#1C1A17; color:#F5A623; font-family:monospace; font-size:11px; font-weight:700; padding:2px 8px; border-radius:4px; border:1px solid #3A3630;"></span>
           </div>
         </div>
-        <div id="active-timer" class="timer-display">00:00</div>
+        <div id="active-timer" style="background: var(--orange-deep); color: #fff; font-family: monospace; font-size: 16px; font-weight: 700; padding: 6px 12px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          00:00
+        </div>
       </div>
 
       <textarea id="code-editor" class="editor-textarea" spellcheck="false" data-lang=""></textarea>
@@ -3339,12 +3342,17 @@ function startCountdown(durationSeconds) {
     const seconds = timer % 60;
 
     timerDisplay.innerText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    
+    if (timer <= 60) {
+      timerDisplay.style.color = '#ff4444';
+      timerDisplay.style.animation = 'pulse 1s infinite';
+    }
 
     if (--timer < 0) {
       clearInterval(currentTimer);
       timerDisplay.innerText = "00:00";
-      alert('Time limit expired! Solution is auto-submitting.');
-      submitExam(true);
+      timerDisplay.style.animation = 'none';
+      submitExam(true); // Auto-submit silently without triggering alert -> blur event
     }
   }, 1000);
 }
@@ -3401,6 +3409,14 @@ function strictKeyboardProctor(e) {
       logViolation('copy_paste_attempt');
       return false;
     }
+  }
+
+  // Block PrintScreen and Snipping Tools (Windows+Shift+S, Cmd+Shift+3/4/5)
+  if (e.key === 'PrintScreen' || (e.shiftKey && (e.metaKey || e.ctrlKey) && ['s', 'S', '3', '4', '5'].includes(e.key))) {
+    e.preventDefault();
+    logViolation('screenshot_attempt');
+    try { navigator.clipboard.writeText(''); } catch(err) {} // Attempt to wipe clipboard
+    return false;
   }
 }
 
