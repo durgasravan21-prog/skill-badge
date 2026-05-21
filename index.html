@@ -1509,23 +1509,24 @@ body.dark-theme .demo-details strong {
         </button>
       </div>
 
-      <!-- Card 3: Bulk Candidate Job Skill Dispatcher -->
+      <!-- Card 3: Bulk Candidate Exam Invite Dispatcher -->
       <div class="admin-card">
-        <h2>Bulk Job Skill Dispatcher</h2>
-        <p style="font-size:12px; color:var(--gray-500); margin-bottom:16px; line-height:1.4;">Dispatch timed challenges and run AI proctoring simulations to evaluate different candidates simultaneously.</p>
+        <h2>Send Exam Invites to Candidates</h2>
+        <p style="font-size:12px; color:var(--gray-500); margin-bottom:16px; line-height:1.4;">Enter candidate details below and click <strong>Send Exam Invites</strong>. Each student will receive a proctored exam in their <strong>Corporate Assessment Invites</strong> tab. After they complete it, results appear in the history panel on the right.</p>
         
         <div id="bulk-dispatch-rows" style="display:flex; flex-direction:column; gap:16px; margin-bottom:16px;">
           <!-- Dynamically added candidate rows will be rendered here -->
         </div>
         
         <div style="display:flex; gap:12px; margin-top:16px;">
-          <button onclick="addCandidateRow()" class="btn-ghost" style="padding: 10px 16px; font-size:12px; flex:1; justify-content:center; display:inline-flex; align-items:center; gap:6px;">+ Add Row</button>
+          <button onclick="addCandidateRow()" class="btn-ghost" style="padding: 10px 16px; font-size:12px; flex:1; justify-content:center; display:inline-flex; align-items:center; gap:6px;">+ Add Candidate</button>
           <button onclick="runBulkDispatch()" class="btn-primary" style="padding: 10px 16px; font-size:12px; flex:1.5; justify-content:center; display:inline-flex; align-items:center; gap:6px;">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polyline points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            Dispatch & Evaluate
+            Send Exam Invites
           </button>
         </div>
       </div>
+
     </div>
 
     <!-- Right Column: Flexbox wrapped for dual cards -->
@@ -4063,7 +4064,89 @@ function switchStudentTab(tabName) {
 }
 
 // ── RECRUITER BULK ACTION TRIGGERS & SENDING UTILITIES ──
+
+// Add a candidate row to the dispatcher form
+function addCandidateRow() {
+  const container = document.getElementById('bulk-dispatch-rows');
+  if (!container) return;
+  const row = document.createElement('div');
+  row.className = 'dispatch-row';
+  row.style.cssText = 'display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:8px; align-items:center; background:var(--gray-50); padding:10px 12px; border-radius:var(--radius-sm); border:1px solid var(--gray-200);';
+  row.innerHTML = `
+    <input type="text" placeholder="Candidate Name" class="dispatch-name" style="padding:8px 10px; border:1.5px solid var(--gray-200); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-body);" />
+    <input type="email" placeholder="Candidate Email" class="dispatch-email" style="padding:8px 10px; border:1.5px solid var(--gray-200); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-body);" />
+    <select class="dispatch-skill" style="padding:8px 10px; border:1.5px solid var(--gray-200); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-body);">
+      ${(masterSkillsList || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+    </select>
+    <button onclick="this.parentElement.remove()" style="background:var(--gray-100); border:none; border-radius:var(--radius-sm); padding:8px 10px; cursor:pointer; color:var(--gray-600); font-size:16px;" title="Remove">✕</button>
+  `;
+  container.appendChild(row);
+}
+
+// Dispatch real exam invites to candidates
+async function runBulkDispatch() {
+  if (!currentUser || !currentCompany) {
+    alert('You must be logged in as a recruiter with a company account.');
+    return;
+  }
+
+  const rows = document.querySelectorAll('.dispatch-row');
+  if (rows.length === 0) {
+    alert('Please add at least one candidate row first.');
+    return;
+  }
+
+  const candidates = [];
+  let valid = true;
+  rows.forEach(row => {
+    const name = row.querySelector('.dispatch-name')?.value?.trim();
+    const email = row.querySelector('.dispatch-email')?.value?.trim();
+    const skillId = row.querySelector('.dispatch-skill')?.value;
+    if (!name || !email || !skillId) { valid = false; return; }
+    candidates.push({ name, email, skillId, difficultyOrder: 'easy,medium,hard' });
+  });
+
+  if (!valid || candidates.length === 0) {
+    alert('Please fill in all candidate fields (name, email, skill).');
+    return;
+  }
+
+  const btn = document.querySelector('[onclick="runBulkDispatch()"]');
+  if (btn) { btn.disabled = true; btn.innerText = 'Sending invites…'; }
+
+  try {
+    const res = await fetch('/api/recruiter/dispatch-and-evaluate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        candidates,
+        company_id: currentCompany.id,
+        recruiter_id: currentUser.id
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Dispatch failed');
+
+    // Show results summary
+    let msg = `✅ ${data.results?.length || 0} exam invite(s) sent!\n\n`;
+    (data.results || []).forEach(r => {
+      msg += `• ${r.name} (${r.email}) → ${r.skillName}\n  Access Password: ${r.examPassword}\n`;
+    });
+    msg += '\nStudents will see their exam in the "Corporate Assessment Invites" tab of their dashboard. After they complete it, results will appear here.';
+    alert(msg);
+
+    // Clear the rows
+    document.getElementById('bulk-dispatch-rows').innerHTML = '';
+    loadAdminHistory();
+  } catch (err) {
+    alert('Error: ' + err.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polyline points="22 2 15 22 11 13 2 9 22 2"/></svg> Send Exam Invites'; }
+  }
+}
+
 function toggleSelectAllCandidates(isChecked) {
+
   const checkboxes = document.querySelectorAll('.candidate-checkbox');
   checkboxes.forEach(cb => {
     cb.checked = isChecked;

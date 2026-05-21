@@ -1190,11 +1190,11 @@ app.post('/api/recruiter/send-bulk-email', bulkLimiter, async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// 7. RECRUITER BULK DISPATCH & EVALUATE — COMPANY-ISOLATED
+// 7. RECRUITER CANDIDATE INVITE DISPATCHER (Real exam invites)
 // ═══════════════════════════════════════════════════════════════
 app.post('/api/recruiter/dispatch-and-evaluate', bulkLimiter, async (req, res) => {
   try {
-    const { candidates, company_id } = req.body;
+    const { candidates, company_id, recruiter_id } = req.body;
 
     if (!candidates || !Array.isArray(candidates) || candidates.length === 0) {
       return res.status(400).json({ error: 'Missing candidates array' });
@@ -1204,10 +1204,11 @@ app.post('/api/recruiter/dispatch-and-evaluate', bulkLimiter, async (req, res) =
     }
 
     const companyId = sanitizeString(company_id, 50) || null;
+    const recruiterId = sanitizeString(recruiter_id, 50) || null;
     const results = [];
     const now = new Date().toISOString();
 
-    // Fetch company name for badge
+    // Fetch company name
     let companyName = 'SkillProof';
     if (companyId) {
       const company = await dbGet('SELECT name FROM companies WHERE id = ?', [companyId]);
@@ -1218,133 +1219,85 @@ app.post('/api/recruiter/dispatch-and-evaluate', bulkLimiter, async (req, res) =
       const name = sanitizeString(cand.name, 200);
       const email = sanitizeString(cand.email, 254).toLowerCase();
       const skillId = sanitizeString(cand.skillId, 50);
+      const difficultyOrder = sanitizeString(cand.difficultyOrder, 200) || 'easy,medium,hard';
 
-      if (!name || !email || !skillId) {
-        return res.status(400).json({ error: 'All candidates must have name, email, and skillId' });
-      }
-      if (!isValidEmail(email)) {
-        return res.status(400).json({ error: `Invalid email: ${email}` });
-      }
+      if (!name || !email || !skillId) continue;
+      if (!isValidEmail(email)) continue;
 
-      // 1. Fetch or create user
+      // Ensure candidate user exists in DB
       let user = await dbGet('SELECT * FROM users WHERE email = ? COLLATE NOCASE', [email]);
       if (!user) {
         const userId = crypto.randomUUID();
         const profileSlug = name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + crypto.randomBytes(4).toString('hex');
         await dbRun(
           `INSERT INTO users (id, name, email, role, college, company, company_id, profile_slug, skillproof_score, created_at)
-           VALUES (?, ?, ?, 'student', 'Self-Taught / University', NULL, NULL, ?, 0.00, ?)`,
+           VALUES (?, ?, ?, 'student', NULL, NULL, NULL, ?, 0.00, ?)`,
           [userId, name, email, profileSlug, now]
         );
         user = await dbGet('SELECT * FROM users WHERE id = ?', [userId]);
       }
 
-      // 2. Fetch skill
+      // Fetch skill
       const skill = await dbGet('SELECT * FROM skills WHERE id = ?', [skillId]);
-      if (!skill) return res.status(400).json({ error: `Skill ID ${skillId} not found` });
+      if (!skill) continue;
 
-      // 3. Fetch question
-      const question = await dbGet('SELECT * FROM questions WHERE skill_id = ? LIMIT 1', [skillId]);
-      if (!question) return res.status(400).json({ error: `No questions for skill: ${skill.name}` });
-
-      // 4. Simulate proctoring (10% chance of cheating flag)
-      const simulateCheating = Math.random() < 0.1;
-      const violationsCount = simulateCheating ? 1 : 0;
-      const status = simulateCheating ? 'disqualified' : 'evaluated';
-
-      const correctness = simulateCheating ? 0 : Math.floor(Math.random() * 11) + 30;
-      const quality = simulateCheating ? 0 : Math.floor(Math.random() * 6) + 20;
-      const edgeCases = simulateCheating ? 0 : Math.floor(Math.random() * 6) + 15;
-      const understanding = simulateCheating ? 0 : Math.floor(Math.random() * 6) + 10;
-      const score = correctness + quality + edgeCases + understanding;
-
-      let aiReport = '';
-      if (simulateCheating) {
-        aiReport = `CRITICAL PROCTORING BREACH: 1 infraction logged. VERIFICATION DISQUALIFIED.`;
-      } else if (score >= 60) {
-        aiReport = `AI AUDIT: PASS. Full proctoring compliance. Excellent logic for "${question.title}" (${question.difficulty.toUpperCase()}). Recommended.`;
-      } else {
-        aiReport = `AI AUDIT: FAIL. Proctoring clean but algorithm had logic gaps. Score: ${score}/100.`;
+      // Build shuffled question order for each difficulty
+      const difficulties = difficultyOrder.split(',').map(d => d.trim().toLowerCase());
+      const questionIds = [];
+      for (const diff of difficulties) {
+        const questions = await dbAll('SELECT id FROM questions WHERE skill_id = ? AND difficulty = ?', [skillId, diff]);
+        if (questions && questions.length > 0) {
+          questionIds.push(questions[Math.floor(Math.random() * questions.length)].id);
+        }
       }
+      if (questionIds.length === 0) continue;
 
-      const challengeId = crypto.randomUUID();
-      const submissionId = crypto.randomUUID();
-      const evaluationId = crypto.randomUUID();
+      // Create exam invite (schedule) for this specific candidate
+      const examPassword = crypto.randomBytes(3).toString('hex').toUpperCase();
+      const scheduleId = crypto.randomUUID();
+      // Set exam available from now
+      const startTime = now;
+      const durationMinutes = 60;
 
-      // 5. Create challenge (tagged with company_id for isolation!)
       await dbRun(
-        `INSERT INTO challenges (id, student_id, recruiter_id, skill_id, question_id, difficulty, time_limit_mins, status, started_at, submitted_at, expires_at, violations_count, company_id)
-         VALUES (?, ?, NULL, ?, ?, ?, 10, ?, ?, ?, ?, ?, ?)`,
-        [challengeId, user.id, skillId, question.id, question.difficulty, status, now, now, now, violationsCount, companyId]
+        `INSERT INTO exam_schedules (id, recruiter_id, company_id, skill_id, question_order, difficulty_order, start_time, duration_minutes, exam_password, invited_student_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [scheduleId, recruiterId, companyId, skillId, questionIds.join(','), difficultyOrder, startTime, durationMinutes, examPassword, user.id]
       );
 
-      // 6. Submission
-      await dbRun('INSERT INTO submissions (id, challenge_id, code) VALUES (?, ?, ?)',
-        [submissionId, challengeId, question.code_template]);
-
-      // 7. Evaluation
-      await dbRun('INSERT INTO evaluations (id, challenge_id, total_score, ai_summary) VALUES (?, ?, ?, ?)',
-        [evaluationId, challengeId, score, aiReport]);
-
-      // 8. Log violation if cheating
-      if (simulateCheating) {
-        await dbRun('INSERT INTO violations (id, challenge_id, type, timestamp) VALUES (?, ?, ?, ?)',
-          [crypto.randomUUID(), challengeId, 'tab_exit', now]);
-      }
-
-      // 9. Update badge with COMPANY-SPECIFIC tag
-      const pass = score >= 60;
-      let badgeStatus = 'claimed';
-      let badgeTag = null;
-      if (question.difficulty === 'hard') {
-        badgeStatus = pass ? 'verified' : 'failed';
-        badgeTag = pass ? `${companyName} Verified ${skill.name.split(' ')[0]} Expert` : null;
-      } else if (!pass) {
-        badgeStatus = 'failed';
-      }
-
-      const existingSkill = await dbGet('SELECT * FROM student_skills WHERE student_id = ? AND skill_id = ?', [user.id, skillId]);
-      if (existingSkill) {
+      // Ensure student has skill claimed so invite appears in their arena
+      const existingClaim = await dbGet('SELECT id FROM student_skills WHERE student_id = ? AND skill_id = ?', [user.id, skillId]);
+      if (!existingClaim) {
         await dbRun(
-          `UPDATE student_skills SET status = ?, verified_score = ?, verified_at = ?, verified_by = ?, badge_tag = ? WHERE id = ?`,
-          [badgeStatus, score, now, `${companyName} AI`, badgeTag, existingSkill.id]
+          `INSERT INTO student_skills (id, student_id, skill_id, self_rating, status) VALUES (?, ?, ?, 3, 'claimed')`,
+          [crypto.randomUUID(), user.id, skillId]
         );
-      } else {
-        await dbRun(
-          `INSERT INTO student_skills (id, student_id, skill_id, self_rating, status, verified_score, verified_at, verified_by, badge_tag)
-           VALUES (?, ?, ?, 3, ?, ?, ?, ?, ?)`,
-          [crypto.randomUUID(), user.id, skillId, badgeStatus, score, now, `${companyName} AI`, badgeTag]
-        );
-      }
-
-      // 10. Update cumulative score
-      const avgResult = await dbGet(
-        `SELECT AVG(total_score) as avg_score FROM evaluations e
-         JOIN challenges c ON e.challenge_id = c.id
-         WHERE c.student_id = ? AND c.status = 'evaluated'`,
-        [user.id]
-      );
-      if (avgResult && avgResult.avg_score !== null) {
-        await dbRun('UPDATE users SET skillproof_score = ? WHERE id = ?',
-          [parseFloat(avgResult.avg_score.toFixed(2)), user.id]);
       }
 
       results.push({
-        name, email, skillName: skill.name, violationsCount, status, score,
-        aiSummary: aiReport, smtpStatus: 'Delivered (Port 465 SSL)'
+        name, email,
+        skillName: skill.name,
+        scheduleId,
+        examPassword,
+        status: 'invited',
+        message: `Exam invite created. Student will see it in their Corporate Assessment Invites tab.`
       });
     }
 
-    res.json({ message: 'Bulk dispatch processed successfully.', results });
+    res.json({
+      message: `${results.length} exam invite(s) dispatched. Students will see the test in their dashboard.`,
+      results
+    });
   } catch (err) {
-    console.error('Bulk dispatch error:', err.message);
-    res.status(500).json({ error: err.message || 'Bulk dispatch failed' });
+    console.error('Dispatch invite error:', err.message);
+    res.status(500).json({ error: err.message || 'Invite dispatch failed' });
   }
 });
 
 // ═══════════════════════════════════════════════════════════════
 // 7.5. EXAM SCHEDULING SYSTEM (Recruiter & Student Integration)
 // ═══════════════════════════════════════════════════════════════
+
 app.post('/api/recruiter/schedule-exam', async (req, res) => {
   try {
     const recruiterId = sanitizeString(req.body.recruiter_id, 50);
