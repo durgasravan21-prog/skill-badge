@@ -1117,11 +1117,13 @@ app.get('/api/exams/history', async (req, res) => {
                       c.company_id,
                       u.name as student_name, u.email as student_email,
                       q.title as question_title,
+                      sk.name as skill_name,
                       e.total_score as score, e.ai_summary,
                       s.code as submitted_code
                FROM challenges c
                JOIN users u ON c.student_id = u.id
                JOIN questions q ON c.question_id = q.id
+               JOIN skills sk ON c.skill_id = sk.id
                LEFT JOIN submissions s ON s.challenge_id = c.id
                LEFT JOIN evaluations e ON e.challenge_id = c.id`;
 

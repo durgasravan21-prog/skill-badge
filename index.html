@@ -1553,12 +1553,12 @@ body.dark-theme .demo-details strong {
             <thead>
               <tr>
                 <th style="width: 40px; text-align: center;"><input type="checkbox" id="select-all-history" onchange="toggleSelectAllCandidates(this.checked)" style="transform: scale(1.25); cursor: pointer;" /></th>
-                <th style="width: 200px;">Student / Email</th>
-                <th style="width: 200px;">Question</th>
+                <th style="width: 180px;">Student / Email</th>
+                <th style="width: 140px;">Skill</th>
                 <th style="width: 100px;">Infractions</th>
                 <th style="width: 120px;">Status</th>
                 <th style="width: 80px;">Score</th>
-                <th style="width: 360px;">AI Audit Synthesis Summary & Breaches</th>
+                <th style="width: 240px;">Actions</th>
               </tr>
             </thead>
             <tbody id="admin-history-list">
@@ -3839,7 +3839,7 @@ function loadAdminHistory() {
               <strong>${exam.student_name}${goldBadgeHTML}</strong><br/>
               <span style="color:var(--gray-500); font-size:11px">${exam.student_email}</span>
             </td>
-            <td>${exam.question_title}</td>
+            <td><strong>${exam.skill_name || 'Technical Test'}</strong><br/><span style="font-size:10px; color:var(--gray-500);" title="${exam.question_title}">${exam.question_title.substring(0,30)}...</span></td>
             <td>
               <strong style="color:${exam.violations_count > 0 ? '#C62828' : '#2E7D32'}">
                 ${exam.violations_count}
@@ -3848,13 +3848,12 @@ function loadAdminHistory() {
             <td><span class="status-tag ${exam.status}">${exam.status.toUpperCase()}</span></td>
             <td><strong>${exam.status === 'disqualified' ? 'WITHHELD' : finalScore + '/100'}</strong></td>
             <td>
-              <div style="font-size:12px; font-weight:500; color:var(--gray-900); background:var(--gray-50); border:1px solid var(--gray-100); padding:10px; border-radius:4px; margin-bottom:8px; line-height:1.4;">
-                💡 <strong>AI Summary:</strong> ${summaryText}
-              </div>
-              <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-                <div style="font-size:10px; color:var(--gray-500); line-height:1.4;">${infractionLog}</div>
-                <button onclick="viewCandidateCode('${exam.examId}')" class="btn-ghost" style="padding: 4px 8px; font-size: 11px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; border-radius: 4px;">
-                  💻 View Submitted Code
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <button onclick="viewCandidateCode('${exam.examId}')" class="btn-ghost" style="padding: 6px; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; border-radius: 4px; width: 100%; border: 1px solid var(--gray-200);">
+                  💻 View Code & Award Badge
+                </button>
+                <button onclick="alert('To invite for the next round, check the box on the left and click \\'Compose Bulk Invite\\' at the top of the table.')" class="btn-primary" style="padding: 6px; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 4px; width: 100%; border: none; background: var(--orange-deep); color: #fff;">
+                  ✉️ Invite to Next Round
                 </button>
               </div>
             </td>
