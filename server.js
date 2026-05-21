@@ -161,29 +161,82 @@ function sanitizeCode(code) {
   return code.slice(0, 50000);  // Max 50KB code
 }
 
+// ── HEAD ADMIN (site owner who reviews all results and awards badges) ──
+const HEAD_ADMIN_EMAIL = 'durgasravan21@gmail.com';
+
 function stripToSnippet(code) {
   if (typeof code !== 'string') return code;
-  let result = code;
 
-  // Explicit replacements to convert complete solutions to skeleton signatures
-  if (result.includes('function debounce(')) {
-    result = `function debounce(fn, delay) {\n  // Your code here\n}`;
-  } else if (result.includes('function promiseAll(')) {
-    result = `function promiseAll(promises) {\n  // Your code here\n}`;
-  } else if (result.includes('function pipe(')) {
-    result = `function pipe(...fns) {\n  // Your code here\n}`;
-  } else if (result.includes('isString(val: unknown)')) {
-    result = `function isString(val: unknown): val is string {\n  // Your code here\n}\nfunction isArrayOf<T>(arr: unknown, guard: (v: unknown) => v is T): arr is T[] {\n  // Your code here\n}`;
-  } else if (result.includes('func worker(id int')) {
-    result = `package main\n\nfunc worker(id int, jobs <-chan int, results chan<- int) {\n\t// Your code here\n}`;
-  } else if (result.includes('func loggingMiddleware(')) {
-    result = `package main\n\nimport "net/http"\n\nfunc loggingMiddleware(next http.Handler) http.Handler {\n\t// Your code here\n}`;
-  } else if (result.includes('class SharedCounter')) {
-    result = `class SharedCounter {\n  constructor(sab) {\n    // Your code here\n  }\n  increment() {\n    // Your code here\n  }\n  get() {\n    // Your code here\n  }\n}`;
+  // ── Universal body stripper ──
+  // Remove all function/method bodies, keeping only signatures + placeholder comment
+  // Works for Python, JS, TS, Go, C, C++, Rust, SQL, etc.
+
+  const lines = code.split('\n');
+  const result = [];
+  let insideBody = false;
+  let braceDepth = 0;
+  let indentBlock = null; // for Python-style indented bodies
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trimEnd();
+
+    // ── Python: detect def/class body ──
+    if (/^(def |class )/.test(trimmed)) {
+      result.push(trimmed);
+      // Find the indent of the body
+      if (i + 1 < lines.length) {
+        const nextLine = lines[i + 1];
+        const bodyIndent = nextLine.match(/^(\s+)/)?.[1] || '    ';
+        result.push(`${bodyIndent}# Write your solution here`);
+        indentBlock = bodyIndent;
+        i++; // skip first body line
+        // Skip all indented body lines
+        while (i + 1 < lines.length) {
+          const peek = lines[i + 1];
+          if (peek.trim() === '' || peek.startsWith(indentBlock)) {
+            i++;
+          } else {
+            break;
+          }
+        }
+      }
+      insideBody = false;
+      continue;
+    }
+
+    // ── C-style braced bodies (JS, TS, Go, C, C++, Rust, Java) ──
+    if (!insideBody) {
+      result.push(trimmed);
+      // Count braces
+      for (const ch of trimmed) {
+        if (ch === '{') { braceDepth++; insideBody = braceDepth > 0; }
+        if (ch === '}') { braceDepth = Math.max(0, braceDepth - 1); }
+      }
+      if (insideBody && braceDepth > 0) {
+        // Opening brace found — inject placeholder
+        const indent = trimmed.match(/^(\s*)/)?.[1] || '';
+        result.push(`${indent}  // Write your solution here`);
+      }
+    } else {
+      // Track closing braces to detect end of body
+      for (const ch of trimmed) {
+        if (ch === '{') braceDepth++;
+        if (ch === '}') braceDepth--;
+      }
+      if (braceDepth <= 0) {
+        // End of body — emit closing brace only
+        result.push(trimmed);
+        insideBody = false;
+        braceDepth = 0;
+      }
+      // Skip body lines
+    }
   }
 
-  return result;
+  return result.join('\n');
 }
+
 
 // ═══════════════════════════════════════════════════════════════
 // TEST CASE GENERATOR — Dynamic test cases for exam questions
@@ -674,11 +727,14 @@ app.get('/api/skills/status', async (req, res) => {
     const student = await ensureStudentExists(studentEmail);
     if (!student) return res.status(404).json({ error: 'Student account not found' });
 
+    // Deduplicate at DB level — one row per skill_id (latest by rowid)
     const skills = await dbAll(
       `SELECT ss.*, s.name as skill_name, s.category as skill_category
        FROM student_skills ss
        JOIN skills s ON ss.skill_id = s.id
-       WHERE ss.student_id = ?`,
+       WHERE ss.student_id = ?
+       GROUP BY ss.skill_id
+       ORDER BY ss.rowid DESC`,
       [student.id]
     );
     res.json({ user: student, skills: skills });
@@ -1025,25 +1081,23 @@ app.post('/api/exams/submit', async (req, res) => {
     await dbRun('INSERT INTO evaluations (id, challenge_id, total_score, ai_summary) VALUES (?, ?, ?, ?)', [evaluationId, examId, totalScore, aiReport]);
     await dbRun("UPDATE challenges SET status = 'evaluated', submitted_at = ? WHERE id = ?", [now, examId]);
 
-    await updateStudentSkillBadge(challenge.student_id, challenge.skill_id, totalScore, challenge.difficulty);
-
-    // For recruiter-dispatched challenges, mark as pending review instead of auto-verified
-    if (challenge.recruiter_id) {
-      await dbRun(
-        `UPDATE student_skills SET status = 'pending_review' WHERE student_id = ? AND skill_id = ?`,
-        [challenge.student_id, challenge.skill_id]
-      );
-    }
+    // Always mark as pending_review — site head (durgasravan21@gmail.com) reviews all
+    await dbRun(
+      `UPDATE student_skills SET status = 'pending_review', verified_score = ?, verified_at = ?,
+       verified_by = 'Pending Head Review'
+       WHERE student_id = ? AND skill_id = ?`,
+      [totalScore, now, challenge.student_id, challenge.skill_id]
+    );
 
     await updatePortfolioScore(challenge.student_id);
 
     res.json({
       status: 'completed',
-      message: 'Assessment evaluated successfully by Advanced AI.',
+      message: 'Assessment submitted. Results sent for review by SkillProof head and recruiter.',
       violationsCount: challenge.violations_count,
-      score: totalScore,
-      aiSummary: aiReport,
-      scores: { correctness, quality, edgeCases, understanding }
+      score: null,  // Score hidden from student until head approves
+      aiSummary: 'Your submission has been received and is under review by the SkillProof evaluation team.',
+      scores: { correctness: null, quality: null, edgeCases: null, understanding: null }
     });
   } catch (err) {
     console.error('Submit error:', err.message);

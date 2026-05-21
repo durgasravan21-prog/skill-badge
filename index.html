@@ -3042,12 +3042,9 @@ function captureExamPhoto(captureType) {
   }).catch(err => console.error('Photo upload failed:', err));
 }
 
-// Start interval photo captures (every 2 minutes)
+// Start exactly 3 random photo captures spread across the exam duration
 function startPhotoCaptures() {
-  // Capture initial photo
-  setTimeout(() => captureExamPhoto('start'), 2000);
-  
-  // Upload ID verification photo if available
+  // Upload ID verification photo immediately if available
   if (capturedIdPhotoData && currentExam) {
     fetch('/api/exams/photo', {
       method: 'POST',
@@ -3059,17 +3056,39 @@ function startPhotoCaptures() {
       })
     }).catch(err => console.error('ID photo upload failed:', err));
   }
-  
-  // Interval captures every 2 minutes
-  photoIntervalId = setInterval(() => captureExamPhoto('interval'), 120000);
+
+  const totalMs = (currentExam ? (currentExam.expirationMinutes || 10) : 10) * 60 * 1000;
+
+  // Generate 3 unique random timestamps within the exam window
+  // Spread them: first third, second third, last third — then randomize within each band
+  const band = Math.floor(totalMs / 3);
+  const times = [
+    Math.floor(Math.random() * band) + 3000,              // first third (min 3s delay)
+    Math.floor(Math.random() * band) + band,              // second third
+    Math.floor(Math.random() * band) + band * 2           // last third
+  ];
+
+  times.forEach((delay, idx) => {
+    const tid = setTimeout(() => captureExamPhoto(`random_${idx + 1}`), delay);
+    // Store so we can clear if exam ends early
+    if (!window._photoTimers) window._photoTimers = [];
+    window._photoTimers.push(tid);
+  });
 }
+
 
 function stopPhotoCaptures() {
   if (photoIntervalId) {
     clearInterval(photoIntervalId);
     photoIntervalId = null;
   }
+  // Clear random-timed photo timers
+  if (window._photoTimers) {
+    window._photoTimers.forEach(tid => clearTimeout(tid));
+    window._photoTimers = [];
+  }
 }
+
 
 // ── TIMED EXAM ENGINE & HIGH SECURITY PROCTORING ──
 async function startExam(questionId) {
