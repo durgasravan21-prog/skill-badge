@@ -2814,30 +2814,31 @@ function renderProgressiveVerifier(claimed) {
           const qCard = document.createElement('div');
           qCard.className = 'exam-card';
 
-          // Language icon map
+          // Official language logo URLs (devicons CDN)
+          const BASE = 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons';
           const langIcons = {
-            'Python Programming': '🐍',
-            'C Systems Programming': '⚙️',
-            'SQL Database Design': '🗄️',
-            'JavaScript': '🟨',
-            'TypeScript': '🔷',
-            'Go': '🐹',
-            'Rust': '🦀',
-            'C++': '➕',
-            'Docker': '🐳',
-            'Kubernetes': '☸️',
-            'AWS': '☁️',
-            'React': '⚛️',
-            'Node.js': '🟢',
-            'HTML5 & CSS3': '🌐'
+            'Python Programming':  `${BASE}/python/python-original.svg`,
+            'C Systems Programming': `${BASE}/c/c-original.svg`,
+            'SQL Database Design':  `${BASE}/mysql/mysql-original.svg`,
+            'JavaScript':           `${BASE}/javascript/javascript-original.svg`,
+            'TypeScript':           `${BASE}/typescript/typescript-original.svg`,
+            'Go':                   `${BASE}/go/go-original.svg`,
+            'Rust':                 `${BASE}/rust/rust-original.svg`,
+            'C++':                  `${BASE}/cplusplus/cplusplus-original.svg`,
+            'Docker':               `${BASE}/docker/docker-original.svg`,
+            'Kubernetes':           `${BASE}/kubernetes/kubernetes-plain.svg`,
+            'AWS':                  `${BASE}/amazonwebservices/amazonwebservices-original.svg`,
+            'React':                `${BASE}/react/react-original.svg`,
+            'Node.js':              `${BASE}/nodejs/nodejs-original.svg`,
+            'HTML5 & CSS3':         `${BASE}/html5/html5-original.svg`
           };
-          const icon = langIcons[c.skill_name] || '💻';
+          const iconSrc = langIcons[c.skill_name] || `${BASE}/devicon/devicon-original.svg`;
           const langLabel = (typeof detectLangFromSkill === 'function') ? detectLangFromSkill(c.skill_name) : '';
           const diffLabel = q.difficulty.charAt(0).toUpperCase() + q.difficulty.slice(1);
 
           qCard.innerHTML = `
             <div class="exam-card-top">
-              <div class="exam-card-icon">${icon}</div>
+              <div class="exam-card-icon"><img src="${iconSrc}" alt="${c.skill_name}" width="30" height="30" style="object-fit:contain;" onerror="this.style.display='none';this.parentElement.textContent='💻'" /></div>
               <div class="exam-card-meta">
                 <div class="exam-card-skill">${c.skill_name}</div>
                 ${langLabel ? `<div class="exam-card-lang">⌨ ${langLabel}</div>` : ''}
