@@ -3995,8 +3995,8 @@ function loadAdminHistory() {
             <td><strong>${exam.status === 'disqualified' ? 'WITHHELD' : finalScore + '/100'}</strong></td>
             <td>
               <div style="display: flex; flex-direction: column; gap: 8px;">
-                <button onclick="viewCandidateCode('${exam.examId}')" class="btn-ghost" style="padding: 6px; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; border-radius: 4px; width: 100%; border: 1px solid var(--gray-200);">
-                  💻 View Code & Award Badge
+                <button onclick="viewCandidateCode('${exam.examId}')" class="btn-ghost" ${exam.status === 'badge_awarded' ? 'disabled' : ''} style="padding: 6px; font-size: 11px; font-weight: 700; cursor: ${exam.status === 'badge_awarded' ? 'not-allowed' : 'pointer'}; display: flex; align-items: center; justify-content: center; gap: 4px; border-radius: 4px; width: 100%; border: 1px solid var(--gray-200); opacity: ${exam.status === 'badge_awarded' ? '0.5' : '1'};">
+                  ${exam.status === 'badge_awarded' ? '🏆 Badge Awarded' : '💻 View Code & Award Badge'}
                 </button>
                 <button onclick="triggerInviteForCandidate('${exam.student_email}')" class="btn-primary" style="padding: 6px; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 4px; width: 100%; border: none; background: var(--orange-deep); color: #fff;">
                   ✉️ Invite to Next Round

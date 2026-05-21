@@ -1767,6 +1767,9 @@ app.post('/api/recruiter/assign-badge', async (req, res) => {
       [challengeId]
     );
     if (!challenge) return res.status(404).json({ error: 'Challenge not found' });
+    if (challenge.status === 'badge_awarded' || challenge.status === 'badge_denied') {
+      return res.status(400).json({ error: 'This exam has already been evaluated.' });
+    }
     
     const now = new Date().toISOString();
     const verifierName = isHeadAdmin ? 'SkillProof Head Admin' : (verifyingUser.company || verifyingUser.name);
