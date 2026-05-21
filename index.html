@@ -3365,13 +3365,44 @@ function renderTestCases(testCases) {
   });
 }
 
+function strictKeyboardProctor(e) {
+  if (!document.getElementById('view-exam').classList.contains('active')) return;
+  
+  // Block Windows / Meta / OS / Alt keys
+  if (e.key === 'Meta' || e.key === 'OS' || e.key === 'Alt') {
+    e.preventDefault();
+    logViolation('restricted_key_pressed');
+    return false;
+  }
+  
+  // Block Escape explicitly
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    return false;
+  }
+  
+  // Block Ctrl+C, Ctrl+V, Ctrl+X globally
+  if (e.ctrlKey || e.metaKey) {
+    if (['c','v','x','p'].includes(e.key.toLowerCase())) {
+      e.preventDefault();
+      logViolation('copy_paste_attempt');
+      return false;
+    }
+  }
+}
+
 function bindFocusIntegrity() {
   // Focus exits
   window.onblur = () => {
     if (document.getElementById('view-exam').classList.contains('active')) {
-      logViolation('tab_exit');
+      if (confirm('You clicked outside the secure exam window. Do you want to submit your exam immediately? Click Cancel to return (a security breach will be logged).')) {
+        submitExam(true);
+      } else {
+        logViolation('tab_exit');
+      }
     }
   };
+  
   document.onvisibilitychange = () => {
     if (document.visibilityState === 'hidden' && document.getElementById('view-exam').classList.contains('active')) {
       logViolation('tab_exit');
@@ -3381,16 +3412,25 @@ function bindFocusIntegrity() {
   // Full Screen changes
   document.onfullscreenchange = () => {
     if (!document.fullscreenElement && document.getElementById('view-exam').classList.contains('active')) {
-      logViolation('fullscreen_exit');
+      if (confirm("You exited fullscreen mode. Do you want to securely submit your exam and exit? Click Cancel to resume the exam (a breach will be logged).")) {
+        submitExam(true);
+      } else {
+        logViolation('fullscreen_exit');
+        document.documentElement.requestFullscreen().catch(err => console.error(err));
+      }
     }
   };
 
   // Bind Anti-copy & paste listeners to editor
   const editor = document.getElementById('code-editor');
-  editor.oncopy = e => e.preventDefault();
-  editor.oncut = e => e.preventDefault();
-  editor.onpaste = e => e.preventDefault();
+  editor.oncopy = e => { e.preventDefault(); alert('Copying is strictly prohibited.'); logViolation('copy_paste_attempt'); };
+  editor.oncut = e => { e.preventDefault(); alert('Cutting is strictly prohibited.'); logViolation('copy_paste_attempt'); };
+  editor.onpaste = e => { e.preventDefault(); alert('Pasting is strictly prohibited.'); logViolation('copy_paste_attempt'); };
   editor.oncontextmenu = e => e.preventDefault();
+  
+  // Ensure we don't duplicate the event listener if they take multiple exams
+  document.removeEventListener('keydown', strictKeyboardProctor);
+  document.addEventListener('keydown', strictKeyboardProctor);
 }
 
 // Log infractions to database
