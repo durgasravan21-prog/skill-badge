@@ -1292,13 +1292,24 @@ app.post('/api/recruiter/dispatch-and-evaluate', bulkLimiter, async (req, res) =
         );
       }
 
+      const scheduleObj = {
+        skill_name: skill.name,
+        company_name: companyName,
+        exam_password: examPassword,
+        start_time: new Date(startTime).toLocaleString(),
+        duration_minutes: durationMinutes
+      };
+      
+      // Dispatch the real SMTP email immediately to the candidate
+      await sendScheduleNotification(scheduleObj, user);
+
       results.push({
         name, email,
         skillName: skill.name,
         scheduleId,
         examPassword,
         status: 'invited',
-        message: `Exam invite created. Student will see it in their Corporate Assessment Invites tab.`
+        message: `Exam invite emailed successfully. Student will see it in their Corporate Assessment Invites tab.`
       });
     }
 
