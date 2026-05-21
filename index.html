@@ -830,14 +830,51 @@ body.dark-theme .demo-details strong {
       </ol>
     </div>
     
-    <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 24px; text-align: left; background: var(--gray-50); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--gray-200);">
+    <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 16px; text-align: left; background: var(--gray-50); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--gray-200);">
       <input type="checkbox" id="accept-rules-checkbox" onchange="toggleStartExamBtn(this.checked)" style="transform: scale(1.25); margin-top: 4px; cursor: pointer;" />
       <label for="accept-rules-checkbox" style="font-size: 13px; font-weight: 700; color: var(--gray-900); cursor: pointer;">I explicitly accept these high-security proctoring rules and consent to WebRTC camera, audio, and primary screen sharing.</label>
+    </div>
+
+    <!-- Exam Password Input (for scheduled exams) -->
+    <div id="exam-password-section" style="display:none; margin-bottom:16px;">
+      <label style="font-size:12px; font-weight:700; color:var(--gray-700); display:block; margin-bottom:6px;">🔑 Exam Access Password (check your email)</label>
+      <input type="text" id="exam-password-input" placeholder="Enter 6-character exam password" maxlength="10" style="width:100%; padding:10px 14px; border:1.5px solid var(--gray-200); border-radius:var(--radius-sm); font-family:monospace; font-size:14px; letter-spacing:2px; text-transform:uppercase;" />
     </div>
     
     <div style="display: flex; gap: 12px; justify-content: flex-end;">
       <button onclick="closeExamRulesModal()" class="btn-ghost" style="padding: 10px 20px; font-size: 14px; cursor: pointer;">Cancel</button>
       <button id="start-verified-exam-btn" onclick="confirmStartExam()" class="btn-primary" style="padding: 10px 24px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--font-display); opacity: 0.5; pointer-events: none;">Unlock Arena & Start</button>
+    </div>
+  </div>
+</div>
+
+<!-- ID Verification Modal -->
+<div id="id-verify-modal" class="oauth-modal-overlay" style="display:none; align-items:center; justify-content:center; padding:20px;">
+  <div class="oauth-modal-box" style="max-width:500px; width:100%; padding:32px; border-color:var(--orange-mid);">
+    <div class="oauth-header" style="margin-bottom:20px;">
+      <div class="oauth-logo-circle" style="background:var(--orange-light); border-color:var(--orange-mid);">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="var(--orange)" stroke-width="2.5"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+      </div>
+      <h3 style="font-family:var(--font-display); font-weight:800; font-size:20px;">Identity Verification</h3>
+      <p style="font-size:12px; color:var(--gray-500); margin-top:4px;">Hold your Government ID (Aadhaar/PAN/Passport) next to your face</p>
+    </div>
+    
+    <div id="id-verify-camera-box" style="position:relative; width:100%; aspect-ratio:4/3; background:#000; border-radius:var(--radius-md); overflow:hidden; margin-bottom:16px;">
+      <video id="id-verify-video" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover;"></video>
+      <canvas id="id-verify-canvas" style="display:none;"></canvas>
+    </div>
+    
+    <div id="id-verify-preview" style="display:none; margin-bottom:16px;">
+      <img id="id-verify-preview-img" style="width:100%; border-radius:var(--radius-md); border:2px solid var(--orange-mid);" />
+      <div style="text-align:center; font-size:12px; color:var(--gray-500); margin-top:6px;">✅ Photo captured — ID + Face visible</div>
+    </div>
+    
+    <div id="id-verify-actions" style="display:flex; gap:12px; justify-content:center;">
+      <button id="id-verify-capture-btn" onclick="captureIdPhoto()" class="btn-primary" style="padding:10px 24px;">📸 Capture Photo</button>
+    </div>
+    <div id="id-verify-confirm" style="display:none; gap:12px; justify-content:center;">
+      <button onclick="retakeIdPhoto()" class="btn-ghost" style="padding:10px 20px;">Retake</button>
+      <button onclick="confirmIdAndStartExam()" class="btn-primary" style="padding:10px 24px;">✅ Confirm & Start Exam</button>
     </div>
   </div>
 </div>
@@ -854,7 +891,27 @@ body.dark-theme .demo-details strong {
     </div>
     
     <div style="text-align: left; margin-bottom: 24px;">
-      <pre style="background: #0C0A09; color: #FFF; padding: 18px; border-radius: var(--radius-md); border: 1.5px solid #2A2624; overflow-x: auto; max-height: 400px; font-family: 'Courier New', Courier, monospace; font-size: 13.5px; line-height: 1.5;" id="submitted-code-content-view"></pre>
+      <pre style="background: #0C0A09; color: #FFF; padding: 18px; border-radius: var(--radius-md); border: 1.5px solid #2A2624; overflow-x: auto; max-height: 300px; font-family: 'Courier New', Courier, monospace; font-size: 13.5px; line-height: 1.5;" id="submitted-code-content-view"></pre>
+    </div>
+
+    <!-- Proctoring Section -->
+    <div id="submitted-code-proctoring-section" style="margin-bottom: 24px; text-align: left;">
+      <h4 style="font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--gray-900); margin-bottom: 8px;">📸 Proctoring Capture History</h4>
+      <div id="submitted-code-photos-container" style="display: flex; gap: 12px; overflow-x: auto; padding: 8px 0; border: 1.5px dashed var(--gray-200); border-radius: var(--radius-md); background: var(--gray-50); min-height: 90px; align-items: center; justify-content: center;">
+        <span style="color: var(--gray-500); font-size: 13px;">No captures found for this session.</span>
+      </div>
+    </div>
+
+    <!-- Badge Action Row -->
+    <div id="badge-award-action-row" style="display: flex; justify-content: space-between; align-items: center; border-top: 1.5px solid var(--gray-100); padding-top: 20px; margin-bottom: 20px;">
+      <div style="text-align: left;">
+        <h4 style="font-family: var(--font-display); font-weight: 700; font-size: 15px; color: var(--gray-900); margin-bottom: 4px;">Verified Badge Assessment</h4>
+        <p style="font-size: 12px; color: var(--gray-500); margin: 0;">Review the logs above and certify this candidate's skill badge.</p>
+      </div>
+      <div style="display: flex; gap: 12px;">
+        <button id="deny-badge-btn" class="btn-ghost" style="padding: 10px 20px; font-size: 14px; font-weight: 700; color: #C62828; border-color: #EF9A9A; cursor: pointer; border-radius: var(--radius-sm);">Deny Badge</button>
+        <button id="award-badge-btn" class="btn-primary" style="padding: 10px 24px; font-size: 14px; font-weight: 700; background: #2E7D32; box-shadow: 0 2px 4px rgba(46, 125, 50, 0.15); cursor: pointer; border-radius: var(--radius-sm); border: none; color: white;">Award Premium Badge</button>
+      </div>
     </div>
     
     <div style="display: flex; justify-content: flex-end;">
@@ -865,7 +922,7 @@ body.dark-theme .demo-details strong {
 
 
 <!-- NAV -->
-<nav>
+<nav id="main-navigation">
   <div class="nav-inner">
     <a href="#" onclick="showView('landing')" class="logo">Skill<span>Proof</span></a>
     <ul class="nav-links">
@@ -1568,6 +1625,45 @@ SkillProof HR Recruiting Team</textarea>
   </div>
 </div>
 
+<!-- Interactive Student Onboarding Modal -->
+<div id="student-onboarding-modal" class="oauth-modal-overlay" style="display: none; align-items: center; justify-content: center; padding: 20px;">
+  <div class="oauth-modal-box" style="max-width: 600px; width: 100%; border-radius: var(--radius-lg); padding: 32px; border-color: var(--orange-mid); max-height: 90vh; overflow-y: auto;">
+    <div class="oauth-header" style="margin-bottom: 24px;">
+      <div class="oauth-logo-circle" style="background: var(--orange-light); border-color: var(--orange-mid);">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="var(--orange)" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <h3 style="font-family:var(--font-display); font-weight:800; font-size:22px; color:var(--gray-900);">Complete Your Student Profile</h3>
+      <p style="font-size:13px; color:var(--gray-500); margin-top:4px;">Onboard your verified profile details to unlock high-security assessments and get your official certified skill badges.</p>
+    </div>
+    
+    <div style="text-align: left; margin-bottom: 20px;">
+      <div class="oauth-field-group">
+        <label style="font-weight: 700; color: var(--gray-700);">Phone / WhatsApp SMS Contact</label>
+        <input type="text" id="student-onboard-phone" placeholder="+91 98765 43210 or +1 (555) 123-4567" style="background: var(--bg-input); border: 1.5px solid var(--border-color); color: var(--gray-900); padding: 12px; width: 100%; border-radius: var(--radius-sm); outline: none;" />
+      </div>
+      
+      <div class="oauth-field-group" style="margin-top: 16px;">
+        <label style="font-weight: 700; color: var(--gray-700);">College / University Name</label>
+        <input type="text" id="student-onboard-college" placeholder="e.g. Indian Institute of Technology, Madras" style="background: var(--bg-input); border: 1.5px solid var(--border-color); color: var(--gray-900); padding: 12px; width: 100%; border-radius: var(--radius-sm); outline: none;" />
+      </div>
+      
+      <div style="margin-top: 24px;">
+        <h4 style="font-family: var(--font-display); font-size: 15px; font-weight: 700; color: var(--gray-900); margin-bottom: 12px; border-bottom: 1.5px solid var(--border-color); padding-bottom: 6px;">Claim & Rate Your Key Skills</h4>
+        <p style="font-size: 12px; color: var(--gray-500); margin-bottom: 16px;">Select all the skills you want to claim and verify. Choose your current self-rating for each:</p>
+        
+        <div id="student-onboard-skills-container" style="max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px;">
+          <!-- Dynamically populated from API/Database list -->
+          <p style="color:var(--gray-400); font-size:12px;">Loading master skills list...</p>
+        </div>
+      </div>
+    </div>
+    
+    <div style="display: flex; gap: 12px; justify-content: flex-end;">
+      <button onclick="submitStudentOnboarding()" class="btn-primary" style="padding: 12px 28px; font-size: 14px; font-weight: 700; cursor: pointer;">Save & Onboard →</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // State Management
 let currentUser = null;
@@ -1612,6 +1708,25 @@ function showView(viewName) {
   const targetView = document.getElementById('view-' + viewName);
   if (targetView) targetView.classList.add('active');
   
+  // Rolling session updates on user view changes
+  if (currentUser) {
+    localStorage.setItem('skillproof_login_time', Date.now());
+  }
+
+  // Manage navigation display and exam padding to avoid overlaps
+  const mainNav = document.getElementById('main-navigation');
+  const footer = document.querySelector('footer');
+  const viewExam = document.getElementById('view-exam');
+  if (viewName === 'exam') {
+    if (mainNav) mainNav.style.display = 'none';
+    if (footer) footer.style.display = 'none';
+    if (viewExam) viewExam.style.paddingTop = '0px';
+  } else {
+    if (mainNav) mainNav.style.display = 'block';
+    if (footer) footer.style.display = 'block';
+    if (viewExam) viewExam.style.paddingTop = '80px';
+  }
+  
   // Exit fullscreen and cleanup streams if exiting exam view
   if (viewName !== 'exam') {
     cleanupStreams();
@@ -1648,6 +1763,7 @@ function cleanupStreams() {
     audioContext = null;
   }
   clearInterval(micInterval);
+  stopPhotoCaptures();
 }
 
 // ── THEME TOGGLE ──
@@ -1853,6 +1969,77 @@ window.addEventListener('DOMContentLoaded', () => {
       if (e.target === oauthModal) closeOAuthModal();
     });
   }
+
+  // Intercept all fetch requests to dynamically refresh the sliding session window
+  const originalFetch = window.fetch;
+  window.fetch = function(...args) {
+    if (currentUser) {
+      localStorage.setItem('skillproof_login_time', Date.now());
+    }
+    return originalFetch.apply(this, args).then(response => {
+      if (currentUser && response.ok) {
+        localStorage.setItem('skillproof_login_time', Date.now());
+      }
+      return response;
+    });
+  };
+
+  // Restore session if available and valid (under 10 minutes)
+  const savedUser = localStorage.getItem('skillproof_user');
+  const savedCompany = localStorage.getItem('skillproof_company');
+  const savedLoginTime = localStorage.getItem('skillproof_login_time');
+
+  if (savedUser && savedLoginTime) {
+    const elapsed = Date.now() - parseInt(savedLoginTime, 10);
+    if (elapsed < 10 * 60 * 1000) { // 10 minutes
+      currentUser = JSON.parse(savedUser);
+      currentCompany = savedCompany ? JSON.parse(savedCompany) : null;
+      
+      // Update rolling session timestamp
+      localStorage.setItem('skillproof_login_time', Date.now());
+
+      // Update main navbar profile buttons
+      const loginBtn = document.getElementById('nav-login-btn');
+      if (loginBtn) loginBtn.style.display = 'none';
+      const ctaBtn = document.getElementById('nav-cta-btn');
+      if (ctaBtn) {
+        ctaBtn.innerText = `Dashboard (${currentUser.name})`;
+        ctaBtn.onclick = () => showView(currentUser.role === 'recruiter' ? 'admin' : 'student');
+      }
+
+      // Route to appropriate view and enforce onboarding check
+      if (currentUser.role === 'recruiter') {
+        showView('admin');
+      } else {
+        showView('student');
+        if (!currentUser.phone || currentUser.college === 'Self-Taught / University') {
+          openStudentOnboardingModal();
+        }
+      }
+    } else {
+      // Session expired
+      localStorage.removeItem('skillproof_user');
+      localStorage.removeItem('skillproof_company');
+      localStorage.removeItem('skillproof_login_time');
+    }
+  }
+
+  // Throttled session updates on mouse/key/touch activity to roll session forward
+  let lastSessionUpdate = 0;
+  function throttleSessionUpdate() {
+    const now = Date.now();
+    if (now - lastSessionUpdate > 30000) { // update at most every 30 seconds
+      if (currentUser) {
+        localStorage.setItem('skillproof_login_time', Date.now());
+      }
+      lastSessionUpdate = now;
+    }
+  }
+  window.addEventListener('mousemove', throttleSessionUpdate);
+  window.addEventListener('keypress', throttleSessionUpdate);
+  window.addEventListener('click', throttleSessionUpdate);
+  window.addEventListener('scroll', throttleSessionUpdate);
+  window.addEventListener('touchstart', throttleSessionUpdate);
 });
 
 // Quick-fill helper function
@@ -1906,6 +2093,11 @@ function submitOAuthHandshake(nameInput, emailInput) {
     currentUser = data.user;
     currentCompany = data.company || null;  // Store company context for multi-tenant isolation
     
+    // Save session in localStorage with current time for 10-minute persistence
+    localStorage.setItem('skillproof_user', JSON.stringify(currentUser));
+    localStorage.setItem('skillproof_company', JSON.stringify(currentCompany));
+    localStorage.setItem('skillproof_login_time', Date.now());
+    
     // Update main navbar profile buttons
     document.getElementById('nav-login-btn').style.display = 'none';
     document.getElementById('nav-cta-btn').innerText = `Dashboard (${currentUser.name})`;
@@ -1923,9 +2115,155 @@ function submitOAuthHandshake(nameInput, emailInput) {
   });
 }
 
+// ── Interactive Student Onboarding Helper Functions ──
+function openStudentOnboardingModal() {
+  const modal = document.getElementById('student-onboarding-modal');
+  if (modal) modal.style.display = 'flex';
+  
+  // Set existing values if available
+  const phoneInput = document.getElementById('student-onboard-phone');
+  const collegeInput = document.getElementById('student-onboard-college');
+  if (phoneInput) phoneInput.value = currentUser.phone || '';
+  if (collegeInput) collegeInput.value = (currentUser.college && currentUser.college !== 'Self-Taught / University') ? currentUser.college : '';
+
+  // Load skills list dynamically from database
+  fetch('/api/skills')
+    .then(res => res.json())
+    .then(skills => {
+      const container = document.getElementById('student-onboard-skills-container');
+      if (!container) return;
+      container.innerHTML = '';
+      if (!Array.isArray(skills) || skills.length === 0) {
+        container.innerHTML = '<p style="color:var(--gray-500); font-size:12px;">No skills available in the database.</p>';
+        return;
+      }
+      skills.forEach(skill => {
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.justifyContent = 'space-between';
+        row.style.marginBottom = '8px';
+        row.style.padding = '10px 14px';
+        row.style.background = 'var(--gray-50)';
+        row.style.border = '1.5px solid var(--gray-100)';
+        row.style.borderRadius = 'var(--radius-md)';
+        row.style.transition = 'border-color 0.2s';
+        
+        row.innerHTML = `
+          <div style="display:flex; align-items:center; gap:10px;">
+            <input type="checkbox" id="onboard-chk-${skill.id}" class="onboard-skill-checkbox" value="${skill.id}" style="accent-color:var(--orange); width:18px; height:18px; cursor:pointer;" />
+            <label for="onboard-chk-${skill.id}" style="font-weight:700; cursor:pointer; color:var(--gray-900); font-size:13.5px; font-family:var(--font-display);">${skill.name} <span style="font-size:10px; color:var(--gray-500); font-weight:normal; font-family:var(--font-body);">(${skill.category})</span></label>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:11px; color:var(--gray-500); font-weight:600;">Self-Rating:</span>
+            <select id="onboard-rate-${skill.id}" style="padding:4px 8px; border-radius:var(--radius-sm); background:var(--white); border:1.5px solid var(--gray-200); color:var(--gray-900); font-size:12.5px; font-weight:700; cursor:pointer;">
+              <option value="1">1 - Novice</option>
+              <option value="2">2 - Intermediate</option>
+              <option value="3" selected>3 - Competent</option>
+              <option value="4">4 - Advanced</option>
+              <option value="5">5 - Expert</option>
+            </select>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    })
+    .catch(err => {
+      console.error('Failed to load onboarding skills list', err);
+      const container = document.getElementById('student-onboard-skills-container');
+      if (container) container.innerHTML = '<p style="color:var(--gray-500); font-size:12px;">Failed to load skills.</p>';
+    });
+}
+
+function closeStudentOnboardingModal() {
+  const modal = document.getElementById('student-onboarding-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function submitStudentOnboarding() {
+  const phone = document.getElementById('student-onboard-phone').value.trim();
+  const college = document.getElementById('student-onboard-college').value.trim();
+
+  if (!phone || !college) {
+    alert('Please fill out both your phone number and your college/university.');
+    return;
+  }
+
+  const checkboxes = document.querySelectorAll('.onboard-skill-checkbox:checked');
+  if (checkboxes.length === 0) {
+    alert('Please select at least one skill to claim and build your verification path.');
+    return;
+  }
+
+  // Onboard details
+  fetch('/api/student/onboard', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      student_email: currentUser.email,
+      phone: phone,
+      college: college
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.error) {
+      alert(data.error);
+      return;
+    }
+    
+    // Update local state and saved storage session
+    currentUser = data.user;
+    localStorage.setItem('skillproof_user', JSON.stringify(currentUser));
+
+    // Submit skill claims sequentially
+    const claims = Array.from(checkboxes).map(chk => {
+      const skillId = chk.value;
+      const rating = document.getElementById(`onboard-rate-${skillId}`).value;
+      return fetch('/api/skills/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          student_email: currentUser.email,
+          skill_id: skillId,
+          self_rating: parseInt(rating, 10)
+        })
+      }).then(r => r.json());
+    });
+
+    Promise.all(claims)
+      .then(claimResults => {
+        const errorResult = claimResults.find(r => r.error);
+        if (errorResult) {
+          alert('Profile saved, but some skill claims failed: ' + errorResult.error);
+        } else {
+          alert('🎉 Awesome! Onboarding completed and skill claims registered successfully!');
+        }
+        closeStudentOnboardingModal();
+        loadStudentDashboard();
+      })
+      .catch(err => {
+        console.error('Failed to register claimed skills', err);
+        alert('Profile saved, but error occurred claiming some skills.');
+        closeStudentOnboardingModal();
+        loadStudentDashboard();
+      });
+  })
+  .catch(err => {
+    console.error('Onboarding request failed', err);
+    alert('Failed to complete onboarding. Please try again.');
+  });
+}
+
 // ── STUDENT DASHBOARD & CLAIMS SYSTEM ──
 function loadStudentDashboard() {
   if (!currentUser) return;
+
+  // Trigger onboarding modal for students if profile details are blank/default
+  if (!currentUser.phone || !currentUser.college || currentUser.college === 'Self-Taught / University') {
+    openStudentOnboardingModal();
+    return;
+  }
   
   const avatarLetter = document.getElementById('student-avatar-letter');
   if (avatarLetter) avatarLetter.innerText = currentUser.name.charAt(0).toUpperCase();
@@ -1959,15 +2297,39 @@ function loadStudentDashboard() {
         return fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: currentUser.email, name: currentUser.name, provider: selectProvider || 'Google' })
+          body: JSON.stringify({ email: currentUser.email, name: currentUser.name, provider: (typeof selectProvider !== 'undefined' ? selectProvider : 'Google') })
         }).then(() => fetch(`/api/skills/status?student_email=${encodeURIComponent(currentUser.email)}`));
       }
       return res;
     })
     .then(res => res.json())
-    .then(claimedSkills => {
-      // Defensive: ensure claimedSkills is always an array
+    .then(data => {
+      let claimedSkills = [];
+      if (data && data.skills) {
+        claimedSkills = data.skills;
+        if (data.user) {
+          currentUser = data.user;
+          localStorage.setItem('skillproof_user', JSON.stringify(currentUser));
+          
+          // Sync sidebar UI immediately with potentially self-healed database values
+          const sidebarScore = document.getElementById('student-sidebar-score');
+          if (sidebarScore) sidebarScore.innerText = currentUser.skillproof_score.toFixed(2);
+          const scoreBar = document.getElementById('student-score-bar');
+          if (scoreBar) scoreBar.style.width = Math.min(100, Math.max(0, currentUser.skillproof_score)) + '%';
+          const profileName = document.getElementById('student-profile-name');
+          if (profileName) {
+            if (currentUser.skillproof_score >= 60) {
+              profileName.innerHTML = `${currentUser.name} <span class="certified-gold-badge" style="margin-left: 8px;">🏆 SkillProof Verified</span>`;
+            } else {
+              profileName.innerText = currentUser.name;
+            }
+          }
+        }
+      } else if (Array.isArray(data)) {
+        claimedSkills = data;
+      }
       if (!Array.isArray(claimedSkills)) claimedSkills = [];
+      
       // Fetch master list of skills
       fetch('/api/skills')
         .then(res => res.json())
@@ -2067,15 +2429,42 @@ function renderProgressiveVerifier(claimed) {
       const badge = document.createElement('div');
       badge.className = 'verified-skill-row';
       const verifiedByLabel = c.verified_by || 'SkillProof AI';
-      const goldBadgeHTML = c.verified_score >= 60
+      const goldBadgeHTML = (c.verified_score >= 60 || c.status === 'verified')
         ? ` <span class="certified-gold-badge" style="margin-left: 8px;">🏆 ${verifiedByLabel} Verified</span>`
         : '';
+      const scoreLabel = c.verified_score ? ` · Score: ${c.verified_score}/100` : '';
       badge.innerHTML = `
         <div>
           <strong style="font-size:16px;">${c.skill_name}${goldBadgeHTML}</strong>
-          <div style="font-size:12px; color:var(--gray-500); margin-top:2px;">Verified by SkillProof AI · Score: ${c.verified_score}/100</div>
+          <div style="font-size:12px; color:var(--gray-500); margin-top:2px;">Verified by ${verifiedByLabel}${scoreLabel}</div>
         </div>
         <span class="verified-tag">${c.badge_tag}</span>
+      `;
+      badgesList.appendChild(badge);
+    } else if (c.status === 'pending_review') {
+      const badge = document.createElement('div');
+      badge.className = 'verified-skill-row';
+      badge.style.border = '2px solid #FF9800'; // Golden orange
+      badge.style.background = document.body.classList.contains('dark-theme') ? '#221509' : '#FFF9F2';
+      badge.innerHTML = `
+        <div>
+          <strong style="font-size:16px; color: var(--gray-900);">${c.skill_name}</strong>
+          <div style="font-size:12px; color:var(--gray-500); margin-top:2px;">Assessed and pending professional recruiter review.</div>
+        </div>
+        <span class="status-tag" style="background:#FFE0B2; color:#E65100; font-weight:700; border-radius:4px; padding:6px 14px;">UNDER REVIEW</span>
+      `;
+      badgesList.appendChild(badge);
+    } else if (c.status === 'failed') {
+      const badge = document.createElement('div');
+      badge.className = 'verified-skill-row';
+      badge.style.border = '2px solid #EF5350'; // Soft red
+      badge.style.background = document.body.classList.contains('dark-theme') ? '#261212' : '#FFEBEE';
+      badge.innerHTML = `
+        <div>
+          <strong style="font-size:16px; color: var(--gray-900);">${c.skill_name}</strong>
+          <div style="font-size:12px; color:var(--gray-500); margin-top:2px;">Verification declined during professional recruiter review.</div>
+        </div>
+        <span class="status-tag" style="background:#FFCDD2; color:#C62828; font-weight:700; border-radius:4px; padding:6px 14px;">VERIFICATION DENIED</span>
       `;
       badgesList.appendChild(badge);
     }
@@ -2180,6 +2569,14 @@ function openExamRulesModal(questionId, scheduleId = null) {
     checkbox.checked = false;
   }
   toggleStartExamBtn(false);
+  
+  // Show password field for scheduled exams only
+  const pwSection = document.getElementById('exam-password-section');
+  const pwInput = document.getElementById('exam-password-input');
+  if (pwSection) {
+    pwSection.style.display = scheduleId ? 'block' : 'none';
+  }
+  if (pwInput) pwInput.value = '';
 }
 
 function closeExamRulesModal() {
@@ -2187,8 +2584,7 @@ function closeExamRulesModal() {
   if (modal) {
     modal.style.display = 'none';
   }
-  pendingExamQuestionId = null;
-  pendingScheduleId = null;
+  // Don't clear pending IDs here — confirmStartExam routes to ID verification which still needs them
 }
 
 function toggleStartExamBtn(isChecked) {
@@ -2205,14 +2601,130 @@ function toggleStartExamBtn(isChecked) {
 }
 
 function confirmStartExam() {
+  // Route through ID verification first
+  closeExamRulesModal();
+  openIdVerificationModal();
+}
+
+// ID Verification Modal
+let idVerifyStream = null;
+let capturedIdPhotoData = null;
+let photoIntervalId = null;
+
+async function openIdVerificationModal() {
+  const modal = document.getElementById('id-verify-modal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  
+  // Reset state
+  document.getElementById('id-verify-preview').style.display = 'none';
+  document.getElementById('id-verify-camera-box').style.display = 'block';
+  document.getElementById('id-verify-actions').style.display = 'flex';
+  document.getElementById('id-verify-confirm').style.display = 'none';
+  capturedIdPhotoData = null;
+  
+  try {
+    idVerifyStream = await navigator.mediaDevices.getUserMedia({ video: true });
+    document.getElementById('id-verify-video').srcObject = idVerifyStream;
+  } catch (err) {
+    alert('Camera access required for identity verification.');
+    modal.style.display = 'none';
+  }
+}
+
+function captureIdPhoto() {
+  const video = document.getElementById('id-verify-video');
+  const canvas = document.getElementById('id-verify-canvas');
+  canvas.width = video.videoWidth || 640;
+  canvas.height = video.videoHeight || 480;
+  canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+  capturedIdPhotoData = canvas.toDataURL('image/jpeg', 0.7);
+  
+  // Show preview
+  document.getElementById('id-verify-preview-img').src = capturedIdPhotoData;
+  document.getElementById('id-verify-preview').style.display = 'block';
+  document.getElementById('id-verify-camera-box').style.display = 'none';
+  document.getElementById('id-verify-actions').style.display = 'none';
+  document.getElementById('id-verify-confirm').style.display = 'flex';
+}
+
+function retakeIdPhoto() {
+  capturedIdPhotoData = null;
+  document.getElementById('id-verify-preview').style.display = 'none';
+  document.getElementById('id-verify-camera-box').style.display = 'block';
+  document.getElementById('id-verify-actions').style.display = 'flex';
+  document.getElementById('id-verify-confirm').style.display = 'none';
+}
+
+function confirmIdAndStartExam() {
+  // Close ID modal and cleanup ID stream
+  const modal = document.getElementById('id-verify-modal');
+  if (modal) modal.style.display = 'none';
+  if (idVerifyStream) {
+    idVerifyStream.getTracks().forEach(t => t.stop());
+    idVerifyStream = null;
+  }
+  
+  // Now start the actual exam
   if (pendingScheduleId) {
     const sId = pendingScheduleId;
-    closeExamRulesModal();
     startScheduledExam(sId);
   } else if (pendingExamQuestionId) {
     const qId = pendingExamQuestionId;
-    closeExamRulesModal();
     startExam(qId);
+  }
+}
+
+// Capture photo from proctor video during exam
+function captureExamPhoto(captureType) {
+  if (!currentExam || !videoStream) return;
+  const video = document.getElementById('proctor-video');
+  if (!video || video.videoWidth === 0) return;
+  
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth || 320;
+  canvas.height = video.videoHeight || 240;
+  canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+  const photoData = canvas.toDataURL('image/jpeg', 0.5);
+  
+  // Send to server
+  fetch('/api/exams/photo', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      challenge_id: currentExam.examId,
+      photo_data: photoData,
+      capture_type: captureType
+    })
+  }).catch(err => console.error('Photo upload failed:', err));
+}
+
+// Start interval photo captures (every 2 minutes)
+function startPhotoCaptures() {
+  // Capture initial photo
+  setTimeout(() => captureExamPhoto('start'), 2000);
+  
+  // Upload ID verification photo if available
+  if (capturedIdPhotoData && currentExam) {
+    fetch('/api/exams/photo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        challenge_id: currentExam.examId,
+        photo_data: capturedIdPhotoData,
+        capture_type: 'id_verify'
+      })
+    }).catch(err => console.error('ID photo upload failed:', err));
+  }
+  
+  // Interval captures every 2 minutes
+  photoIntervalId = setInterval(() => captureExamPhoto('interval'), 120000);
+}
+
+function stopPhotoCaptures() {
+  if (photoIntervalId) {
+    clearInterval(photoIntervalId);
+    photoIntervalId = null;
   }
 }
 
@@ -2302,6 +2814,9 @@ async function startExam(questionId) {
 
     // Render test cases
     renderTestCases(currentExam.testCases);
+
+    // Start periodic photo captures
+    startPhotoCaptures();
   })
   .catch(err => {
     console.error('Failed to create timed session:', err);
@@ -2556,6 +3071,12 @@ window.addEventListener('keydown', (e) => {
 function submitExam(isAutoSubmit = false) {
   if (!currentExam) return;
 
+  if (!isAutoSubmit) {
+    if (!confirm("Are you sure you want to finalize and submit your coding exam?")) {
+      return;
+    }
+  }
+
   const code = document.getElementById('code-editor').value;
 
   fetch('/api/exams/submit', {
@@ -2583,7 +3104,7 @@ function submitExam(isAutoSubmit = false) {
       const nextIndex = currentExam.currentQuestionIndex + 1;
       const nextQuestionId = currentExam.questionList[nextIndex];
 
-      alert(`Level Submitted Successfully!\nScore: ${data.score}/100\nCorrectness: ${data.scores.correctness}/40\nAI Summary: "${data.aiSummary}"\n\nAdvancing to Stage ${nextIndex + 1} of ${currentExam.questionList.length}...`);
+      alert("Level Submitted Successfully! Advancing to the next stage...");
 
       fetch('/api/exams/next-scheduled', {
         method: 'POST',
@@ -2608,10 +3129,14 @@ function submitExam(isAutoSubmit = false) {
         currentExam.currentQuestionIndex = nextIndex;
         currentExam.questionTitle = nextData.questionTitle;
         currentExam.codeTemplate = nextData.codeTemplate;
+        currentExam.testCases = nextData.testCases;
 
         // Seamlessly update UI in-place (WebRTC camera, mic, screen share, and overall countdown timer continue uninterrupted!)
         document.getElementById('active-question-title').innerText = currentExam.questionTitle || 'Scheduled Coding Challenge';
         document.getElementById('code-editor').value = currentExam.codeTemplate;
+        
+        // Render next stage test cases cleanly
+        renderTestCases(nextData.testCases);
       })
       .catch(err => {
         console.error('Failed to load next stage:', err);
@@ -2619,7 +3144,7 @@ function submitExam(isAutoSubmit = false) {
       });
     } else {
       // Final stage or single timed assessment completed
-      alert(`Assessment Evaluated Successfully!\nFinal Score: ${data.score}/100\nCorrectness: ${data.scores.correctness}/40\nQuality: ${data.scores.quality}/25\nEdge Cases: ${data.scores.edgeCases}/20\nUnderstanding: ${data.scores.understanding}/15\n\nAI Analysis Report Summary:\n"${data.aiSummary}"`);
+      alert("Successfully completed!");
       exitExamEnvironment(data);
     }
   })
@@ -2977,12 +3502,16 @@ function loadAdminHistory() {
 }
 
 // Candidate Code Viewer Methods
+let activeChallengeId = null;
+
 function viewCandidateCode(examId) {
   const exam = currentExamsList.find(e => e.examId === examId || e.id === examId);
   if (!exam) {
     alert('Candidate record not found.');
     return;
   }
+  
+  activeChallengeId = exam.examId || exam.id;
   
   const codeContent = exam.submitted_code || '// No code submitted.';
   const codeView = document.getElementById('submitted-code-content-view');
@@ -2995,10 +3524,128 @@ function viewCandidateCode(examId) {
     modalSubtitle.innerText = `Exact logic answer submitted by ${exam.student_name} for ${exam.question_title}`;
   }
   
+  // Populate photo captions & thumbnails
+  const photosContainer = document.getElementById('submitted-code-photos-container');
+  if (photosContainer) {
+    photosContainer.innerHTML = '<span style="color: var(--gray-500); font-size: 13px;">Loading proctoring captures...</span>';
+    photosContainer.style.justifyContent = 'center';
+    
+    fetch(`/api/recruiter/exam-photos?challenge_id=${activeChallengeId}`)
+      .then(res => res.json())
+      .then(photos => {
+        photosContainer.innerHTML = '';
+        if (!Array.isArray(photos) || photos.length === 0) {
+          photosContainer.innerHTML = '<span style="color: var(--gray-500); font-size: 13px;">No captures found for this session.</span>';
+          photosContainer.style.justifyContent = 'center';
+          return;
+        }
+        
+        photosContainer.style.justifyContent = 'flex-start';
+        photos.forEach(photo => {
+          const imgWrapper = document.createElement('div');
+          imgWrapper.style.cssText = 'position: relative; cursor: zoom-in; border: 1.5px solid var(--gray-200); border-radius: var(--radius-sm); overflow: hidden; width: 100px; height: 75px; flex-shrink: 0; background: var(--gray-100); transition: border-color 0.2s, transform 0.15s;';
+          
+          const img = document.createElement('img');
+          img.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="75" viewBox="0 0 100 75"><rect width="100" height="75" fill="%23f3f4f6"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="10" fill="%239ca3af">Loading...</text></svg>';
+          img.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
+          imgWrapper.appendChild(img);
+          
+          // Lazy load individual frame photo data
+          fetch(`/api/recruiter/exam-photo/${photo.id}`)
+            .then(r => r.json())
+            .then(data => {
+              if (data && data.photo_data) {
+                img.src = data.photo_data;
+              }
+            })
+            .catch(e => console.error('Photo frame load error:', e));
+            
+          // Floating badge type overlay
+          const typeBadge = document.createElement('span');
+          typeBadge.innerText = photo.capture_type === 'identity' ? 'ID Card' : 'Webcam';
+          typeBadge.style.cssText = `position: absolute; bottom: 2px; right: 2px; background: rgba(12, 10, 9, 0.75); color: #fff; font-size: 8px; font-weight: 700; padding: 2px 5px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.15); font-family: var(--font-sans);`;
+          imgWrapper.appendChild(typeBadge);
+          
+          // Expansion zoom view overlay onClick
+          imgWrapper.onclick = () => {
+            const zoomOverlay = document.createElement('div');
+            zoomOverlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(12, 10, 9, 0.92); z-index: 10000; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: zoom-out;';
+            
+            const zoomImg = document.createElement('img');
+            zoomImg.src = img.src;
+            zoomImg.style.cssText = 'max-width: 90vw; max-height: 80vh; border-radius: var(--radius-lg); border: 2px solid var(--orange-mid); box-shadow: var(--shadow-xl);';
+            zoomOverlay.appendChild(zoomImg);
+            
+            const caption = document.createElement('div');
+            caption.innerText = `${photo.capture_type.toUpperCase()} CAPTURE · ${new Date(photo.timestamp).toLocaleTimeString()}`;
+            caption.style.cssText = 'color: #fff; margin-top: 16px; font-family: var(--font-display); font-weight: 700; font-size: 14px; letter-spacing: 1px;';
+            zoomOverlay.appendChild(caption);
+            
+            zoomOverlay.onclick = () => document.body.removeChild(zoomOverlay);
+            document.body.appendChild(zoomOverlay);
+          };
+          
+          photosContainer.appendChild(imgWrapper);
+        });
+      })
+      .catch(err => {
+        console.error('Error loading photos:', err);
+        photosContainer.innerHTML = '<span style="color: var(--gray-500); font-size: 13px;">Failed to load proctoring captures.</span>';
+        photosContainer.style.justifyContent = 'center';
+      });
+  }
+  
+  // Connect the action row buttons dynamic click events
+  const awardBtn = document.getElementById('award-badge-btn');
+  const denyBtn = document.getElementById('deny-badge-btn');
+  if (awardBtn) {
+    awardBtn.onclick = () => evaluateBadgeAward('award');
+  }
+  if (denyBtn) {
+    denyBtn.onclick = () => evaluateBadgeAward('deny');
+  }
+  
   const modal = document.getElementById('view-submitted-code-modal');
   if (modal) {
     modal.style.display = 'flex';
   }
+}
+
+function evaluateBadgeAward(actionType) {
+  if (!activeChallengeId) {
+    alert('No active student assessment loaded.');
+    return;
+  }
+  
+  const confirmMsg = actionType === 'award'
+    ? 'Are you sure you want to certify this student and award them the premium badge?'
+    : 'Are you sure you want to deny verification for this student and mark their claim as failed?';
+    
+  if (!confirm(confirmMsg)) return;
+  
+  fetch('/api/recruiter/assign-badge', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      recruiter_email: currentUser.email,
+      challenge_id: activeChallengeId,
+      action: actionType
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.error) {
+      alert(`Error: ${data.error}`);
+    } else {
+      alert(data.message || 'Verification processed successfully!');
+      closeSubmittedCodeModal();
+      loadAdminHistory(); // Refresh the recruiter dashboard history list!
+    }
+  })
+  .catch(err => {
+    console.error('Failed to assign badge:', err);
+    alert('Error connecting to the server. Please try again.');
+  });
 }
 
 function closeSubmittedCodeModal() {
@@ -3006,6 +3653,7 @@ function closeSubmittedCodeModal() {
   if (modal) {
     modal.style.display = 'none';
   }
+  activeChallengeId = null;
 }
 
 // ── STUDENT DASHBOARD SUB-TAB SWITCHER ──
@@ -3329,6 +3977,28 @@ function loadStudentSchedules() {
           `<span style="font-size: 10px; background:var(--gray-100); color:var(--gray-800); padding:2px 6px; border-radius:4px; margin-right:4px; font-weight:600;">${d}</span>`
         ).join('');
 
+        let btnHTML = '';
+        if (['submitted', 'evaluated', 'badge_awarded', 'badge_denied', 'disqualified', 'expired'].includes(s.attempt_status)) {
+          let label = 'Completed';
+          if (s.attempt_status === 'submitted' || s.attempt_status === 'evaluated') label = 'Attempted & Submitted';
+          else if (s.attempt_status === 'badge_awarded') label = 'Badge Awarded 🏆';
+          else if (s.attempt_status === 'badge_denied') label = 'Badge Denied';
+          else if (s.attempt_status === 'disqualified') label = 'Disqualified ⚠️';
+          else if (s.attempt_status === 'expired') label = 'Session Expired';
+          
+          btnHTML = `
+            <button disabled class="btn-ghost" style="padding: 8px 16px; font-size:13px; font-weight:700; background:var(--gray-100); color:var(--gray-400); border-color:var(--gray-200); cursor:not-allowed;">
+              ${label}
+            </button>
+          `;
+        } else {
+          btnHTML = `
+            <button onclick="openExamRulesModal(null, '${s.id}')" class="btn-primary" style="padding: 8px 16px; font-size:13px; font-weight:700; cursor:pointer;">
+              🚀 Launch Sequence
+            </button>
+          `;
+        }
+
         card.innerHTML = `
           <div>
             <div style="display:flex; align-items:center;">
@@ -3340,9 +4010,7 @@ function loadStudentSchedules() {
               <strong>Duration Limit:</strong> ${s.duration_minutes} mins · <strong>Available from:</strong> ${new Date(s.start_time).toLocaleString()}
             </div>
           </div>
-          <button onclick="openExamRulesModal(null, '${s.id}')" class="btn-primary" style="padding: 8px 16px; font-size:13px; font-weight:700; cursor:pointer;">
-            🚀 Launch Sequence
-          </button>
+          ${btnHTML}
         `;
         container.appendChild(card);
       });
@@ -3389,7 +4057,8 @@ async function startScheduledExam(scheduleId) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       student_email: currentUser.email,
-      schedule_id: scheduleId
+      schedule_id: scheduleId,
+      exam_password: (document.getElementById('exam-password-input') || {}).value || ''
     })
   })
   .then(res => res.json())
@@ -3433,6 +4102,12 @@ async function startScheduledExam(scheduleId) {
     showView('exam');
     startCountdown(currentExam.expirationMinutes * 60);
     bindFocusIntegrity();
+
+    // Render test cases
+    renderTestCases(currentExam.testCases);
+
+    // Start periodic photo captures
+    startPhotoCaptures();
   })
   .catch(err => {
     console.error('Failed to start scheduled timed session:', err);

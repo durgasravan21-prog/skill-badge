@@ -96,16 +96,23 @@ async function createSchema() {
   await runAsync(`CREATE TABLE IF NOT EXISTS users (
     id               TEXT PRIMARY KEY,
     name             TEXT NOT NULL,
-    email            TEXT UNIQUE NOT NULL,
+    email            TEXT UNIQUE NOT NULL COLLATE NOCASE,
     role             TEXT NOT NULL,
     college          TEXT,
     company          TEXT,
     company_id       TEXT,
     profile_slug     TEXT,
     skillproof_score REAL DEFAULT 0.0,
+    phone            TEXT,
     created_at       TEXT NOT NULL,
     FOREIGN KEY (company_id) REFERENCES companies(id)
   );`);
+
+  try {
+    await runAsync(`ALTER TABLE users ADD COLUMN phone TEXT;`);
+  } catch (err) {
+    // Column already exists, safe to ignore
+  }
 
   await runAsync(`CREATE TABLE IF NOT EXISTS skills (
     id       TEXT PRIMARY KEY,
@@ -189,9 +196,19 @@ async function createSchema() {
     difficulty_order TEXT NOT NULL,
     start_time       TEXT NOT NULL,
     duration_minutes INTEGER NOT NULL,
+    exam_password TEXT,
     FOREIGN KEY (recruiter_id) REFERENCES users(id),
     FOREIGN KEY (company_id)   REFERENCES companies(id),
     FOREIGN KEY (skill_id)     REFERENCES skills(id)
+  );`);
+
+  await runAsync(`CREATE TABLE IF NOT EXISTS exam_photos (
+    id TEXT PRIMARY KEY,
+    challenge_id TEXT NOT NULL,
+    photo_data TEXT NOT NULL,
+    capture_type TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
+    FOREIGN KEY (challenge_id) REFERENCES challenges(id)
   );`);
 
   // Indexes for multi-tenant isolation performance

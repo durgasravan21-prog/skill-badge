@@ -18,14 +18,27 @@ app.set('trust proxy', 1);
 // SECURITY LAYER 1: Helmet — Secure HTTP Response Headers
 // ═══════════════════════════════════════════════════════════════
 app.use(helmet({
-  // Disable CSP — the SPA uses inline onclick handlers extensively
-  // and CSP conflicts with them on Vercel's edge network
-  contentSecurityPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'", "*", "blob:", "data:"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "*"],
+      styleSrc: ["'self'", "'unsafe-inline'", "*"],
+      fontSrc: ["'self'", "*"],
+      imgSrc: ["'self'", "data:", "blob:", "*"],
+      connectSrc: ["'self'", "*"],
+      mediaSrc: ["'self'", "blob:", "data:", "*"],
+      frameSrc: ["'self'", "*"]
+    }
+  },
   crossOriginEmbedderPolicy: false,  // Required for getUserMedia in exam
   // Allow popups to postMessage back (OAuth handshake)
   crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-  hsts: false,
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  },
   xContentTypeOptions: true,
   xFrameOptions: { action: 'sameorigin' },
   xXssProtection: true
@@ -114,6 +127,30 @@ function isValidUUID(str) {
 function sanitizeCode(code) {
   if (typeof code !== 'string') return '';
   return code.slice(0, 50000);  // Max 50KB code
+}
+
+function stripToSnippet(code) {
+  if (typeof code !== 'string') return code;
+  let result = code;
+
+  // Explicit replacements to convert complete solutions to skeleton signatures
+  if (result.includes('function debounce(')) {
+    result = `function debounce(fn, delay) {\n  // Your code here\n}`;
+  } else if (result.includes('function promiseAll(')) {
+    result = `function promiseAll(promises) {\n  // Your code here\n}`;
+  } else if (result.includes('function pipe(')) {
+    result = `function pipe(...fns) {\n  // Your code here\n}`;
+  } else if (result.includes('isString(val: unknown)')) {
+    result = `function isString(val: unknown): val is string {\n  // Your code here\n}\nfunction isArrayOf<T>(arr: unknown, guard: (v: unknown) => v is T): arr is T[] {\n  // Your code here\n}`;
+  } else if (result.includes('func worker(id int')) {
+    result = `package main\n\nfunc worker(id int, jobs <-chan int, results chan<- int) {\n\t// Your code here\n}`;
+  } else if (result.includes('func loggingMiddleware(')) {
+    result = `package main\n\nimport "net/http"\n\nfunc loggingMiddleware(next http.Handler) http.Handler {\n\t// Your code here\n}`;
+  } else if (result.includes('class SharedCounter')) {
+    result = `class SharedCounter {\n  constructor(sab) {\n    // Your code here\n  }\n  increment() {\n    // Your code here\n  }\n  get() {\n    // Your code here\n  }\n}`;
+  }
+
+  return result;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -344,12 +381,119 @@ async function getOrCreateCompany(email) {
   return company;
 }
 
+async function ensureStudentExists(email) {
+  if (!email) return null;
+  const cleanEmail = sanitizeString(email, 254).toLowerCase();
+  if (!isValidEmail(cleanEmail)) return null;
+  let user = await dbGet('SELECT * FROM users WHERE email = ? COLLATE NOCASE', [cleanEmail]);
+  if (!user) {
+    const userId = crypto.randomUUID();
+    const createdAt = new Date().toISOString();
+    let namePart = cleanEmail.split('@')[0];
+    namePart = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+    const name = namePart.replace(/[^a-zA-Z0-9]/g, ' ');
+    const profileSlug = name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + crypto.randomBytes(4).toString('hex');
+    const college = 'Self-Taught / University';
+
+    await dbRun(
+      `INSERT INTO users (id, name, email, role, college, company, company_id, profile_slug, skillproof_score, created_at)
+       VALUES (?, ?, ?, 'student', ?, NULL, NULL, ?, 0.00, ?)`,
+      [userId, name, cleanEmail, college, profileSlug, createdAt]
+    );
+    user = await dbGet('SELECT * FROM users WHERE id = ?', [userId]);
+    console.log(`[DB Self-Healing] Auto-registered missing student record for ${cleanEmail}`);
+  }
+  return user;
+}
+
+async function sendScheduleNotification(schedule, student) {
+  const url = `https://skill-badge-scanner.vercel.app/#`; // Matches production/local hash URLs
+  const skillName = schedule.skill_name;
+  const companyName = schedule.company_name;
+  const password = schedule.exam_password;
+  const duration = schedule.duration_minutes;
+  const startTime = schedule.start_time;
+
+  const subject = `Invited to Scheduled Exam for ${skillName} at ${companyName}`;
+  const body = `Dear ${student.name},
+
+You have been scheduled to take a proctored technical challenge for ${skillName} at ${companyName}.
+
+Exam Details:
+- Skill: ${skillName}
+- Scheduled Time: ${startTime}
+- Duration: ${duration} minutes
+- Password / One-Time Passcode: ${password}
+- Access URL: ${url}
+
+Please ensure you write the test on a laptop or desktop computer with a functional webcam for proctoring. Only one attempt is permitted.
+
+Good luck!
+SkillProof Assessment Team`;
+
+  console.log(`
+================================================================================
+📢 [SIMULATED NOTIFICATION DISPATCH]
+================================================================================
+📧 EMAIL OUTGOING:
+To: ${student.email}
+Subject: ${subject}
+
+${body}
+--------------------------------------------------------------------------------
+💬 WHATSAPP SMS OUTGOING:
+To: ${student.phone || 'N/A (No phone number saved)'}
+Message: [SkillProof] Dear ${student.name}, you have a technical challenge for ${skillName} scheduled by ${companyName}. One-Time Code: ${password}. Access at ${url}
+================================================================================
+`);
+
+  // Real Integration if env vars are set
+  if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && student.phone) {
+    try {
+      const twilio = require('twilio');
+      const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+      await client.messages.create({
+        body: `[SkillProof] Dear ${student.name}, you have a technical challenge for ${skillName} scheduled by ${companyName}. One-Time Code: ${password}. Access at ${url}`,
+        from: process.env.TWILIO_FROM_NUMBER || '+1234567890',
+        to: student.phone
+      });
+      console.log(`[Twilio SMS] Live SMS sent to ${student.phone}`);
+    } catch (err) {
+      console.error('[Twilio SMS Error] Failed to send SMS:', err.message);
+    }
+  }
+
+  if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+    try {
+      const nodemailer = require('nodemailer');
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT) || 587,
+        secure: process.env.SMTP_SECURE === 'true',
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS
+        }
+      });
+      await transporter.sendMail({
+        from: `"SkillProof Assessment" <${process.env.SMTP_USER}>`,
+        to: student.email,
+        subject: subject,
+        text: body
+      });
+      console.log(`[SMTP Email] Live Email sent to ${student.email}`);
+    } catch (err) {
+      console.error('[SMTP Email Error] Failed to send email:', err.message);
+    }
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════
 // 1. AUTHENTICATION (with rate limiting + input validation)
 // ═══════════════════════════════════════════════════════════════
 app.post('/api/auth/login', authLimiter, async (req, res) => {
   try {
-    const email = sanitizeString(req.body.email, 254);
+    const email = sanitizeString(req.body.email, 254).toLowerCase();
     const name = sanitizeString(req.body.name, 200);
     const provider = sanitizeString(req.body.provider, 20);
 
@@ -368,7 +512,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     const role = company ? 'recruiter' : 'student';
 
     // Look up existing user
-    let user = await dbGet('SELECT * FROM users WHERE email = ?', [email]);
+    let user = await dbGet('SELECT * FROM users WHERE email = ? COLLATE NOCASE', [email]);
     
     if (user) {
       // Update company_id if it's a recruiter and didn't have one
@@ -379,7 +523,8 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
       return res.json({ 
         message: 'Authentication successful', 
         user,
-        company: company || null
+        company: company || null,
+        is_new_user: false
       });
     }
 
@@ -403,11 +548,39 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     res.json({ 
       message: 'Authentication successful', 
       user: newUser,
-      company: company || null
+      company: company || null,
+      is_new_user: true
     });
   } catch (err) {
     console.error('Auth error:', err.message);
     res.status(500).json({ error: 'Authentication service error' });
+  }
+});
+
+// Student Onboarding Endpoint
+app.post('/api/student/onboard', async (req, res) => {
+  try {
+    const studentEmail = sanitizeString(req.body.student_email, 254).toLowerCase();
+    const phone = sanitizeString(req.body.phone, 30);
+    const college = sanitizeString(req.body.college, 150);
+
+    if (!studentEmail) {
+      return res.status(400).json({ error: 'Missing student email' });
+    }
+
+    const student = await ensureStudentExists(studentEmail);
+    if (!student) return res.status(404).json({ error: 'Student not found' });
+
+    await dbRun(
+      'UPDATE users SET phone = ?, college = ? WHERE id = ?',
+      [phone, college, student.id]
+    );
+
+    const updatedUser = await dbGet('SELECT * FROM users WHERE id = ?', [student.id]);
+    res.json({ message: 'Onboarding completed successfully', user: updatedUser });
+  } catch (err) {
+    console.error('Onboarding update error:', err.message);
+    res.status(500).json({ error: 'Failed to save onboarding information' });
   }
 });
 
@@ -425,7 +598,7 @@ app.get('/api/skills', async (req, res) => {
 
 app.post('/api/skills/claim', async (req, res) => {
   try {
-    const studentEmail = sanitizeString(req.body.student_email, 254);
+    const studentEmail = sanitizeString(req.body.student_email, 254).toLowerCase();
     const skillId = sanitizeString(req.body.skill_id, 50);
     const selfRating = parseInt(req.body.self_rating);
 
@@ -439,7 +612,7 @@ app.post('/api/skills/claim', async (req, res) => {
       return res.status(400).json({ error: 'Self rating must be between 1 and 5' });
     }
 
-    const student = await dbGet('SELECT id FROM users WHERE email = ?', [studentEmail]);
+    const student = await ensureStudentExists(studentEmail);
     if (!student) return res.status(404).json({ error: 'Student not found' });
 
     const existing = await dbGet('SELECT id FROM student_skills WHERE student_id = ? AND skill_id = ?', [student.id, skillId]);
@@ -461,12 +634,12 @@ app.post('/api/skills/claim', async (req, res) => {
 
 app.get('/api/skills/status', async (req, res) => {
   try {
-    const studentEmail = sanitizeString(req.query.student_email, 254);
+    const studentEmail = sanitizeString(req.query.student_email, 254).toLowerCase();
     if (!studentEmail || !isValidEmail(studentEmail)) {
       return res.status(400).json({ error: 'Invalid student email' });
     }
 
-    const student = await dbGet('SELECT id FROM users WHERE email = ?', [studentEmail]);
+    const student = await ensureStudentExists(studentEmail);
     if (!student) return res.status(404).json({ error: 'Student account not found' });
 
     const skills = await dbAll(
@@ -476,7 +649,7 @@ app.get('/api/skills/status', async (req, res) => {
        WHERE ss.student_id = ?`,
       [student.id]
     );
-    res.json(skills);
+    res.json({ user: student, skills: skills });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch student skills status' });
   }
@@ -484,14 +657,14 @@ app.get('/api/skills/status', async (req, res) => {
 
 app.get('/api/skills/verification-next', async (req, res) => {
   try {
-    const studentEmail = sanitizeString(req.query.student_email, 254);
+    const studentEmail = sanitizeString(req.query.student_email, 254).toLowerCase();
     const skillId = sanitizeString(req.query.skill_id, 50);
 
     if (!studentEmail || !skillId) {
       return res.status(400).json({ error: 'Missing required parameters' });
     }
 
-    const student = await dbGet('SELECT id FROM users WHERE email = ?', [studentEmail]);
+    const student = await ensureStudentExists(studentEmail);
     if (!student) return res.status(404).json({ error: 'Student not found' });
 
     const challenges = await dbAll(
@@ -609,7 +782,7 @@ app.post('/api/questions', async (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 app.post('/api/exams/start', examLimiter, async (req, res) => {
   try {
-    const studentEmail = sanitizeString(req.body.student_email, 254);
+    const studentEmail = sanitizeString(req.body.student_email, 254).toLowerCase();
     const questionId = sanitizeString(req.body.question_id, 50);
 
     if (!studentEmail || !questionId) {
@@ -619,11 +792,20 @@ app.post('/api/exams/start', examLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Invalid email format' });
     }
 
-    const student = await dbGet('SELECT * FROM users WHERE email = ?', [studentEmail]);
+    const student = await ensureStudentExists(studentEmail);
     if (!student) return res.status(404).json({ error: 'Student account not found' });
 
     const question = await dbGet('SELECT * FROM questions WHERE id = ?', [questionId]);
     if (!question) return res.status(404).json({ error: 'Target question not found' });
+
+    // One-attempt enforcement
+    const existingAttempt = await dbGet(
+      `SELECT id, status FROM challenges WHERE student_id = ? AND question_id = ? AND status IN ('evaluated', 'submitted', 'disqualified', 'expired')`,
+      [student.id, questionId]
+    );
+    if (existingAttempt) {
+      return res.status(400).json({ error: 'You have already attempted this exam. Only one attempt is allowed.' });
+    }
 
     const challengeId = crypto.randomUUID();
     const startTime = new Date().toISOString();
@@ -644,7 +826,7 @@ app.post('/api/exams/start', examLimiter, async (req, res) => {
       examId: challengeId,
       startedAt: startTime,
       expirationMinutes: timeLimitMins,
-      codeTemplate: question.code_template,
+      codeTemplate: stripToSnippet(question.code_template),
       questionTitle: question.title,
       testCases: testCases
     });
@@ -731,26 +913,18 @@ app.post('/api/exams/submit', async (req, res) => {
 
     // Helper: Update student skill badge + company badge
     const updateStudentSkillBadge = async (studentId, skillId, score, difficulty) => {
-      const pass = score >= 60;
       const record = await dbGet(
         'SELECT * FROM student_skills WHERE student_id = ? AND skill_id = ?',
         [studentId, skillId]
       );
 
-      let badgeStatus = 'claimed';
-      let badgeTag = record ? record.badge_tag : null;
-
-      if (difficulty === 'hard') {
-        badgeStatus = pass ? 'verified' : 'failed';
-        badgeTag = pass ? `SkillProof ${challenge.skill_name.split(' ')[0]} Expert` : null;
-      } else if (!pass) {
-        badgeStatus = 'failed';
-      }
+      let badgeStatus = 'pending_review';
+      let badgeTag = null; // Awarded explicitly by recruiter later
 
       if (record) {
         await dbRun(
           `UPDATE student_skills
-           SET status = ?, verified_score = ?, verified_at = ?, verified_by = 'SkillProof AI', badge_tag = ?
+           SET status = ?, verified_score = ?, verified_at = ?, verified_by = 'Pending Recruiter Review', badge_tag = ?
            WHERE id = ?`,
           [badgeStatus, score, now, badgeTag, record.id]
         );
@@ -758,7 +932,7 @@ app.post('/api/exams/submit', async (req, res) => {
         const ssId = crypto.randomUUID();
         await dbRun(
           `INSERT INTO student_skills (id, student_id, skill_id, self_rating, status, verified_score, verified_at, verified_by, badge_tag)
-           VALUES (?, ?, ?, 3, ?, ?, ?, 'SkillProof AI', ?)`,
+           VALUES (?, ?, ?, 3, ?, ?, ?, 'Pending Recruiter Review', ?)`,
           [ssId, studentId, skillId, badgeStatus, score, now, badgeTag]
         );
       }
@@ -820,6 +994,15 @@ app.post('/api/exams/submit', async (req, res) => {
     await dbRun("UPDATE challenges SET status = 'evaluated', submitted_at = ? WHERE id = ?", [now, examId]);
 
     await updateStudentSkillBadge(challenge.student_id, challenge.skill_id, totalScore, challenge.difficulty);
+
+    // For recruiter-dispatched challenges, mark as pending review instead of auto-verified
+    if (challenge.recruiter_id) {
+      await dbRun(
+        `UPDATE student_skills SET status = 'pending_review' WHERE student_id = ? AND skill_id = ?`,
+        [challenge.student_id, challenge.skill_id]
+      );
+    }
+
     await updatePortfolioScore(challenge.student_id);
 
     res.json({
@@ -947,7 +1130,7 @@ app.post('/api/recruiter/dispatch-and-evaluate', bulkLimiter, async (req, res) =
 
     for (const cand of candidates) {
       const name = sanitizeString(cand.name, 200);
-      const email = sanitizeString(cand.email, 254);
+      const email = sanitizeString(cand.email, 254).toLowerCase();
       const skillId = sanitizeString(cand.skillId, 50);
 
       if (!name || !email || !skillId) {
@@ -958,7 +1141,7 @@ app.post('/api/recruiter/dispatch-and-evaluate', bulkLimiter, async (req, res) =
       }
 
       // 1. Fetch or create user
-      let user = await dbGet('SELECT * FROM users WHERE email = ?', [email]);
+      let user = await dbGet('SELECT * FROM users WHERE email = ? COLLATE NOCASE', [email]);
       if (!user) {
         const userId = crypto.randomUUID();
         const profileSlug = name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + crypto.randomBytes(4).toString('hex');
@@ -1105,14 +1288,40 @@ app.post('/api/recruiter/schedule-exam', async (req, res) => {
       return res.status(400).json({ error: 'No matching questions found in DB for difficulties: ' + difficultyOrder });
     }
 
+    const examPassword = crypto.randomBytes(3).toString('hex').toUpperCase();
+
     const scheduleId = crypto.randomUUID();
     await dbRun(
-      `INSERT INTO exam_schedules (id, recruiter_id, company_id, skill_id, question_order, difficulty_order, start_time, duration_minutes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [scheduleId, recruiterId, companyId || null, skillId, questionIds.join(','), difficultyOrder, startTime, durationMinutes]
+      `INSERT INTO exam_schedules (id, recruiter_id, company_id, skill_id, question_order, difficulty_order, start_time, duration_minutes, exam_password)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [scheduleId, recruiterId, companyId || null, skillId, questionIds.join(','), difficultyOrder, startTime, durationMinutes, examPassword]
     );
 
-    res.json({ message: 'Exam scheduled successfully', scheduleId });
+    // Fetch details to build the schedule payload for notification dispatching
+    const skill = await dbGet('SELECT name FROM skills WHERE id = ?', [skillId]);
+    const recruiter = await dbGet('SELECT * FROM users WHERE id = ?', [recruiterId]);
+    const company = companyId ? await dbGet('SELECT * FROM companies WHERE id = ?', [companyId]) : null;
+
+    const schedule = {
+      id: scheduleId,
+      recruiter_id: recruiterId,
+      company_id: companyId || null,
+      skill_id: skillId,
+      skill_name: skill ? skill.name : 'Technical Challenge',
+      recruiter_name: recruiter ? recruiter.name : 'Recruiter',
+      company_name: company ? company.name : (recruiter ? recruiter.company : 'SkillProof Partner'),
+      start_time: startTime,
+      duration_minutes: durationMinutes,
+      exam_password: examPassword
+    };
+
+    // Dispatch to all student accounts (Self-healing on cold starts is active on their ends)
+    const students = await dbAll("SELECT * FROM users WHERE role = 'student'");
+    for (const student of students) {
+      await sendScheduleNotification(schedule, student);
+    }
+
+    res.json({ message: 'Exam scheduled successfully', scheduleId, examPassword });
   } catch (err) {
     console.error('Schedule exam error:', err.message);
     res.status(500).json({ error: 'Failed to schedule exam' });
@@ -1140,12 +1349,12 @@ app.get('/api/recruiter/schedules', async (req, res) => {
 
 app.get('/api/student/schedules', async (req, res) => {
   try {
-    const studentEmail = sanitizeString(req.query.student_email, 254);
+    const studentEmail = sanitizeString(req.query.student_email, 254).toLowerCase();
     if (!studentEmail || !isValidEmail(studentEmail)) {
       return res.status(400).json({ error: 'Invalid student email' });
     }
 
-    const student = await dbGet('SELECT id FROM users WHERE email = ?', [studentEmail]);
+    const student = await ensureStudentExists(studentEmail);
     if (!student) return res.status(404).json({ error: 'Student not found' });
 
     // Get schedules matching claimed skills OR any company-dispatched schedules (recruiter tests)
@@ -1156,22 +1365,27 @@ app.get('/api/student/schedules', async (req, res) => {
     if (skillIds.length === 0) {
       // Even without claimed skills, show all company-dispatched schedules
       schedules = await dbAll(
-        `SELECT es.*, s.name as skill_name, c.name as company_name, c.domain as company_domain
+        `SELECT es.*, s.name as skill_name, c.name as company_name, c.domain as company_domain,
+                (SELECT status FROM challenges WHERE student_id = ? AND skill_id = es.skill_id AND recruiter_id = es.recruiter_id LIMIT 1) as attempt_status,
+                (SELECT id FROM challenges WHERE student_id = ? AND skill_id = es.skill_id AND recruiter_id = es.recruiter_id LIMIT 1) as attempt_id
          FROM exam_schedules es
          JOIN skills s ON es.skill_id = s.id
          LEFT JOIN companies c ON es.company_id = c.id
-         ORDER BY es.start_time DESC`
+         ORDER BY es.start_time DESC`,
+        [student.id, student.id]
       );
     } else {
       const placeholders = skillIds.map(() => '?').join(',');
       schedules = await dbAll(
-        `SELECT es.*, s.name as skill_name, c.name as company_name, c.domain as company_domain
+        `SELECT es.*, s.name as skill_name, c.name as company_name, c.domain as company_domain,
+                (SELECT status FROM challenges WHERE student_id = ? AND skill_id = es.skill_id AND recruiter_id = es.recruiter_id LIMIT 1) as attempt_status,
+                (SELECT id FROM challenges WHERE student_id = ? AND skill_id = es.skill_id AND recruiter_id = es.recruiter_id LIMIT 1) as attempt_id
          FROM exam_schedules es
          JOIN skills s ON es.skill_id = s.id
          LEFT JOIN companies c ON es.company_id = c.id
          WHERE es.skill_id IN (${placeholders}) OR es.company_id IS NOT NULL
          ORDER BY es.start_time DESC`,
-        skillIds
+        [student.id, student.id, ...skillIds]
       );
     }
     res.json(schedules);
@@ -1183,7 +1397,7 @@ app.get('/api/student/schedules', async (req, res) => {
 
 app.post('/api/exams/start-scheduled', examLimiter, async (req, res) => {
   try {
-    const studentEmail = sanitizeString(req.body.student_email, 254);
+    const studentEmail = sanitizeString(req.body.student_email, 254).toLowerCase();
     const scheduleId = sanitizeString(req.body.schedule_id, 50);
 
     if (!studentEmail || !scheduleId) {
@@ -1193,11 +1407,26 @@ app.post('/api/exams/start-scheduled', examLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Invalid email format' });
     }
 
-    const student = await dbGet('SELECT * FROM users WHERE email = ?', [studentEmail]);
+    const student = await ensureStudentExists(studentEmail);
     if (!student) return res.status(404).json({ error: 'Student account not found' });
 
     const schedule = await dbGet('SELECT * FROM exam_schedules WHERE id = ?', [scheduleId]);
     if (!schedule) return res.status(404).json({ error: 'Scheduled exam not found' });
+
+    // Password verification
+    const examPassword = sanitizeString(req.body.exam_password, 20);
+    if (schedule.exam_password && schedule.exam_password !== examPassword) {
+      return res.status(403).json({ error: 'Invalid exam access password. Please check your email for the correct password.' });
+    }
+
+    // One-attempt enforcement for scheduled exams
+    const existingScheduleAttempt = await dbGet(
+      `SELECT id, status FROM challenges WHERE student_id = ? AND skill_id = ? AND recruiter_id = ? AND status IN ('evaluated', 'submitted', 'disqualified', 'expired')`,
+      [student.id, schedule.skill_id, schedule.recruiter_id]
+    );
+    if (existingScheduleAttempt) {
+      return res.status(400).json({ error: 'You have already attempted this scheduled exam. Only one attempt is allowed.' });
+    }
 
     const questionIds = schedule.question_order.split(',');
     if (questionIds.length === 0 || !questionIds[0]) {
@@ -1220,16 +1449,19 @@ app.post('/api/exams/start-scheduled', examLimiter, async (req, res) => {
       [challengeId, student.id, schedule.recruiter_id, schedule.skill_id, question.id, question.difficulty, timeLimitMins, startTime, expiresTime, schedule.company_id]
     );
 
+    const testCases = generateTestCases(question.difficulty, question.title);
+
     res.json({
       message: 'Scheduled exam session successfully started',
       examId: challengeId,
       startedAt: startTime,
       expirationMinutes: timeLimitMins,
-      codeTemplate: question.code_template,
+      codeTemplate: stripToSnippet(question.code_template),
       questionTitle: question.title,
       questionList: questionIds,
       currentQuestionIndex: 0,
-      scheduleId: scheduleId
+      scheduleId: scheduleId,
+      testCases: testCases
     });
   } catch (err) {
     console.error('Start scheduled exam error:', err.message);
@@ -1239,7 +1471,7 @@ app.post('/api/exams/start-scheduled', examLimiter, async (req, res) => {
 
 app.post('/api/exams/next-scheduled', async (req, res) => {
   try {
-    const studentEmail = sanitizeString(req.body.student_email, 254);
+    const studentEmail = sanitizeString(req.body.student_email, 254).toLowerCase();
     const scheduleId = sanitizeString(req.body.schedule_id, 50);
     const questionId = sanitizeString(req.body.question_id, 50);
     const prevExamId = sanitizeString(req.body.prev_exam_id, 50);
@@ -1248,7 +1480,7 @@ app.post('/api/exams/next-scheduled', async (req, res) => {
       return res.status(400).json({ error: 'Missing next question parameters' });
     }
 
-    const student = await dbGet('SELECT * FROM users WHERE email = ?', [studentEmail]);
+    const student = await ensureStudentExists(studentEmail);
     if (!student) return res.status(404).json({ error: 'Student not found' });
 
     const schedule = await dbGet('SELECT * FROM exam_schedules WHERE id = ?', [scheduleId]);
@@ -1276,11 +1508,14 @@ app.post('/api/exams/next-scheduled', async (req, res) => {
       [challengeId, student.id, schedule.recruiter_id, schedule.skill_id, question.id, question.difficulty, startTime, expiresAt, violations, schedule.company_id]
     );
 
+    const testCases = generateTestCases(question.difficulty, question.title);
+
     res.json({
       message: 'Next scheduled question loaded',
       examId: challengeId,
-      codeTemplate: question.code_template,
-      questionTitle: question.title
+      codeTemplate: stripToSnippet(question.code_template),
+      questionTitle: question.title,
+      testCases: testCases
     });
   } catch (err) {
     console.error('Next scheduled question error:', err.message);
@@ -1342,5 +1577,119 @@ if (require.main === module) {
     console.log('Security layers active: Helmet, Rate Limiting, HPP, CSP, Input Validation, Multi-Tenant Isolation');
   });
 }
+
+// ═══════════════════════════════════════════════════════════════
+// 10. EXAM PHOTO CAPTURE & STORAGE
+// ═══════════════════════════════════════════════════════════════
+app.post('/api/exams/photo', async (req, res) => {
+  try {
+    const challengeId = sanitizeString(req.body.challenge_id, 50);
+    const photoData = req.body.photo_data;
+    const captureType = sanitizeString(req.body.capture_type, 20);
+    
+    if (!challengeId || !photoData || !captureType) {
+      return res.status(400).json({ error: 'Missing photo data' });
+    }
+    
+    const validTypes = ['id_verify', 'selfie', 'interval', 'start'];
+    if (!validTypes.includes(captureType)) {
+      return res.status(400).json({ error: 'Invalid capture type' });
+    }
+    
+    const photoId = crypto.randomUUID();
+    const timestamp = new Date().toISOString();
+    
+    await dbRun(
+      'INSERT INTO exam_photos (id, challenge_id, photo_data, capture_type, timestamp) VALUES (?, ?, ?, ?, ?)',
+      [photoId, challengeId, photoData.slice(0, 500000), captureType, timestamp]
+    );
+    
+    res.json({ message: 'Photo captured', photoId });
+  } catch (err) {
+    console.error('Photo capture error:', err.message);
+    res.status(500).json({ error: 'Failed to store photo' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// 11. RECRUITER BADGE ASSIGNMENT
+// ═══════════════════════════════════════════════════════════════
+app.post('/api/recruiter/assign-badge', async (req, res) => {
+  try {
+    const recruiterEmail = sanitizeString(req.body.recruiter_email, 254).toLowerCase();
+    const challengeId = sanitizeString(req.body.challenge_id, 50);
+    const action = sanitizeString(req.body.action, 20);
+    
+    if (!recruiterEmail || !challengeId || !action) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    if (!['award', 'deny'].includes(action)) {
+      return res.status(400).json({ error: 'Invalid action' });
+    }
+    
+    const recruiter = await dbGet('SELECT * FROM users WHERE email = ? COLLATE NOCASE AND role = ?', [recruiterEmail, 'recruiter']);
+    if (!recruiter) return res.status(403).json({ error: 'Unauthorized' });
+    
+    const challenge = await dbGet(
+      `SELECT c.*, q.title as question_title, s.name as skill_name
+       FROM challenges c
+       JOIN questions q ON c.question_id = q.id
+       JOIN skills s ON c.skill_id = s.id
+       WHERE c.id = ?`,
+      [challengeId]
+    );
+    if (!challenge) return res.status(404).json({ error: 'Challenge not found' });
+    
+    const now = new Date().toISOString();
+    
+    if (action === 'award') {
+      const badgeTag = `${challenge.skill_name} Expert — Verified by ${recruiter.company || 'SkillProof'}`;
+      await dbRun(
+        `UPDATE student_skills SET status = 'verified', verified_by = ?, badge_tag = ?, verified_at = ? WHERE student_id = ? AND skill_id = ?`,
+        [recruiter.company || recruiter.name, badgeTag, now, challenge.student_id, challenge.skill_id]
+      );
+      await dbRun(`UPDATE challenges SET status = 'badge_awarded' WHERE id = ?`, [challengeId]);
+      res.json({ message: 'Badge awarded successfully', badgeTag });
+    } else {
+      await dbRun(
+        `UPDATE student_skills SET status = 'failed', verified_by = ?, verified_at = ? WHERE student_id = ? AND skill_id = ?`,
+        [recruiter.company || recruiter.name, now, challenge.student_id, challenge.skill_id]
+      );
+      await dbRun(`UPDATE challenges SET status = 'badge_denied' WHERE id = ?`, [challengeId]);
+      res.json({ message: 'Badge denied' });
+    }
+  } catch (err) {
+    console.error('Badge assignment error:', err.message);
+    res.status(500).json({ error: 'Failed to assign badge' });
+  }
+});
+
+app.get('/api/recruiter/exam-photo/:id', async (req, res) => {
+  try {
+    const photoId = sanitizeString(req.params.id, 50);
+    const photo = await dbGet('SELECT photo_data FROM exam_photos WHERE id = ?', [photoId]);
+    if (!photo) return res.status(404).json({ error: 'Photo not found' });
+    res.json({ photo_data: photo.photo_data });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to retrieve photo' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// 12. RECRUITER EXAM PHOTOS VIEWER
+// ═══════════════════════════════════════════════════════════════
+app.get('/api/recruiter/exam-photos', async (req, res) => {
+  try {
+    const challengeId = sanitizeString(req.query.challenge_id, 50);
+    if (!challengeId) return res.status(400).json({ error: 'Missing challenge_id' });
+    const photos = await dbAll(
+      'SELECT id, capture_type, timestamp FROM exam_photos WHERE challenge_id = ? ORDER BY timestamp ASC',
+      [challengeId]
+    );
+    res.json(photos);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch photos' });
+  }
+});
 
 module.exports = app;
