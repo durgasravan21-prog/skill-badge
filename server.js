@@ -1217,8 +1217,8 @@ app.post('/api/recruiter/dispatch-and-evaluate', bulkLimiter, async (req, res) =
     if (!candidates || !Array.isArray(candidates) || candidates.length === 0) {
       return res.status(400).json({ error: 'Missing candidates array' });
     }
-    if (candidates.length > 50) {
-      return res.status(400).json({ error: 'Maximum 50 candidates per batch' });
+    if (candidates.length > 500) {
+      return res.status(400).json({ error: 'Maximum 500 candidates per batch' });
     }
 
     const companyId = sanitizeString(company_id, 50) || null;
@@ -1355,59 +1355,89 @@ app.post('/api/recruiter/schedule-exam', async (req, res) => {
       return res.status(400).json({ error: 'Missing required schedule parameters' });
     }
 
-    // Generate dynamic shuffled question order matching recruiter sequence
+    // Validate that questions exist for the requested difficulties
     const difficulties = difficultyOrder.split(',');
-    const questionIds = [];
     for (const diff of difficulties) {
       const trimmedDiff = diff.trim().toLowerCase();
       const questions = await dbAll('SELECT id FROM questions WHERE skill_id = ? AND difficulty = ?', [skillId, trimmedDiff]);
-      if (questions && questions.length > 0) {
-        const randomQ = questions[Math.floor(Math.random() * questions.length)];
-        questionIds.push(randomQ.id);
+      if (!questions || questions.length === 0) {
+        return res.status(400).json({ error: `No matching questions found in DB for difficulty: ${trimmedDiff}` });
       }
     }
 
-    if (questionIds.length === 0) {
-      return res.status(400).json({ error: 'No matching questions found in DB for difficulties: ' + difficultyOrder });
-    }
-
+    // Generate a secure universal access code
     const examPassword = crypto.randomBytes(3).toString('hex').toUpperCase();
-
     const scheduleId = crypto.randomUUID();
+
+    // Store question_order as 'RANDOM' to generate it dynamically per-student when they join
     await dbRun(
       `INSERT INTO exam_schedules (id, recruiter_id, company_id, skill_id, question_order, difficulty_order, start_time, duration_minutes, exam_password)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [scheduleId, recruiterId, companyId || null, skillId, questionIds.join(','), difficultyOrder, startTime, durationMinutes, examPassword]
+      [scheduleId, recruiterId, companyId || null, skillId, 'RANDOM', difficultyOrder, startTime, durationMinutes, examPassword]
     );
-
-    // Fetch details to build the schedule payload for notification dispatching
-    const skill = await dbGet('SELECT name FROM skills WHERE id = ?', [skillId]);
-    const recruiter = await dbGet('SELECT * FROM users WHERE id = ?', [recruiterId]);
-    const company = companyId ? await dbGet('SELECT * FROM companies WHERE id = ?', [companyId]) : null;
-
-    const schedule = {
-      id: scheduleId,
-      recruiter_id: recruiterId,
-      company_id: companyId || null,
-      skill_id: skillId,
-      skill_name: skill ? skill.name : 'Technical Challenge',
-      recruiter_name: recruiter ? recruiter.name : 'Recruiter',
-      company_name: company ? company.name : (recruiter ? recruiter.company : 'SkillProof Partner'),
-      start_time: startTime,
-      duration_minutes: durationMinutes,
-      exam_password: examPassword
-    };
-
-    // Dispatch to all student accounts (Self-healing on cold starts is active on their ends)
-    const students = await dbAll("SELECT * FROM users WHERE role = 'student'");
-    for (const student of students) {
-      await sendScheduleNotification(schedule, student);
-    }
 
     res.json({ message: 'Exam scheduled successfully', scheduleId, examPassword });
   } catch (err) {
     console.error('Schedule exam error:', err.message);
     res.status(500).json({ error: 'Failed to schedule exam' });
+  }
+});
+
+app.post('/api/exams/join', async (req, res) => {
+  try {
+    const { student_id, exam_password } = req.body;
+    if (!student_id || !exam_password) return res.status(400).json({ error: 'Missing join parameters' });
+
+    const studentId = sanitizeString(student_id, 50);
+    const password = sanitizeString(exam_password, 20).toUpperCase();
+
+    // Find the master schedule
+    const masterSchedule = await dbGet("SELECT * FROM exam_schedules WHERE exam_password = ? AND invited_student_id IS NULL COLLATE NOCASE", [password]);
+    if (!masterSchedule) {
+      return res.status(404).json({ error: 'Invalid or expired Universal Access Code.' });
+    }
+
+    // Check if student already joined this schedule
+    const existing = await dbGet("SELECT id FROM exam_schedules WHERE exam_password = ? AND invited_student_id = ?", [password, studentId]);
+    if (existing) {
+      return res.status(400).json({ error: 'You have already joined this exam. It is available on your dashboard.' });
+    }
+
+    // Now properly randomize questions for this specific student!
+    const difficulties = masterSchedule.difficulty_order.split(',').map(d => d.trim().toLowerCase());
+    const questionIds = [];
+    for (const diff of difficulties) {
+      const questions = await dbAll('SELECT id FROM questions WHERE skill_id = ? AND difficulty = ?', [masterSchedule.skill_id, diff]);
+      if (questions && questions.length > 0) {
+        questionIds.push(questions[Math.floor(Math.random() * questions.length)].id);
+      }
+    }
+
+    if (questionIds.length === 0) {
+      return res.status(500).json({ error: 'Failed to generate random questions for this exam blueprint.' });
+    }
+
+    // Create personal cloned schedule
+    const scheduleId = crypto.randomUUID();
+    await dbRun(
+      `INSERT INTO exam_schedules (id, recruiter_id, company_id, skill_id, question_order, difficulty_order, start_time, duration_minutes, exam_password, invited_student_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [scheduleId, masterSchedule.recruiter_id, masterSchedule.company_id, masterSchedule.skill_id, questionIds.join(','), masterSchedule.difficulty_order, masterSchedule.start_time, masterSchedule.duration_minutes, password, studentId]
+    );
+
+    // Ensure student has skill claimed
+    const existingClaim = await dbGet('SELECT id FROM student_skills WHERE student_id = ? AND skill_id = ?', [studentId, masterSchedule.skill_id]);
+    if (!existingClaim) {
+      await dbRun(
+        `INSERT INTO student_skills (id, student_id, skill_id, self_rating, status) VALUES (?, ?, ?, 3, 'claimed')`,
+        [crypto.randomUUID(), studentId, masterSchedule.skill_id]
+      );
+    }
+
+    res.json({ message: 'Successfully joined the exam!', scheduleId });
+  } catch (err) {
+    console.error('Join exam error:', err.message);
+    res.status(500).json({ error: 'Failed to join exam' });
   }
 });
 

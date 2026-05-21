@@ -1322,8 +1322,16 @@ body.dark-theme .demo-details strong {
       <!-- Tab 4: Corporate Assessment Invites -->
       <div id="tab-invites" class="student-workspace-panel">
         <div class="student-skills-dashboard" style="margin-top: 0;">
-          <h3 style="font-family:var(--font-display); font-size:18px; font-weight:800; margin-bottom:16px;">Corporate Assessment Sequences</h3>
-          <p style="font-size:13px; color:var(--gray-500); margin-bottom:20px;">You are invited to attempt the following high-security, multi-stage sequenced evaluations by corporate recruiters.</p>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; flex-wrap:wrap; gap:16px;">
+            <div>
+              <h3 style="font-family:var(--font-display); font-size:18px; font-weight:800; margin-bottom:8px;">Corporate Assessment Sequences</h3>
+              <p style="font-size:13px; color:var(--gray-500);">You are invited to attempt the following high-security, multi-stage sequenced evaluations by corporate recruiters.</p>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <input type="text" id="join-exam-code-input" placeholder="Universal Access Code..." style="padding:8px; border:1px solid var(--gray-200); border-radius:var(--radius-sm); font-size:13px; width:200px; text-transform:uppercase;">
+              <button onclick="joinExamViaCode()" class="btn-primary" style="padding:8px 16px; font-size:13px; font-weight:700; border-radius:var(--radius-sm); border:none; cursor:pointer;">Join Exam</button>
+            </div>
+          </div>
           <div class="verified-skills-grid" id="student-schedules-list">
             <!-- Dynamically populated corporate assessment invitations -->
             <div style="color:var(--gray-500)">No active invitations found matching your claimed skills.</div>
@@ -1525,9 +1533,14 @@ body.dark-theme .demo-details strong {
           <!-- Dynamically added candidate rows will be rendered here -->
         </div>
         
-        <div style="display:flex; gap:12px; margin-top:16px;">
-          <button onclick="addCandidateRow()" class="btn-ghost" style="padding: 10px 16px; font-size:12px; flex:1; justify-content:center; display:inline-flex; align-items:center; gap:6px;">+ Add Candidate</button>
-          <button onclick="runBulkDispatch()" class="btn-primary" style="padding: 10px 16px; font-size:12px; flex:1.5; justify-content:center; display:inline-flex; align-items:center; gap:6px;">
+        <div style="display:flex; flex-wrap: wrap; gap:12px; margin-top:16px;">
+          <input type="file" id="csv-upload-input" accept=".csv" style="display:none;" onchange="handleCSVUpload(event)">
+          <button onclick="document.getElementById('csv-upload-input').click()" class="btn-ghost" style="padding: 10px 16px; font-size:12px; flex:1; justify-content:center; display:inline-flex; align-items:center; gap:6px;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            Upload CSV
+          </button>
+          <button onclick="addCandidateRow()" class="btn-ghost" style="padding: 10px 16px; font-size:12px; flex:1; justify-content:center; display:inline-flex; align-items:center; gap:6px;">+ Add 1 Row</button>
+          <button onclick="runBulkDispatch()" class="btn-primary" style="padding: 10px 16px; font-size:12px; flex:2; justify-content:center; display:inline-flex; align-items:center; gap:6px;">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polyline points="22 2 15 22 11 13 2 9 22 2"/></svg>
             Send Exam Invites
           </button>
@@ -3655,6 +3668,40 @@ function createQuestion() {
 let masterSkillsList = [];
 let bulkCandidateRowCount = 0;
 
+function handleCSVUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const text = e.target.result;
+    const lines = text.split('\n');
+    let addedCount = 0;
+    
+    const startIndex = (lines[0] && (lines[0].toLowerCase().includes('name') || lines[0].toLowerCase().includes('email'))) ? 1 : 0;
+    
+    for (let i = startIndex; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      
+      const parts = line.split(',');
+      if (parts.length >= 2) {
+        const name = parts[0].trim().replace(/^"|"$/g, '');
+        const email = parts[1].trim().replace(/^"|"$/g, '');
+        if (name && email) {
+          // Defaults to first available skill (handled dynamically inside addCandidateRow)
+          addCandidateRow(name, email);
+          addedCount++;
+        }
+      }
+    }
+    
+    alert(`Successfully parsed and added ${addedCount} candidates from CSV. Please select their target skills and click Send Exam Invites.`);
+    event.target.value = ''; // Reset input
+  };
+  reader.readAsText(file);
+}
+
 function addCandidateRow(name = '', email = '', skillId = '') {
   bulkCandidateRowCount++;
   const container = document.getElementById('bulk-dispatch-rows');
@@ -4505,7 +4552,7 @@ function scheduleExamSequence() {
       alert(data.error);
       return;
     }
-    alert('Multi-stage assessment sequence scheduled successfully.');
+    alert('Exam sequence scheduled successfully!\n\nUNIVERSAL EXAM CODE: ' + data.examPassword + '\n\nStudents can enter this code in their dashboard or use the universal link to take this exact test blueprint.');
     loadRecruiterSchedules();
   })
   .catch(err => {
@@ -4541,6 +4588,39 @@ function loadRecruiterSchedules() {
     .catch(err => {
       console.error('Failed to load recruiter schedules:', err);
     });
+}
+
+function joinExamViaCode() {
+  if (!currentUser) return;
+  const codeInput = document.getElementById('join-exam-code-input');
+  const code = codeInput.value.trim().toUpperCase();
+  if (!code) {
+    alert('Please enter a Universal Access Code.');
+    return;
+  }
+
+  fetch('/api/exams/join', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      student_id: currentUser.id,
+      exam_password: code
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.error) {
+      alert(data.error);
+      return;
+    }
+    alert(data.message || 'Exam joined successfully!');
+    codeInput.value = '';
+    loadStudentSchedules();
+  })
+  .catch(err => {
+    console.error('Join Error:', err);
+    alert('Failed to join the exam.');
+  });
 }
 
 function loadStudentSchedules() {
