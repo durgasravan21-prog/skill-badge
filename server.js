@@ -1208,6 +1208,13 @@ app.post('/api/recruiter/dispatch-and-evaluate', bulkLimiter, async (req, res) =
     const results = [];
     const now = new Date().toISOString();
 
+    const recruiterCheck = await dbGet('SELECT id FROM users WHERE id = ?', [recruiterId]);
+    if (!recruiterCheck) return res.status(401).json({ error: 'Recruiter session expired due to server restart. Please log out and log back in.' });
+    if (companyId) {
+      const companyCheck = await dbGet('SELECT id FROM companies WHERE id = ?', [companyId]);
+      if (!companyCheck) return res.status(401).json({ error: 'Company session expired due to server restart. Please log out and log back in.' });
+    }
+
     // Fetch company name
     let companyName = 'SkillProof';
     if (companyId) {
@@ -1301,7 +1308,15 @@ app.post('/api/recruiter/dispatch-and-evaluate', bulkLimiter, async (req, res) =
 app.post('/api/recruiter/schedule-exam', async (req, res) => {
   try {
     const recruiterId = sanitizeString(req.body.recruiter_id, 50);
-    const companyId = sanitizeString(req.body.company_id, 50);
+    const companyId = req.body.company_id || null;
+
+    const recruiterCheck = await dbGet('SELECT id FROM users WHERE id = ?', [recruiterId]);
+    if (!recruiterCheck) return res.status(401).json({ error: 'Recruiter session expired due to server restart. Please log out and log back in.' });
+    if (companyId) {
+      const companyCheck = await dbGet('SELECT id FROM companies WHERE id = ?', [companyId]);
+      if (!companyCheck) return res.status(401).json({ error: 'Company session expired due to server restart. Please log out and log back in.' });
+    }
+
     const skillId = sanitizeString(req.body.skill_id, 50);
     const difficultyOrder = sanitizeString(req.body.difficulty_order, 200) || 'easy,medium,hard';
     const startTime = sanitizeString(req.body.start_time, 100);
@@ -1666,9 +1681,12 @@ app.post('/api/recruiter/assign-badge', async (req, res) => {
       return res.status(400).json({ error: 'Invalid action' });
     }
     
-    const adminUser = await dbGet('SELECT * FROM users WHERE email = ? COLLATE NOCASE', [recruiterEmail]);
-    if (!adminUser || adminUser.email !== HEAD_ADMIN_EMAIL) {
-      return res.status(403).json({ error: 'Unauthorized: Only the Head Admin can issue official verified badges.' });
+    const verifyingUser = await dbGet('SELECT * FROM users WHERE email = ? COLLATE NOCASE', [recruiterEmail]);
+    if (!verifyingUser) return res.status(403).json({ error: 'User not found' });
+    
+    const isHeadAdmin = verifyingUser.email === HEAD_ADMIN_EMAIL;
+    if (!isHeadAdmin && verifyingUser.role !== 'recruiter') {
+      return res.status(403).json({ error: 'Unauthorized: Only Recruiters and Head Admin can issue badges.' });
     }
     
     const challenge = await dbGet(
@@ -1682,19 +1700,37 @@ app.post('/api/recruiter/assign-badge', async (req, res) => {
     if (!challenge) return res.status(404).json({ error: 'Challenge not found' });
     
     const now = new Date().toISOString();
+    const verifierName = isHeadAdmin ? 'SkillProof Head Admin' : (verifyingUser.company || verifyingUser.name);
     
     if (action === 'award') {
-      const badgeTag = `${challenge.skill_name} Expert — Verified by SkillProof Head Admin`;
+      const existing = await dbGet('SELECT badge_tag FROM student_skills WHERE student_id = ? AND skill_id = ?', [challenge.student_id, challenge.skill_id]);
+      let newTag = '';
+      
+      if (isHeadAdmin) {
+        newTag = `${challenge.skill_name} Expert — Verified by SkillProof Head Admin`;
+      } else {
+        const currentTag = (existing && existing.badge_tag) ? existing.badge_tag : '';
+        if (currentTag && currentTag.includes('Verified by')) {
+           if (!currentTag.includes(verifierName)) {
+             newTag = currentTag + `, ${verifierName}`;
+           } else {
+             newTag = currentTag; // Already has this company
+           }
+        } else {
+           newTag = `${challenge.skill_name} Expert — Verified by ${verifierName}`;
+        }
+      }
+
       await dbRun(
         `UPDATE student_skills SET status = 'verified', verified_by = ?, badge_tag = ?, verified_at = ? WHERE student_id = ? AND skill_id = ?`,
-        ['SkillProof Head Admin', badgeTag, now, challenge.student_id, challenge.skill_id]
+        [verifierName, newTag, now, challenge.student_id, challenge.skill_id]
       );
       await dbRun(`UPDATE challenges SET status = 'badge_awarded' WHERE id = ?`, [challengeId]);
-      res.json({ message: 'Badge awarded successfully', badgeTag });
+      res.json({ message: 'Badge awarded successfully', badgeTag: newTag });
     } else {
       await dbRun(
         `UPDATE student_skills SET status = 'failed', verified_by = ?, verified_at = ? WHERE student_id = ? AND skill_id = ?`,
-        ['SkillProof Head Admin', now, challenge.student_id, challenge.skill_id]
+        [verifierName, now, challenge.student_id, challenge.skill_id]
       );
       await dbRun(`UPDATE challenges SET status = 'badge_denied' WHERE id = ?`, [challengeId]);
       res.json({ message: 'Badge denied' });
