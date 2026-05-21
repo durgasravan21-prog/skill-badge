@@ -1275,12 +1275,15 @@ body.dark-theme .demo-details strong {
       <div class="workspace-header">
         <div>
           <h2 id="active-question-title" style="font-family: var(--font-display); font-size: 22px; font-weight: 800;">Timed Challenge</h2>
-          <div style="font-size: 12px; color: var(--gray-500); margin-top: 4px;">Copy/paste and right clicks are blocked. Time will auto-submit.</div>
+          <div style="font-size: 12px; color: var(--gray-500); margin-top: 4px; display:flex; align-items:center; gap:8px;">
+            Copy/paste and right clicks are blocked. Time will auto-submit.
+            <span id="editor-lang-badge" style="display:none; background:#1C1A17; color:#F5A623; font-family:monospace; font-size:11px; font-weight:700; padding:2px 8px; border-radius:4px; border:1px solid #3A3630;"></span>
+          </div>
         </div>
         <div id="active-timer" class="timer-display">00:00</div>
       </div>
 
-      <textarea id="code-editor" class="editor-textarea" spellcheck="false"></textarea>
+      <textarea id="code-editor" class="editor-textarea" spellcheck="false" data-lang=""></textarea>
 
       <!-- Test Cases Panel -->
       <div id="test-cases-panel" style="background:var(--gray-50); border:1px solid var(--gray-200); border-radius:var(--radius-md); padding:16px; margin-bottom:16px;">
@@ -1749,6 +1752,7 @@ let selectProvider = "";
 let currentExamsList = [];
 let pendingExamQuestionId = null;
 let pendingScheduleId = null;
+let pendingSkillName = null;
 let examGracePeriod = true;  // Grace period flag - skip violations for 3s after exam starts
 
 // Check layout restrictions — only block during EXAM, not whole site
@@ -2524,6 +2528,47 @@ function claimSkill(skillId) {
   });
 }
 
+// Map skill name → programming language
+const SKILL_LANG_DISPLAY = {
+  'Python Programming': 'Python',
+  'C Systems Programming': 'C',
+  'SQL Database Design': 'SQL',
+  'JavaScript': 'JavaScript',
+  'TypeScript': 'TypeScript',
+  'Go': 'Go',
+  'Rust': 'Rust',
+  'C++': 'C++',
+  'Docker': 'Dockerfile',
+  'Kubernetes': 'YAML',
+  'AWS': 'YAML/CloudFormation',
+  'React': 'JSX/React',
+  'Node.js': 'Node.js',
+  'HTML5 & CSS3': 'HTML/CSS'
+};
+
+function detectLangFromSkill(skillName) {
+  if (!skillName) return null;
+  // exact match first
+  if (SKILL_LANG_DISPLAY[skillName]) return SKILL_LANG_DISPLAY[skillName];
+  // partial match fallback
+  const lower = skillName.toLowerCase();
+  if (lower.includes('python')) return 'Python';
+  if (lower.includes('sql')) return 'SQL';
+  if (lower.includes('javascript') || lower.includes('js')) return 'JavaScript';
+  if (lower.includes('typescript')) return 'TypeScript';
+  if (lower.includes('c++') || lower.includes('cpp')) return 'C++';
+  if (lower.includes('c system') || lower.includes('c program')) return 'C';
+  if (lower.includes('go')) return 'Go';
+  if (lower.includes('rust')) return 'Rust';
+  if (lower.includes('react')) return 'JSX/React';
+  if (lower.includes('node')) return 'Node.js';
+  if (lower.includes('html') || lower.includes('css')) return 'HTML/CSS';
+  if (lower.includes('docker')) return 'Dockerfile';
+  if (lower.includes('kubernetes')) return 'YAML';
+  if (lower.includes('aws')) return 'YAML/CloudFormation';
+  return null;
+}
+
 // Render progressive multi-level assessment list based on claimed skills
 function renderProgressiveVerifier(claimed) {
   const questionsList = document.getElementById('questions-list');
@@ -2541,8 +2586,16 @@ function renderProgressiveVerifier(claimed) {
     return;
   }
 
+  // ── Deduplicate by skill_id — one card per unique skill ──
+  const seenSkills = new Set();
+  const uniqueClaimed = claimed.filter(c => {
+    if (seenSkills.has(c.skill_id)) return false;
+    seenSkills.add(c.skill_id);
+    return true;
+  });
+
   // Iterate over claimed skills and populate active verifiers
-  claimed.forEach(c => {
+  uniqueClaimed.forEach(c => {
     // 1. Render Portfolio tags earned
     if (c.status === 'verified' && c.badge_tag) {
       const badge = document.createElement('div');
@@ -2646,7 +2699,7 @@ function renderProgressiveVerifier(claimed) {
               </div>
               <div style="font-size:12px; color:var(--gray-500); margin-top:6px;">🔒 Question details revealed after entering the proctored arena</div>
             </div>
-            <button onclick="openExamRulesModal('${q.id}')" class="btn-primary" style="padding:10px 20px;">Unlock Arena →</button>
+            <button onclick="openExamRulesModal('${q.id}', null, '${c.skill_name.replace(/'/g, "\\'")}'  )" class="btn-primary" style="padding:10px 20px;">Unlock Arena →</button>
           `;
           questionsList.appendChild(qCard);
         }
@@ -2664,7 +2717,7 @@ function resetProgressSteps() {
 }
 
 // Rules Modal Gate Helpers
-function openExamRulesModal(questionId, scheduleId = null) {
+function openExamRulesModal(questionId, scheduleId = null, skillName = null) {
   // Block exam on mobile/tablet devices
   const isMobile = window.innerWidth < 1024 || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
   if (isMobile) {
@@ -2672,6 +2725,7 @@ function openExamRulesModal(questionId, scheduleId = null) {
     return;
   }
 
+  pendingSkillName = skillName;
   if (scheduleId) {
     pendingScheduleId = scheduleId;
     pendingExamQuestionId = null;
@@ -2905,6 +2959,26 @@ async function startExam(questionId) {
     document.getElementById('disqualify-alert').style.display = 'none';
     document.getElementById('active-question-title').innerText = currentExam.questionTitle || 'Timed Coding Challenge';
     document.getElementById('code-editor').value = currentExam.codeTemplate;
+
+    // ── Language-aware editor badge ──
+    const langBadge = document.getElementById('editor-lang-badge');
+    if (langBadge && typeof detectLangFromSkill === 'function') {
+      // First try the stored skill name from the Unlock Arena button
+      let detectedLang = pendingSkillName ? detectLangFromSkill(pendingSkillName) : null;
+      // Fallback: parse from question title (format: "Scenario — Problem")
+      if (!detectedLang) {
+        const titleText = currentExam.questionTitle || '';
+        const skillPart = titleText.split(' — ')[0] || titleText;
+        detectedLang = detectLangFromSkill(skillPart);
+      }
+      if (detectedLang) {
+        langBadge.textContent = '⌨ ' + detectedLang;
+        langBadge.style.display = 'inline-block';
+        document.getElementById('code-editor').setAttribute('data-lang', detectedLang);
+      } else {
+        langBadge.style.display = 'none';
+      }
+    }
 
     // Reset Simulators
     document.getElementById('sim-bluetooth-check').checked = false;
