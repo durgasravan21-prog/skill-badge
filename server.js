@@ -1197,16 +1197,80 @@ app.post('/api/recruiter/send-bulk-email', bulkLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Maximum 100 emails per batch' });
     }
 
-    console.log(`[BULK MAIL] Dispatching corporate invites to ${emails.length} candidates`);
+    console.log(`[BULK MAIL] Dispatching in-app notifications to ${emails.length} candidates`);
+
+    // Create in-app notifications for each recipient
+    const now = new Date().toISOString();
+    let sentCount = 0;
+    for (const email of emails) {
+      const recipient = await dbGet('SELECT id, name FROM users WHERE email = ? COLLATE NOCASE', [email]);
+      if (recipient) {
+        const notifId = crypto.randomUUID();
+        await dbRun(
+          `INSERT INTO notifications (id, recipient_id, sender_id, type, title, message, is_read, created_at)
+           VALUES (?, ?, ?, 'recruiter_message', ?, ?, 0, ?)`,
+          [notifId, recipient.id, null, subject, body, now]
+        );
+        sentCount++;
+      }
+    }
 
     res.json({
-      message: `Successfully dispatched ${emails.length} verification reports.`,
-      sentCount: emails.length,
-      timestamp: new Date().toISOString()
+      message: `Successfully sent ${sentCount} in-app notifications.`,
+      sentCount,
+      timestamp: now
     });
   } catch (err) {
-    console.error('Bulk email error:', err.message);
-    res.status(500).json({ error: 'Bulk email dispatch failed' });
+    console.error('Bulk notification error:', err.message);
+    res.status(500).json({ error: 'Bulk notification dispatch failed' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// 6B. IN-APP NOTIFICATIONS API
+// ═══════════════════════════════════════════════════════════════
+app.get('/api/notifications', async (req, res) => {
+  try {
+    const userId = sanitizeString(req.query.user_id, 50);
+    if (!userId) return res.status(400).json({ error: 'Missing user_id' });
+
+    const notifications = await dbAll(
+      `SELECT * FROM notifications WHERE recipient_id = ? ORDER BY created_at DESC LIMIT 50`,
+      [userId]
+    );
+    res.json(notifications);
+  } catch (err) {
+    console.error('Fetch notifications error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch notifications' });
+  }
+});
+
+app.get('/api/notifications/unread-count', async (req, res) => {
+  try {
+    const userId = sanitizeString(req.query.user_id, 50);
+    if (!userId) return res.status(400).json({ error: 'Missing user_id' });
+
+    const result = await dbGet(
+      `SELECT COUNT(*) as count FROM notifications WHERE recipient_id = ? AND is_read = 0`,
+      [userId]
+    );
+    res.json({ count: result ? result.count : 0 });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to get unread count' });
+  }
+});
+
+app.post('/api/notifications/mark-read', async (req, res) => {
+  try {
+    const { notification_id, user_id } = req.body;
+    if (notification_id) {
+      await dbRun('UPDATE notifications SET is_read = 1 WHERE id = ? AND recipient_id = ?', [notification_id, user_id]);
+    } else if (user_id) {
+      await dbRun('UPDATE notifications SET is_read = 1 WHERE recipient_id = ?', [user_id]);
+    }
+    res.json({ message: 'Marked as read' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to mark read' });
   }
 });
 
@@ -1801,6 +1865,15 @@ app.post('/api/recruiter/assign-badge', async (req, res) => {
         [verifierName, newTag, now, challenge.student_id, challenge.skill_id]
       );
       await dbRun(`UPDATE challenges SET status = 'badge_awarded' WHERE id = ?`, [challengeId]);
+
+      // Send in-app notification to student
+      await dbRun(
+        `INSERT INTO notifications (id, recipient_id, sender_id, type, title, message, is_read, created_at)
+         VALUES (?, ?, ?, 'badge_awarded', ?, ?, 0, ?)`,
+        [crypto.randomUUID(), challenge.student_id, verifyingUser.id, '🏆 Badge Awarded!',
+         `Congratulations! You have been awarded the "${newTag}" badge by ${verifierName}. This badge is now visible on your public profile.`, now]
+      );
+
       res.json({ message: 'Badge awarded successfully', badgeTag: newTag });
     } else {
       await dbRun(
@@ -1808,6 +1881,15 @@ app.post('/api/recruiter/assign-badge', async (req, res) => {
         [verifierName, now, challenge.student_id, challenge.skill_id]
       );
       await dbRun(`UPDATE challenges SET status = 'badge_denied' WHERE id = ?`, [challengeId]);
+
+      // Send in-app notification to student
+      await dbRun(
+        `INSERT INTO notifications (id, recipient_id, sender_id, type, title, message, is_read, created_at)
+         VALUES (?, ?, ?, 'badge_denied', ?, ?, 0, ?)`,
+        [crypto.randomUUID(), challenge.student_id, verifyingUser.id, 'Assessment Result',
+         `Your ${challenge.skill_name} assessment has been reviewed by ${verifierName}. Unfortunately, a badge was not awarded at this time. You may re-attempt the skill assessment.`, now]
+      );
+
       res.json({ message: 'Badge denied' });
     }
   } catch (err) {

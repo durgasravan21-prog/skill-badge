@@ -252,6 +252,18 @@ async function createSchema() {
     FOREIGN KEY (challenge_id) REFERENCES challenges(id)
   );`);
 
+  await runAsync(`CREATE TABLE IF NOT EXISTS notifications (
+    id TEXT PRIMARY KEY,
+    recipient_id TEXT NOT NULL,
+    sender_id TEXT,
+    type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    is_read INTEGER DEFAULT 0,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (recipient_id) REFERENCES users(id)
+  );`);
+
   // Migrate existing tables
   try {
     await runAsync('ALTER TABLE exam_schedules ADD COLUMN exam_password TEXT;');
@@ -268,6 +280,7 @@ async function createSchema() {
   await runAsync('CREATE INDEX IF NOT EXISTS idx_challenges_company ON challenges(company_id);');
   await runAsync('CREATE INDEX IF NOT EXISTS idx_users_email        ON users(email);');
   await runAsync('CREATE INDEX IF NOT EXISTS idx_questions_skill    ON questions(skill_id, difficulty);');
+  await runAsync('CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications(recipient_id, is_read);');
 
   console.log('[DB] Schema ready.');
 }
