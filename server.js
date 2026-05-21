@@ -332,7 +332,7 @@ function evaluateCode(code, difficulty, questionTitle) {
   const hasCondition = /if |else|switch|match |case |WHEN |WHERE /i.test(code);
   const hasReturn = /return |yield |console\.log|print\(|fmt\.Print|SELECT/i.test(code);
   const hasErrorHandling = /try|catch|except|Error|throw|RAISE|BEGIN/i.test(code);
-  const hasComments = /\/\/|#|\\/\\*|"""|--/.test(code);
+  const hasComments = /\/\/|#|\/\*|"""|--/.test(code);
   const hasDataStructures = /\[\]|{}|dict|list|array|map|set|queue|stack|heap|tree|graph|linked/i.test(code);
   const hasAlgorithm = /sort|search|binary|recursive|dynamic|greedy|bfs|dfs|dijkstra|merge|quick/i.test(code);
   const hasImports = /import |require\(|from |#include|use /.test(code);
