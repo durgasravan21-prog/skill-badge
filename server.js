@@ -1666,8 +1666,10 @@ app.post('/api/recruiter/assign-badge', async (req, res) => {
       return res.status(400).json({ error: 'Invalid action' });
     }
     
-    const recruiter = await dbGet('SELECT * FROM users WHERE email = ? COLLATE NOCASE AND role = ?', [recruiterEmail, 'recruiter']);
-    if (!recruiter) return res.status(403).json({ error: 'Unauthorized' });
+    const adminUser = await dbGet('SELECT * FROM users WHERE email = ? COLLATE NOCASE', [recruiterEmail]);
+    if (!adminUser || adminUser.email !== HEAD_ADMIN_EMAIL) {
+      return res.status(403).json({ error: 'Unauthorized: Only the Head Admin can issue official verified badges.' });
+    }
     
     const challenge = await dbGet(
       `SELECT c.*, q.title as question_title, s.name as skill_name
@@ -1682,17 +1684,17 @@ app.post('/api/recruiter/assign-badge', async (req, res) => {
     const now = new Date().toISOString();
     
     if (action === 'award') {
-      const badgeTag = `${challenge.skill_name} Expert — Verified by ${recruiter.company || 'SkillProof'}`;
+      const badgeTag = `${challenge.skill_name} Expert — Verified by SkillProof Head Admin`;
       await dbRun(
         `UPDATE student_skills SET status = 'verified', verified_by = ?, badge_tag = ?, verified_at = ? WHERE student_id = ? AND skill_id = ?`,
-        [recruiter.company || recruiter.name, badgeTag, now, challenge.student_id, challenge.skill_id]
+        ['SkillProof Head Admin', badgeTag, now, challenge.student_id, challenge.skill_id]
       );
       await dbRun(`UPDATE challenges SET status = 'badge_awarded' WHERE id = ?`, [challengeId]);
       res.json({ message: 'Badge awarded successfully', badgeTag });
     } else {
       await dbRun(
         `UPDATE student_skills SET status = 'failed', verified_by = ?, verified_at = ? WHERE student_id = ? AND skill_id = ?`,
-        [recruiter.company || recruiter.name, now, challenge.student_id, challenge.skill_id]
+        ['SkillProof Head Admin', now, challenge.student_id, challenge.skill_id]
       );
       await dbRun(`UPDATE challenges SET status = 'badge_denied' WHERE id = ?`, [challengeId]);
       res.json({ message: 'Badge denied' });
