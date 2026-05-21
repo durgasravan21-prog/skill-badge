@@ -237,6 +237,7 @@ async function createSchema() {
     start_time       TEXT NOT NULL,
     duration_minutes INTEGER NOT NULL,
     exam_password TEXT,
+    invited_student_id TEXT,
     FOREIGN KEY (recruiter_id) REFERENCES users(id),
     FOREIGN KEY (company_id)   REFERENCES companies(id),
     FOREIGN KEY (skill_id)     REFERENCES skills(id)
@@ -250,6 +251,18 @@ async function createSchema() {
     timestamp TEXT NOT NULL,
     FOREIGN KEY (challenge_id) REFERENCES challenges(id)
   );`);
+
+  // Migrate existing tables
+  try {
+    await runAsync('ALTER TABLE exam_schedules ADD COLUMN exam_password TEXT;');
+  } catch (err) {
+    // Ignore if column already exists
+  }
+  try {
+    await runAsync('ALTER TABLE exam_schedules ADD COLUMN invited_student_id TEXT;');
+  } catch (err) {
+    // Ignore if column already exists
+  }
 
   // Indexes for multi-tenant isolation performance
   await runAsync('CREATE INDEX IF NOT EXISTS idx_challenges_company ON challenges(company_id);');
