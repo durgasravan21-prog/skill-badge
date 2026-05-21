@@ -1823,7 +1823,7 @@ app.post('/api/exams/photo', async (req, res) => {
       return res.status(400).json({ error: 'Missing photo data' });
     }
     
-    const validTypes = ['id_verify', 'selfie', 'interval', 'start', 'random_1', 'random_2', 'random_3'];
+    const validTypes = ['id_verify', 'selfie', 'interval', 'start', 'random_1', 'random_2', 'random_3', 'phone_detected'];
     if (!validTypes.includes(captureType)) {
       return res.status(400).json({ error: 'Invalid capture type' });
     }

@@ -853,6 +853,11 @@ body.dark-theme .demo-details strong {
   .mobile-exam-warning { display: block; }
 }
 </style>
+
+<!-- TensorFlow.js + COCO-SSD for real-time phone detection -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+
 </head>
 <body>
 
@@ -2042,6 +2047,7 @@ function cleanupStreams() {
   clearInterval(micInterval);
   try {
     stopPhotoCaptures();
+    stopPhoneDetection();
   } catch(e) {}
 }
 
@@ -3348,6 +3354,88 @@ function stopPhotoCaptures() {
   }
 }
 
+// ── REAL-TIME PHONE DETECTION (COCO-SSD) ──
+let phoneDetectionModel = null;
+let phoneDetectionInterval = null;
+let phoneDetected = false;
+
+async function loadPhoneDetectionModel() {
+  try {
+    if (typeof cocoSsd === 'undefined') {
+      console.warn('[Phone Detection] COCO-SSD not loaded. Skipping.');
+      return;
+    }
+    console.log('[Phone Detection] Loading COCO-SSD model...');
+    phoneDetectionModel = await cocoSsd.load({ base: 'lite_mobilenet_v2' });
+    console.log('[Phone Detection] Model loaded successfully.');
+  } catch (err) {
+    console.error('[Phone Detection] Failed to load model:', err);
+  }
+}
+
+function startPhoneDetection() {
+  if (!phoneDetectionModel) {
+    // Try loading model async, then start detection when ready
+    loadPhoneDetectionModel().then(() => {
+      if (phoneDetectionModel) _beginPhoneScanning();
+    });
+  } else {
+    _beginPhoneScanning();
+  }
+}
+
+function _beginPhoneScanning() {
+  // Scan every 5 seconds
+  phoneDetectionInterval = setInterval(async () => {
+    if (!currentExam || phoneDetected) return;
+    const video = document.getElementById('proctor-video');
+    if (!video || video.readyState < 2 || !phoneDetectionModel) return;
+
+    try {
+      const predictions = await phoneDetectionModel.detect(video);
+      for (const pred of predictions) {
+        if (pred.class === 'cell phone' && pred.score >= 0.45) {
+          phoneDetected = true;
+          console.warn('[Phone Detection] PHONE DETECTED! Confidence:', pred.score);
+
+          // Capture the evidence photo
+          captureExamPhoto('phone_detected');
+
+          // Log the violation — this auto-disqualifies
+          logViolation('phone_detected');
+
+          // Show massive warning banner
+          const banner = document.getElementById('disqualify-alert');
+          if (banner) {
+            banner.style.display = 'flex';
+            banner.querySelector('span').innerText = '📱 PHONE DETECTED: Result UPHELD. Mobile device detected in webcam feed. Exam integrity compromised.';
+          }
+
+          // Update security indicators
+          const ind = document.getElementById('ind-focus');
+          if (ind) {
+            ind.innerText = 'UPHELD (PHONE DETECTED)';
+            ind.className = 'sec-indicator-status err';
+          }
+
+          // Stop further scanning
+          stopPhoneDetection();
+          break;
+        }
+      }
+    } catch (err) {
+      // Silently ignore detection errors
+    }
+  }, 5000);
+}
+
+function stopPhoneDetection() {
+  if (phoneDetectionInterval) {
+    clearInterval(phoneDetectionInterval);
+    phoneDetectionInterval = null;
+  }
+}
+
 
 // ── TIMED EXAM ENGINE & HIGH SECURITY PROCTORING ──
 async function startExam(questionId) {
@@ -3458,6 +3546,10 @@ async function startExam(questionId) {
 
     // Start periodic photo captures
     startPhotoCaptures();
+
+    // Start real-time phone detection via COCO-SSD
+    phoneDetected = false;
+    startPhoneDetection();
   })
   .catch(err => {
     console.error('Failed to create timed session:', err);
@@ -3851,6 +3943,7 @@ function exitExamEnvironment(data) {
   document.getElementById('view-exam').classList.remove('strict-mode');
   clearInterval(currentTimer);
   cleanupStreams();
+  stopPhoneDetection();
   if (document.fullscreenElement) {
     document.exitFullscreen().catch(err => {});
   }
@@ -4323,8 +4416,10 @@ function viewCandidateCode(examId) {
             
           // Floating badge type overlay
           const typeBadge = document.createElement('span');
-          typeBadge.innerText = photo.capture_type === 'identity' ? 'ID Card' : 'Webcam';
-          typeBadge.style.cssText = `position: absolute; bottom: 2px; right: 2px; background: rgba(12, 10, 9, 0.75); color: #fff; font-size: 8px; font-weight: 700; padding: 2px 5px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.15); font-family: var(--font-sans);`;
+          const typeLabels = { 'id_verify': '🪪 ID Card', 'start': '▶️ Start', 'interval': '📸 Interval', 'random_1': '🎲 Random', 'random_2': '🎲 Random', 'random_3': '🎲 Random', 'phone_detected': '📱 PHONE' };
+          typeBadge.innerText = typeLabels[photo.capture_type] || 'Webcam';
+          const isPhone = photo.capture_type === 'phone_detected';
+          typeBadge.style.cssText = `position: absolute; bottom: 2px; right: 2px; background: ${isPhone ? 'rgba(229,57,53,0.9)' : 'rgba(12, 10, 9, 0.75)'}; color: #fff; font-size: 8px; font-weight: 700; padding: 2px 5px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.15); font-family: var(--font-sans);`;
           imgWrapper.appendChild(typeBadge);
           
           // Expansion zoom view overlay onClick
