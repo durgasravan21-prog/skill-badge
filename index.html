@@ -1460,6 +1460,12 @@ body.dark-theme .demo-details strong {
       <div class="admin-card">
         <h2>Create Timed Challenge</h2>
         <div class="admin-form-group">
+          <label>Target Skill</label>
+          <select id="add-q-skill">
+            <!-- Dynamically populated from masterSkillsList -->
+          </select>
+        </div>
+        <div class="admin-form-group">
           <label>Challenge Title</label>
           <input type="text" id="add-q-title" placeholder="e.g., Implement QuickSort in C++" />
         </div>
@@ -3575,12 +3581,13 @@ function exitExamEnvironment(data) {
 
 // ── ADMIN VIEW: CREATE TIMED QUESTIONS ──
 function createQuestion() {
+  const skillId = document.getElementById('add-q-skill').value;
   const title = document.getElementById('add-q-title').value;
   const difficulty = document.getElementById('add-q-diff').value;
   const exp = document.getElementById('add-q-exp').value;
   const template = document.getElementById('add-q-template').value;
 
-  if (!title || !template) {
+  if (!title || !template || !skillId) {
     alert('Please fill out all required fields.');
     return;
   }
@@ -3589,6 +3596,7 @@ function createQuestion() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      skill_id: skillId,
       title: title,
       difficulty: difficulty,
       expiration_minutes: exp,
@@ -4373,19 +4381,30 @@ async function sendBulkEmails() {
 
 // ── EXAM SCHEDULING SYSTEM: FRONTEND INTEGRATION ──
 function populateScheduleSkillSelect() {
-  const select = document.getElementById('schedule-skill-select');
-  if (!select) return;
-  select.innerHTML = '';
+  const scheduleSelect = document.getElementById('schedule-skill-select');
+  const addQSelect = document.getElementById('add-q-skill');
+  
+  if (scheduleSelect) scheduleSelect.innerHTML = '';
+  if (addQSelect) addQSelect.innerHTML = '';
+  
   masterSkillsList.forEach(s => {
-    const opt = document.createElement('option');
-    opt.value = s.id;
-    opt.innerText = s.name;
-    select.appendChild(opt);
+    if (scheduleSelect) {
+      const opt1 = document.createElement('option');
+      opt1.value = s.id;
+      opt1.innerText = s.name;
+      scheduleSelect.appendChild(opt1);
+    }
+    if (addQSelect) {
+      const opt2 = document.createElement('option');
+      opt2.value = s.id;
+      opt2.innerText = s.name;
+      addQSelect.appendChild(opt2);
+    }
   });
 }
 
 function scheduleExamSequence() {
-  if (!currentUser || !currentCompany) return;
+  if (!currentUser) return;
   const skillId = document.getElementById('schedule-skill-select').value;
   const difficultyOrder = document.getElementById('schedule-difficulty-order').value || 'easy,medium,hard';
   const startTime = document.getElementById('schedule-start-time').value;
@@ -4401,7 +4420,7 @@ function scheduleExamSequence() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       recruiter_id: currentUser.id,
-      company_id: currentCompany.id,
+      company_id: currentCompany ? currentCompany.id : null,
       skill_id: skillId,
       difficulty_order: difficultyOrder,
       start_time: startTime,
@@ -4423,11 +4442,11 @@ function scheduleExamSequence() {
 }
 
 function loadRecruiterSchedules() {
-  if (!currentCompany) return;
   const container = document.getElementById('recruiter-schedules-list');
   if (!container) return;
   
-  fetch(`/api/recruiter/schedules?company_id=${currentCompany.id}`)
+  const companyQuery = currentCompany ? `?company_id=${currentCompany.id}` : '';
+  fetch(`/api/recruiter/schedules${companyQuery}`)
     .then(res => res.json())
     .then(schedules => {
       container.innerHTML = '';

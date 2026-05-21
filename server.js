@@ -851,13 +851,20 @@ app.post('/api/questions', async (req, res) => {
       return res.status(500).json({ error: 'No skills found. Run seed migrations.' });
     }
 
-    // Intelligent title matching
+    const providedSkillId = sanitizeString(req.body.skill_id, 50);
+
+    // Intelligent title matching or explicit skill
     let selectedSkill = skills[0];
-    const lowerTitle = title.toLowerCase();
-    for (const s of skills) {
-      if (lowerTitle.includes(s.name.toLowerCase().split(' ')[0])) {
-        selectedSkill = s;
-        break;
+    if (providedSkillId) {
+      const explicitSkill = skills.find(s => s.id === providedSkillId);
+      if (explicitSkill) selectedSkill = explicitSkill;
+    } else {
+      const lowerTitle = title.toLowerCase();
+      for (const s of skills) {
+        if (lowerTitle.includes(s.name.toLowerCase().split(' ')[0])) {
+          selectedSkill = s;
+          break;
+        }
       }
     }
 
@@ -1407,16 +1414,26 @@ app.post('/api/recruiter/schedule-exam', async (req, res) => {
 app.get('/api/recruiter/schedules', async (req, res) => {
   try {
     const companyId = sanitizeString(req.query.company_id, 50);
-    if (!companyId) return res.status(400).json({ error: 'Missing company ID' });
 
-    const schedules = await dbAll(
-      `SELECT es.*, s.name as skill_name
-       FROM exam_schedules es
-       JOIN skills s ON es.skill_id = s.id
-       WHERE es.company_id = ?
-       ORDER BY es.start_time DESC`,
-      [companyId]
-    );
+    let schedules;
+    if (!companyId) {
+      schedules = await dbAll(
+        `SELECT es.*, s.name as skill_name
+         FROM exam_schedules es
+         JOIN skills s ON es.skill_id = s.id
+         WHERE es.company_id IS NULL
+         ORDER BY es.start_time DESC`
+      );
+    } else {
+      schedules = await dbAll(
+        `SELECT es.*, s.name as skill_name
+         FROM exam_schedules es
+         JOIN skills s ON es.skill_id = s.id
+         WHERE es.company_id = ?
+         ORDER BY es.start_time DESC`,
+        [companyId]
+      );
+    }
     res.json(schedules);
   } catch (err) {
     res.status(500).json({ error: 'Failed to retrieve schedules' });
