@@ -55,9 +55,19 @@
   --gray-100:#E8E7E2;
   --gray-200:#D0CFC9;
   --gray-300:#B0AFA8;
+  --gray-400:#8A8983;
   --gray-500:#6B6A64;
+  --gray-600:#55544E;
   --gray-700:#3A3935;
   --gray-900:#1C1A17; /* High contrast warm deep gray */
+  --bg-input: var(--white);
+  --border-color: var(--gray-200);
+  --footer-bg: var(--gray-900);
+  --bg-notif-unread: #FFF8E1;
+  --bg-notif-read: var(--white);
+  --bg-notif-hover: #F5F5F0;
+  --text-notif-title: var(--gray-900);
+  --text-notif-desc: var(--gray-500);
   --font-display:'Syne',sans-serif;
   --font-body:'DM Sans',sans-serif;
   --radius-sm:4px; /* Crisp, precise developer tool corners */
@@ -139,7 +149,7 @@ section{padding:100px 5vw}
 .score-card-desc{font-size:13px;color:var(--gray-500);margin-top:6px;line-height:1.5}
 
 /* ── FOOTER ── */
-footer{background:var(--gray-900);border-top:1px solid rgba(255,255,255,.06);padding:56px 5vw}
+footer{background:var(--footer-bg);border-top:1px solid rgba(255,255,255,.06);padding:56px 5vw}
 .footer-inner{max-width:1200px;margin:0 auto}
 .footer-top{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:32px;padding-bottom:40px;border-bottom:1px solid rgba(255,255,255,.06)}
 .footer-logo{font-family:var(--font-display);font-weight:800;font-size:24px;color:#fff;letter-spacing:-.5px;text-decoration:none}
@@ -168,8 +178,8 @@ footer{background:var(--gray-900);border-top:1px solid rgba(255,255,255,.06);pad
 .oauth-logo-circle svg{width:28px;height:28px}
 .oauth-field-group{margin-bottom:16px;text-align:left}
 .oauth-field-group label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;color:var(--gray-700)}
-.oauth-field-group input{width:100%;padding:12px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-size:14px;outline:none}
-.oauth-field-group input:focus{border-color:var(--orange)}
+.oauth-field-group input, .oauth-field-group textarea{width:100%;padding:12px;border:1.5px solid var(--border-color, var(--gray-200));border-radius:var(--radius-sm);background:var(--bg-input, var(--white));color:var(--gray-900);font-size:14px;outline:none}
+.oauth-field-group input:focus, .oauth-field-group textarea:focus{border-color:var(--orange)}
 .oauth-status-spinner{display:none;text-align:center;padding:24px 0}
 .spinner{width:36px;height:36px;border:4px solid var(--gray-100);border-top:4px solid var(--orange);border-radius:50%;margin:0 auto 12px;animation:spin 1s linear infinite}
 @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
@@ -382,7 +392,27 @@ body.dark-theme .exam-pill.time { background: #221D1A; border-color: #3A3630; co
 .status-tag.disqualified{background:#FFEBEE;color:#C62828}
 
 /* Dark Theme Adjustments */
-body.dark-theme{background:#0C0A09;color:#F5F4F0}
+body.dark-theme{
+  background:#0C0A09;
+  color:#F5F4F0;
+  --gray-900: #FFFFFF;
+  --gray-700: #E8E7E2;
+  --gray-500: #B0AFA8;
+  --gray-400: #85847E;
+  --gray-300: #6B6A64;
+  --gray-600: #9A9992;
+  --gray-200: #3A3935;
+  --gray-100: #2A2624;
+  --gray-50: #171412;
+  --bg-input: #0C0A09;
+  --border-color: #3A3935;
+  --footer-bg: var(--gray-50);
+  --bg-notif-unread: #251B12;
+  --bg-notif-read: var(--gray-50);
+  --bg-notif-hover: var(--gray-100);
+  --text-notif-title: var(--gray-900);
+  --text-notif-desc: var(--gray-500);
+}
 body.dark-theme nav{background:rgba(12, 10, 9, 0.96);border-bottom-color:#2A2624}
 body.dark-theme .logo, body.dark-theme .logo span{color:#FFF}
 body.dark-theme .logo span{color:var(--orange)}
@@ -413,7 +443,7 @@ body.dark-theme .auth-btn:hover{background:#201D1B;border-color:#6B6A64}
 body.dark-theme .sec-indicator, body.dark-theme .progress-step{background:#0C0A09;border-color:#2A2624;color:#B0AFA8}
 body.dark-theme .progress-step.active{border-color:var(--orange);color:var(--orange)}
 body.dark-theme .progress-step.passed{background:var(--orange);color:#FFF}
-body.dark-theme .admin-form-group input, body.dark-theme .admin-form-group select, body.dark-theme .admin-form-group textarea, body.dark-theme .self-rate-select, body.dark-theme .oauth-field-group input{background:#0C0A09;border-color:#3A3935;color:#FFF}
+body.dark-theme .admin-form-group input, body.dark-theme .admin-form-group select, body.dark-theme .admin-form-group textarea, body.dark-theme .self-rate-select, body.dark-theme .oauth-field-group input, body.dark-theme .oauth-field-group textarea{background:#0C0A09;border-color:#3A3935;color:#FFF}
 body.dark-theme .history-table th, body.dark-theme .history-table td{border-bottom-color:#2A2624;color:#E8E7E2}
 body.dark-theme .history-table th{color:#B0AFA8}
 
@@ -1187,12 +1217,12 @@ body.dark-theme .smooth-modal-btn.ghost:hover { background: #171412; }
     
     <div id="otp-fields-form" style="margin-top: 20px;">
       <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 24px;" id="otp-inputs-container">
-        <input type="text" class="otp-digit-input" maxlength="1" pattern="\d*" style="width: 48px; height: 56px; font-size: 24px; text-align: center; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1); border-radius: 8px; color: #FFF; outline: none; transition: border-color 0.2s, box-shadow 0.2s;" />
-        <input type="text" class="otp-digit-input" maxlength="1" pattern="\d*" style="width: 48px; height: 56px; font-size: 24px; text-align: center; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1); border-radius: 8px; color: #FFF; outline: none; transition: border-color 0.2s, box-shadow 0.2s;" />
-        <input type="text" class="otp-digit-input" maxlength="1" pattern="\d*" style="width: 48px; height: 56px; font-size: 24px; text-align: center; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1); border-radius: 8px; color: #FFF; outline: none; transition: border-color 0.2s, box-shadow 0.2s;" />
-        <input type="text" class="otp-digit-input" maxlength="1" pattern="\d*" style="width: 48px; height: 56px; font-size: 24px; text-align: center; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1); border-radius: 8px; color: #FFF; outline: none; transition: border-color 0.2s, box-shadow 0.2s;" />
-        <input type="text" class="otp-digit-input" maxlength="1" pattern="\d*" style="width: 48px; height: 56px; font-size: 24px; text-align: center; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1); border-radius: 8px; color: #FFF; outline: none; transition: border-color 0.2s, box-shadow 0.2s;" />
-        <input type="text" class="otp-digit-input" maxlength="1" pattern="\d*" style="width: 48px; height: 56px; font-size: 24px; text-align: center; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1); border-radius: 8px; color: #FFF; outline: none; transition: border-color 0.2s, box-shadow 0.2s;" />
+        <input type="text" class="otp-digit-input" maxlength="1" pattern="\d*" style="width: 48px; height: 56px; font-size: 24px; text-align: center; font-weight: 700; background: var(--gray-50); border: 2px solid var(--gray-200); border-radius: 8px; color: var(--gray-900); outline: none; transition: border-color 0.2s, box-shadow 0.2s;" />
+        <input type="text" class="otp-digit-input" maxlength="1" pattern="\d*" style="width: 48px; height: 56px; font-size: 24px; text-align: center; font-weight: 700; background: var(--gray-50); border: 2px solid var(--gray-200); border-radius: 8px; color: var(--gray-900); outline: none; transition: border-color 0.2s, box-shadow 0.2s;" />
+        <input type="text" class="otp-digit-input" maxlength="1" pattern="\d*" style="width: 48px; height: 56px; font-size: 24px; text-align: center; font-weight: 700; background: var(--gray-50); border: 2px solid var(--gray-200); border-radius: 8px; color: var(--gray-900); outline: none; transition: border-color 0.2s, box-shadow 0.2s;" />
+        <input type="text" class="otp-digit-input" maxlength="1" pattern="\d*" style="width: 48px; height: 56px; font-size: 24px; text-align: center; font-weight: 700; background: var(--gray-50); border: 2px solid var(--gray-200); border-radius: 8px; color: var(--gray-900); outline: none; transition: border-color 0.2s, box-shadow 0.2s;" />
+        <input type="text" class="otp-digit-input" maxlength="1" pattern="\d*" style="width: 48px; height: 56px; font-size: 24px; text-align: center; font-weight: 700; background: var(--gray-50); border: 2px solid var(--gray-200); border-radius: 8px; color: var(--gray-900); outline: none; transition: border-color 0.2s, box-shadow 0.2s;" />
+        <input type="text" class="otp-digit-input" maxlength="1" pattern="\d*" style="width: 48px; height: 56px; font-size: 24px; text-align: center; font-weight: 700; background: var(--gray-50); border: 2px solid var(--gray-200); border-radius: 8px; color: var(--gray-900); outline: none; transition: border-color 0.2s, box-shadow 0.2s;" />
       </div>
       <button onclick="submitRecruiterOTP()" class="btn-primary" style="width:100%; justify-content:center; margin-bottom: 16px; font-weight:700;">Verify Code & Login →</button>
       <div style="text-align: center;">
@@ -3670,17 +3700,17 @@ function loadNotifications() {
         const typeIcon = n.type === 'badge_awarded' ? '🏆' : n.type === 'badge_denied' ? '📋' : '✉️';
         const timeAgo = getTimeAgo(n.created_at);
         const div = document.createElement('div');
-        div.style.cssText = `padding:10px 12px; border-radius:8px; margin-bottom:4px; cursor:pointer; transition:background 0.2s; background:${isUnread ? '#FFF8E1' : '#fff'}; border-left:3px solid ${isUnread ? 'var(--orange-deep)' : 'transparent'};`;
-        div.onmouseenter = () => div.style.background = '#f5f5f5';
-        div.onmouseleave = () => div.style.background = isUnread ? '#FFF8E1' : '#fff';
+        div.style.cssText = `padding:10px 12px; border-radius:8px; margin-bottom:4px; cursor:pointer; transition:background 0.2s; background:${isUnread ? 'var(--bg-notif-unread)' : 'var(--bg-notif-read)'}; border-left:3px solid ${isUnread ? 'var(--orange-deep)' : 'transparent'};`;
+        div.onmouseenter = () => div.style.background = 'var(--bg-notif-hover)';
+        div.onmouseleave = () => div.style.background = isUnread ? 'var(--bg-notif-unread)' : 'var(--bg-notif-read)';
         div.onclick = () => markNotificationRead(n.id);
         div.innerHTML = `
           <div style="display:flex; gap:8px; align-items:flex-start;">
             <span style="font-size:18px; flex-shrink:0;">${typeIcon}</span>
             <div style="flex:1; min-width:0;">
-              <div style="font-size:12px; font-weight:${isUnread ? '700' : '500'}; color:#1a1a1a; margin-bottom:2px;">${escapeHTML(n.title)}</div>
-              <div style="font-size:11px; color:#6b7280; line-height:1.4; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${escapeHTML(n.message)}</div>
-              <div style="font-size:10px; color:#9ca3af; margin-top:4px;">${timeAgo}</div>
+              <div style="font-size:12px; font-weight:${isUnread ? '700' : '500'}; color:var(--text-notif-title); margin-bottom:2px;">${escapeHTML(n.title)}</div>
+              <div style="font-size:11px; color:var(--text-notif-desc); line-height:1.4; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${escapeHTML(n.message)}</div>
+              <div style="font-size:10px; color:var(--gray-400); margin-top:4px;">${timeAgo}</div>
             </div>
             ${isUnread ? '<div style="width:8px; height:8px; background:var(--orange-deep); border-radius:50%; flex-shrink:0; margin-top:4px;"></div>' : ''}
           </div>
@@ -3738,7 +3768,7 @@ function loadFullNotifications() {
         const typeIcon = n.type === 'badge_awarded' ? '🏆' : n.type === 'badge_denied' ? '📋' : n.type === 'recruiter_message' ? '✉️' : '🔔';
         const timeAgo = getTimeAgo(n.created_at);
         const card = document.createElement('div');
-        card.style.cssText = `padding:16px; border-radius:var(--radius-md); background:${isUnread ? '#FFF8E1' : 'var(--gray-50)'}; border:1px solid ${isUnread ? 'var(--orange-light)' : 'var(--gray-200)'}; cursor:pointer; transition:all 0.2s;`;
+        card.style.cssText = `padding:16px; border-radius:var(--radius-md); background:${isUnread ? 'var(--bg-notif-unread)' : 'var(--gray-50)'}; border:1px solid ${isUnread ? 'var(--orange-light, var(--gray-200))' : 'var(--gray-200)'}; cursor:pointer; transition:all 0.2s;`;
         card.onmouseenter = () => { card.style.transform = 'translateY(-1px)'; card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'; };
         card.onmouseleave = () => { card.style.transform = 'none'; card.style.boxShadow = 'none'; };
         card.onclick = () => { markNotificationRead(n.id); setTimeout(loadFullNotifications, 300); };
@@ -3747,10 +3777,10 @@ function loadFullNotifications() {
             <span style="font-size:24px; flex-shrink:0;">${typeIcon}</span>
             <div style="flex:1; min-width:0;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                <div style="font-size:14px; font-weight:${isUnread ? '800' : '600'}; font-family:var(--font-display); color:var(--gray-900);">${escapeHTML(n.title)}</div>
+                <div style="font-size:14px; font-weight:${isUnread ? '800' : '600'}; font-family:var(--font-display); color:var(--text-notif-title);">${escapeHTML(n.title)}</div>
                 ${isUnread ? '<div style="width:10px; height:10px; background:var(--orange-deep); border-radius:50%; flex-shrink:0;"></div>' : ''}
               </div>
-              <div style="font-size:13px; color:var(--gray-600); line-height:1.5; margin-bottom:6px;">${escapeHTML(n.message)}</div>
+              <div style="font-size:13px; color:var(--text-notif-desc); line-height:1.5; margin-bottom:6px;">${escapeHTML(n.message)}</div>
               <div style="font-size:11px; color:var(--gray-400); font-weight:600;">${timeAgo}</div>
             </div>
           </div>
