@@ -107,7 +107,13 @@ const db = {
               activeDb.run('PRAGMA temp_store = MEMORY;');
               activeDb.run('PRAGMA mmap_size = 268435456;');
               activeDb.run('PRAGMA busy_timeout = 30000;');
-              resolve();
+              // Auto-ensure schema tables exist on every file sync reopen
+              createSchema()
+                .then(() => resolve())
+                .catch(err => {
+                  console.error('[DB Sync reopen] Auto-schema error:', err.message);
+                  resolve(); // Resolve anyway so database flow is not blocked
+                });
             });
           }
         });
@@ -641,6 +647,17 @@ async function generateQuestions() {
 // EXPORTS — used by server.js
 // ─────────────────────────────────────────────────────────────────────────────
 module.exports = db;
+
+// Automatically ensure the database schema tables exist on cold start/import
+if (require.main !== module) {
+  createSchema()
+    .then(() => {
+      console.log('[DB Startup] Auto-schema validation completed.');
+    })
+    .catch(err => {
+      console.error('[DB Startup] Auto-schema ensure failed:', err.message);
+    });
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // INIT — only runs when executed directly: `node database.js`
