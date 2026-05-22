@@ -51,6 +51,8 @@
   --orange-dark:#5C1C0A; /* Elegant mahogany dark accent */
   --white:#FFFFFF;
   --off-white:#FAF9F6; /* Premium light warm background */
+  --bg-pending: #FFF9F2;
+  --bg-failed: #FFEBEE;
   --gray-50:#F5F4F0;
   --gray-100:#E8E7E2;
   --gray-200:#D0CFC9;
@@ -395,6 +397,10 @@ body.dark-theme .exam-pill.time { background: #221D1A; border-color: #3A3630; co
 body.dark-theme{
   background:#0C0A09;
   color:#F5F4F0;
+  --white: #171412;
+  --off-white: #12100E;
+  --bg-pending: #221509;
+  --bg-failed: #261212;
   --gray-900: #FFFFFF;
   --gray-700: #E8E7E2;
   --gray-500: #B0AFA8;
@@ -443,7 +449,7 @@ body.dark-theme .auth-btn:hover{background:#201D1B;border-color:#6B6A64}
 body.dark-theme .sec-indicator, body.dark-theme .progress-step{background:#0C0A09;border-color:#2A2624;color:#B0AFA8}
 body.dark-theme .progress-step.active{border-color:var(--orange);color:var(--orange)}
 body.dark-theme .progress-step.passed{background:var(--orange);color:#FFF}
-body.dark-theme .admin-form-group input, body.dark-theme .admin-form-group select, body.dark-theme .admin-form-group textarea, body.dark-theme .self-rate-select, body.dark-theme .oauth-field-group input, body.dark-theme .oauth-field-group textarea{background:#0C0A09;border-color:#3A3935;color:#FFF}
+body.dark-theme .admin-form-group input, body.dark-theme .admin-form-group select, body.dark-theme .admin-form-group textarea, body.dark-theme .self-rate-select, body.dark-theme .oauth-field-group input, body.dark-theme .oauth-field-group textarea, body.dark-theme select, body.dark-theme input:not([type="checkbox"]):not([type="radio"]), body.dark-theme textarea{background:#0C0A09;border-color:#3A3935;color:#FFF}
 body.dark-theme .history-table th, body.dark-theme .history-table td{border-bottom-color:#2A2624;color:#E8E7E2}
 body.dark-theme .history-table th{color:#B0AFA8}
 
@@ -4099,7 +4105,7 @@ function renderProgressiveVerifier(claimed) {
       const badge = document.createElement('div');
       badge.className = 'verified-skill-row';
       badge.style.border = '2px solid #FF9800'; // Golden orange
-      badge.style.background = document.body.classList.contains('dark-theme') ? '#221509' : '#FFF9F2';
+      badge.style.background = 'var(--bg-pending)';
       badge.innerHTML = `
         <div>
           <strong style="font-size:16px; color: var(--gray-900);">${escapeHTML(c.skill_name)}</strong>
@@ -4112,7 +4118,7 @@ function renderProgressiveVerifier(claimed) {
       const badge = document.createElement('div');
       badge.className = 'verified-skill-row';
       badge.style.border = '2px solid #EF5350'; // Soft red
-      badge.style.background = document.body.classList.contains('dark-theme') ? '#261212' : '#FFEBEE';
+      badge.style.background = 'var(--bg-failed)';
       badge.innerHTML = `
         <div>
           <strong style="font-size:16px; color: var(--gray-900);">${escapeHTML(c.skill_name)}</strong>
@@ -6048,7 +6054,7 @@ function addCandidateRow(name = '', email = '', skillId = '') {
   
   const div = document.createElement('div');
   div.id = rowId;
-  div.style.border = '1px solid var(--gray-100)';
+  div.style.border = '1.5px solid var(--gray-200)';
   div.style.borderRadius = 'var(--radius-sm)';
   div.style.padding = '12px';
   div.style.background = 'var(--gray-50)';
@@ -6069,25 +6075,15 @@ function addCandidateRow(name = '', email = '', skillId = '') {
       <button onclick="removeCandidateRow('${rowId}')" style="background:none; border:none; color:#C62828; cursor:pointer; font-size:11px; font-weight:700;">Remove</button>
     </div>
     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
-      <input type="text" class="bulk-cand-name" placeholder="Alice Logan" value="${escapeHTML(name)}" style="padding:6px; border:1px solid var(--gray-200); border-radius:var(--radius-sm); font-size:12px;" />
-      <input type="email" class="bulk-cand-email" placeholder="alice@gmail.com" value="${escapeHTML(email)}" style="padding:6px; border:1px solid var(--gray-200); border-radius:var(--radius-sm); font-size:12px;" />
+      <input type="text" class="bulk-cand-name" placeholder="Alice Logan" value="${escapeHTML(name)}" style="padding:6px; border:1px solid var(--gray-200); border-radius:var(--radius-sm); font-size:12px; background:var(--white); color:var(--gray-900);" />
+      <input type="email" class="bulk-cand-email" placeholder="alice@gmail.com" value="${escapeHTML(email)}" style="padding:6px; border:1px solid var(--gray-200); border-radius:var(--radius-sm); font-size:12px; background:var(--white); color:var(--gray-900);" />
     </div>
-    <select class="bulk-cand-skill" style="padding:6px; border:1px solid var(--gray-200); border-radius:var(--radius-sm); font-size:12px; width:100%;">
+    <select class="bulk-cand-skill" style="padding:6px; border:1px solid var(--gray-200); border-radius:var(--radius-sm); font-size:12px; width:100%; background:var(--white); color:var(--gray-900);">
       ${selectOptions}
     </select>
   `;
   
   container.appendChild(div);
-  
-  if (document.body.classList.contains('dark-theme')) {
-    div.style.background = '#0C0A09';
-    div.style.borderColor = '#2A2624';
-    div.querySelectorAll('input, select').forEach(el => {
-      el.style.background = '#171412';
-      el.style.borderColor = '#3A3935';
-      el.style.color = '#FFF';
-    });
-  }
 }
 
 function removeCandidateRow(rowId) {
@@ -6224,7 +6220,7 @@ async function runBulkDispatch() {
         <span style="color:var(--gray-500); font-size:10px">${escapeHTML(r.email)}</span>
       </td>
       <td style="padding: 8px 6px;">${escapeHTML(r.skillName)}</td>
-      <td style="padding: 8px 6px;"><strong>${r.status === 'disqualified' ? 'Result Upheld' : r.score + '/100'}</strong></td>
+      <td style="padding: 8px 6px;"><strong>${r.status === 'disqualified' ? 'Result Withheld' : r.score + '/100'}</strong></td>
       <td style="padding: 8px 6px;">${violationBadge}</td>
       <td style="padding: 8px 6px; text-align: right; color:#2E7D32; font-weight:700;">${r.smtpStatus}</td>
     `;
@@ -6336,7 +6332,7 @@ function loadAdminHistory() {
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td style="text-align: center;">
-              <input type="checkbox" class="candidate-checkbox" data-email="${escapeHTML(exam.student_email)}" data-name="${escapeHTML(exam.student_name)}" data-score="${escapeHTML(String(finalScore))}" data-skill="${escapeHTML(exam.question_title)}" data-violations="${escapeHTML(String(exam.violations_count))}" onchange="updateSelectedCandidatesCount()" style="transform:scale(1.2); cursor:pointer;" />
+              <input type="checkbox" class="candidate-checkbox" data-email="${escapeHTML(exam.student_email)}" data-name="${escapeHTML(exam.student_name)}" data-score="${escapeHTML(String(finalScore))}" data-skill="${escapeHTML(exam.question_title)}" data-violations="${escapeHTML(String(exam.violations_count))}" data-status="${escapeHTML(exam.status)}" onchange="updateSelectedCandidatesCount()" style="transform:scale(1.2); cursor:pointer;" />
             </td>
             <td>
               <strong>${escapeHTML(exam.student_name)}${goldBadgeHTML}${deviceFlagHTML}</strong><br/>
@@ -6352,8 +6348,8 @@ function loadAdminHistory() {
                 ${escapeHTML(String(exam.violations_count))}
               </strong>
             </td>
-            <td><span class="status-tag ${exam.status}">${exam.status === 'disqualified' ? 'UPHELD' : exam.status.toUpperCase()}</span></td>
-            <td><strong>${exam.status === 'disqualified' ? 'Result Upheld' : finalScore + '/100'}</strong></td>
+            <td><span class="status-tag ${exam.status}">${exam.status === 'disqualified' ? 'DISQUALIFIED' : exam.status.toUpperCase()}</span></td>
+            <td><strong>${exam.status === 'disqualified' ? 'Result Withheld' : finalScore + '/100'}</strong></td>
             <td>
               <div style="display: flex; flex-direction: column; gap: 8px;">
                 <button onclick="viewCandidateCode('${exam.examId}')" class="btn-ghost" ${exam.status === 'badge_awarded' ? 'disabled' : ''} style="padding: 6px; font-size: 11px; font-weight: 700; cursor: ${exam.status === 'badge_awarded' ? 'not-allowed' : 'pointer'}; display: flex; align-items: center; justify-content: center; gap: 4px; border-radius: 4px; width: 100%; border: 1px solid var(--gray-200); opacity: ${exam.status === 'badge_awarded' ? '0.5' : '1'};">
@@ -6470,7 +6466,7 @@ function viewCandidateCode(examId) {
       <span style="font-size:28px;">📱</span>
       <div>
         <div style="font-weight:900; font-size:16px; letter-spacing:0.5px; text-transform:uppercase;">⚠️ PHONE IN HAND NOTIFICATION</div>
-        <div style="font-size:13px; font-weight:700; opacity:0.95; margin-top:3px;">AI detected a mobile device in the student's hand during this exam. Result UPHELD — disqualified. Review proctoring photos for evidence.</div>
+        <div style="font-size:13px; font-weight:700; opacity:0.95; margin-top:3px;">AI detected a mobile device in the student's hand during this exam. Result WITHHELD — disqualified. Review proctoring photos for evidence.</div>
       </div>
     `;
   } else {
@@ -6818,7 +6814,7 @@ function loadRecruiterDashboard() {
         label = `[COMPLETED] Candidate <strong>${escapeHTML(e.student_name)}</strong> finished <strong>${escapeHTML(e.skill_name || 'Assessment')}</strong> with score <strong>${e.score}/100</strong>`;
         color = '#2E7D32';
       } else if (e.status === 'disqualified') {
-        label = `[DISQUALIFIED] Candidate <strong>${escapeHTML(e.student_name)}</strong> flagged with <strong>${e.violations_count || 0} infractions</strong> (Result Upheld)`;
+        label = `[DISQUALIFIED] Candidate <strong>${escapeHTML(e.student_name)}</strong> flagged with <strong>${e.violations_count || 0} infractions</strong> (Result Withheld)`;
         color = '#C62828';
       } else if (e.status === 'badge_awarded') {
         label = `[CERTIFIED] Certified student <strong>${escapeHTML(e.student_name)}</strong> for <strong>${escapeHTML(e.skill_name || 'Assessment')}</strong>`;
@@ -7295,6 +7291,9 @@ async function sendBulkEmails() {
   const logConsole = document.getElementById('bulk-email-sending-log');
   logConsole.innerHTML = '';
 
+  const tableBody = document.getElementById('bulk-email-report-table-body');
+  if (tableBody) tableBody.innerHTML = '';
+
   const progressBar = document.getElementById('bulk-email-progress-bar');
   progressBar.style.width = '0%';
 
@@ -7332,6 +7331,9 @@ async function sendBulkEmails() {
       .replace(/{score}/g, score)
       .replace(/{skill}/g, skill);
 
+    let smtpStatus = '';
+    let smtpSuccess = false;
+
     try {
       const response = await fetch('/api/recruiter/send-bulk-email', {
         method: 'POST',
@@ -7348,11 +7350,50 @@ async function sendBulkEmails() {
       if (response.ok) {
         successCount++;
         logMessage(`✓ Success: Verification report invite sent and logged to database for ${name} (${email})`, true);
+        smtpStatus = '✓ Delivered';
+        smtpSuccess = true;
       } else {
         logMessage(`❌ Error: API response failure for candidate ${email}: ${result.error || 'Unknown error'}`, false);
+        smtpStatus = '❌ Failed';
+        smtpSuccess = false;
       }
     } catch (err) {
       logMessage(`❌ Network Error: Failed to transmit SMTP parcel for ${email}: ${err.message}`, false);
+      smtpStatus = '❌ Failed';
+      smtpSuccess = false;
+    }
+
+    // Populate Synthesis Report Table row
+    if (tableBody) {
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid var(--gray-100)';
+      
+      const violationsCount = parseInt(cb.getAttribute('data-violations') || '0', 10);
+      const violationBadge = violationsCount > 0 
+        ? `<span style="color:#C62828; font-weight:700;">⚠️ ${violationsCount} violations</span>` 
+        : `<span style="color:#2E7D32; font-weight:700;">✓ Clean proctor</span>`;
+
+      const candidateStatus = cb.getAttribute('data-status') || '';
+      let scoreDisplay = score;
+      if (candidateStatus === 'disqualified' || score === 'Result Upheld' || score === 'Result Withheld') {
+        scoreDisplay = 'Result Withheld';
+      } else if (!scoreDisplay.includes('/100')) {
+        scoreDisplay = scoreDisplay + '/100';
+      }
+
+      const smtpColor = smtpSuccess ? '#2E7D32' : '#C62828';
+
+      tr.innerHTML = `
+        <td style="padding: 8px 6px;">
+          <strong>${escapeHTML(name)}</strong><br/>
+          <span style="color:var(--gray-500); font-size:10px">${escapeHTML(email)}</span>
+        </td>
+        <td style="padding: 8px 6px;">${escapeHTML(skill)}</td>
+        <td style="padding: 8px 6px;"><strong>${escapeHTML(scoreDisplay)}</strong></td>
+        <td style="padding: 8px 6px;">${violationBadge}</td>
+        <td style="padding: 8px 6px; text-align: right; color:${smtpColor}; font-weight:700;">${smtpStatus}</td>
+      `;
+      tableBody.appendChild(tr);
     }
 
     // Update progress bar
@@ -7601,15 +7642,10 @@ function loadStudentSchedules() {
         card.style.alignItems = 'center';
         card.style.padding = '16px';
         card.style.background = 'var(--white)';
-        card.style.border = '1px solid var(--gray-100)';
+        card.style.border = '1.5px solid var(--gray-200)';
         card.style.borderRadius = 'var(--radius-md)';
         card.style.marginBottom = '12px';
         card.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
-
-        if (document.body.classList.contains('dark-theme')) {
-          card.style.background = '#0C0A09';
-          card.style.borderColor = '#2A2624';
-        }
 
         const companyBadge = s.company_name 
           ? `<span style="font-size: 11px; background:var(--orange-deep); color:#FFF; padding:2px 6px; border-radius:4px; font-weight:700; margin-left:8px;">🏢 ${s.company_name}</span>`
