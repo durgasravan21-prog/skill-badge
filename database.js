@@ -39,16 +39,39 @@ let activeDb = new sqlite3.Database(DB_PATH, (err) => {
   }
 });
 
-// Configure database defaults
+// Configure database for maximum performance and concurrency
+// WAL (Write-Ahead Logging) enables concurrent readers + one writer
+// This is the single biggest throughput improvement for SQLite at scale
 activeDb.serialize(() => {
-  if (process.env.VERCEL) {
-    // Disable WAL on Vercel to guarantee writes write immediately to the SQLite file
-    activeDb.run('PRAGMA journal_mode = DELETE;');
-  } else {
-    activeDb.run('PRAGMA journal_mode = WAL;');
-  }
+  // WAL mode: enables concurrent reads while writes happen — critical for 20k users
+  // Safe on both Vercel serverless and traditional Node servers
+  activeDb.run('PRAGMA journal_mode = WAL;');
+
+  // Enforce FK constraints
   activeDb.run('PRAGMA foreign_keys = ON;');
+
+  // synchronous=NORMAL: safe (no data loss on crash), much faster than FULL
+  // FULL flushes to disk on every write — unnecessary for our workload
+  activeDb.run('PRAGMA synchronous = NORMAL;');
+
+  // 32MB page cache in memory — reduces disk I/O for hot tables (challenges, evaluations)
+  activeDb.run('PRAGMA cache_size = -32000;');
+
+  // Store temp tables in memory — speeds up sorts and aggregates
+  activeDb.run('PRAGMA temp_store = MEMORY;');
+
+  // 256MB memory-mapped I/O — OS maps the DB file directly, avoiding syscall overhead
+  activeDb.run('PRAGMA mmap_size = 268435456;');
+
+  // Larger page size for better I/O efficiency on modern SSDs
+  // Note: only effective on new databases, ignored if DB already exists
+  activeDb.run('PRAGMA page_size = 4096;');
+
+  // 30-second busy timeout: if a write lock is taken, wait up to 30s before SQLITE_BUSY
+  // Prevents transient errors during concurrent write bursts
+  activeDb.run('PRAGMA busy_timeout = 30000;');
 });
+
 
 // Transparent proxy wrapper delegating calls to the currently active sqlite3 connection
 const db = {
@@ -77,12 +100,13 @@ const db = {
           } else {
             console.log('[DB Sync] Database connection successfully swapped to fresh file.');
             activeDb.serialize(() => {
-              if (process.env.VERCEL) {
-                activeDb.run('PRAGMA journal_mode = DELETE;');
-              } else {
-                activeDb.run('PRAGMA journal_mode = WAL;');
-              }
+              activeDb.run('PRAGMA journal_mode = WAL;');
               activeDb.run('PRAGMA foreign_keys = ON;');
+              activeDb.run('PRAGMA synchronous = NORMAL;');
+              activeDb.run('PRAGMA cache_size = -32000;');
+              activeDb.run('PRAGMA temp_store = MEMORY;');
+              activeDb.run('PRAGMA mmap_size = 268435456;');
+              activeDb.run('PRAGMA busy_timeout = 30000;');
               resolve();
             });
           }
@@ -170,6 +194,7 @@ async function createSchema() {
     verified_at    TEXT,
     verified_by    TEXT,
     badge_tag      TEXT,
+    extra_attempts INTEGER DEFAULT 0,
     FOREIGN KEY (student_id) REFERENCES users(id),
     FOREIGN KEY (skill_id)   REFERENCES skills(id)
   );`);
@@ -198,6 +223,11 @@ async function createSchema() {
     expires_at       TEXT,
     violations_count INTEGER DEFAULT 0,
     company_id       TEXT,
+    ip_address       TEXT,
+    device_signature TEXT,
+    device_flagged   INTEGER DEFAULT 0,
+    joins_count      INTEGER DEFAULT 1,
+    max_joins        INTEGER DEFAULT 4,
     FOREIGN KEY (student_id)  REFERENCES users(id),
     FOREIGN KEY (skill_id)    REFERENCES skills(id),
     FOREIGN KEY (question_id) REFERENCES questions(id),
@@ -264,6 +294,43 @@ async function createSchema() {
     FOREIGN KEY (recipient_id) REFERENCES users(id)
   );`);
 
+  // OTP sessions for recruiter 2FA email verification
+  await runAsync(`CREATE TABLE IF NOT EXISTS otp_sessions (
+    id          TEXT PRIMARY KEY,
+    user_id     TEXT NOT NULL,
+    email       TEXT NOT NULL,
+    otp_hash    TEXT NOT NULL,
+    attempts    INTEGER DEFAULT 0,
+    expires_at  TEXT NOT NULL,
+    verified    INTEGER DEFAULT 0,
+    created_at  TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );`);
+
+  // Live challenge rooms for Socket.io real-time sync
+  await runAsync(`CREATE TABLE IF NOT EXISTS challenge_rooms (
+    id           TEXT PRIMARY KEY,
+    challenge_id TEXT NOT NULL,
+    recruiter_id TEXT,
+    student_id   TEXT NOT NULL,
+    room_code    TEXT UNIQUE NOT NULL,
+    status       TEXT DEFAULT 'waiting',
+    created_at   TEXT NOT NULL,
+    FOREIGN KEY (challenge_id) REFERENCES challenges(id)
+  );`);
+
+
+  // User Sessions for secure stateful authentication
+  await runAsync(`CREATE TABLE IF NOT EXISTS user_sessions (
+    token       TEXT PRIMARY KEY,
+    user_id     TEXT NOT NULL,
+    email       TEXT NOT NULL,
+    role        TEXT NOT NULL,
+    expires_at  TEXT NOT NULL,
+    created_at  TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  );`);
+
   // Migrate existing tables
   try {
     await runAsync('ALTER TABLE exam_schedules ADD COLUMN exam_password TEXT;');
@@ -274,6 +341,41 @@ async function createSchema() {
     await runAsync('ALTER TABLE exam_schedules ADD COLUMN invited_student_id TEXT;');
   } catch (err) {
     // Ignore if column already exists
+  }
+  try {
+    await runAsync('ALTER TABLE challenges ADD COLUMN ip_address TEXT;');
+  } catch (err) {
+    // Ignore if column already exists
+  }
+  try {
+    await runAsync('ALTER TABLE challenges ADD COLUMN device_signature TEXT;');
+  } catch (err) {
+    // Ignore if column already exists
+  }
+  try {
+    await runAsync('ALTER TABLE challenges ADD COLUMN device_flagged INTEGER DEFAULT 0;');
+  } catch (err) {
+    // Ignore if column already exists
+  }
+  try {
+    await runAsync('ALTER TABLE student_skills ADD COLUMN extra_attempts INTEGER DEFAULT 0;');
+  } catch (err) {
+    // Ignore if column already exists
+  }
+  try {
+    await runAsync('ALTER TABLE challenges ADD COLUMN joins_count INTEGER DEFAULT 1;');
+  } catch (err) {
+    // Ignore if column already exists
+  }
+  try {
+    await runAsync('ALTER TABLE challenges ADD COLUMN max_joins INTEGER DEFAULT 4;');
+  } catch (err) {
+    // Ignore if column already exists
+  }
+  try {
+    await runAsync('UPDATE challenges SET max_joins = 4 WHERE max_joins = 3;');
+  } catch (err) {
+    // Ignore
   }
 
   // Indexes for multi-tenant isolation performance

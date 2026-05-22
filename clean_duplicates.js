@@ -24,13 +24,51 @@ async function cleanDuplicates() {
 
     // 2. Clean Duplicate Challenges
     console.log('Cleaning duplicate challenges...');
-    // Keep the latest challenge per student and question_id
+    // Keep the latest challenge per student and skill_id (course), removing foreign key dependents first
     db.run(`
-      DELETE FROM challenges
-      WHERE id NOT IN (
+      DELETE FROM submissions WHERE challenge_id IN (
+        SELECT id FROM challenges WHERE id NOT IN (
+          SELECT id FROM (
+            SELECT id, ROW_NUMBER() OVER(PARTITION BY student_id, skill_id ORDER BY started_at DESC) as rn
+            FROM challenges
+          ) WHERE rn = 1
+        )
+      )
+    `);
+    db.run(`
+      DELETE FROM evaluations WHERE challenge_id IN (
+        SELECT id FROM challenges WHERE id NOT IN (
+          SELECT id FROM (
+            SELECT id, ROW_NUMBER() OVER(PARTITION BY student_id, skill_id ORDER BY started_at DESC) as rn
+            FROM challenges
+          ) WHERE rn = 1
+        )
+      )
+    `);
+    db.run(`
+      DELETE FROM violations WHERE challenge_id IN (
+        SELECT id FROM challenges WHERE id NOT IN (
+          SELECT id FROM (
+            SELECT id, ROW_NUMBER() OVER(PARTITION BY student_id, skill_id ORDER BY started_at DESC) as rn
+            FROM challenges
+          ) WHERE rn = 1
+        )
+      )
+    `);
+    db.run(`
+      DELETE FROM exam_photos WHERE challenge_id IN (
+        SELECT id FROM challenges WHERE id NOT IN (
+          SELECT id FROM (
+            SELECT id, ROW_NUMBER() OVER(PARTITION BY student_id, skill_id ORDER BY started_at DESC) as rn
+            FROM challenges
+          ) WHERE rn = 1
+        )
+      )
+    `);
+    db.run(`
+      DELETE FROM challenges WHERE id NOT IN (
         SELECT id FROM (
-          SELECT id,
-                 ROW_NUMBER() OVER(PARTITION BY student_id, question_id ORDER BY started_at DESC) as rn
+          SELECT id, ROW_NUMBER() OVER(PARTITION BY student_id, skill_id ORDER BY started_at DESC) as rn
           FROM challenges
         ) WHERE rn = 1
       )
@@ -56,7 +94,7 @@ async function cleanDuplicates() {
       return;
     }
     console.log('Local duplicates cleaned. Pushing DB back to Supabase...');
-    await dbSync.pushLocalDb();
+    await dbSync.pushLatestDb();
     console.log('Done!');
   });
 }
