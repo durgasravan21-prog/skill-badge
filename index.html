@@ -2735,7 +2735,8 @@ window.fetch = function(resource, init) {
   }
 
   return originalFetch.call(this, resource, init).then(response => {
-    if (response.status === 401) {
+    const isLogoutRequest = typeof resource === 'string' && resource.includes('/api/auth/logout');
+    if (response.status === 401 && !isLogoutRequest) {
       // Session expired or unauthorized — force client logout!
       currentUser = null;
       currentCompany = null;
@@ -3388,15 +3389,15 @@ function submitOAuthHandshake(nameInput, emailInput) {
 }
 
 function logoutUser() {
+  // Call backend to invalidate session in DB first while token is still in localStorage
+  fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+
   currentUser = null;
   currentCompany = null;
   safeLocalStorage.removeItem('skillproof_user');
   safeLocalStorage.removeItem('skillproof_company');
   safeLocalStorage.removeItem('skillproof_login_time');
   safeLocalStorage.removeItem('skillproof_session_token');
-  
-  // Call backend to invalidate session in DB
-  fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
   
   document.getElementById('nav-login-btn').style.display = 'inline-block';
   document.getElementById('nav-logout-btn').style.display = 'none';
