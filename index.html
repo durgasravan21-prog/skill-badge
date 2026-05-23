@@ -4883,36 +4883,67 @@ async function startExam(questionId) {
   }
 
   // 1. Capture Screen Sharing FIRST (must happen before fullscreen — Chrome blocks picker in fullscreen)
+  showLoading('Setting up screen sharing…', 'Your primary display must be shared for proctoring.');
   const screenShared = await initScreenShare();
   if (!screenShared) {
+    hideLoading();
     cleanupStreams();
-    alert('Security prerequisite: Full primary display screen sharing is required.');
+    await smoothAlert(
+      'Full primary display screen sharing is required to begin the assessment. Please select your entire screen (not a window or tab).',
+      'Security Prerequisite',
+      '🖥️', 'warn'
+    );
     return;
   }
 
   // 2. Access Camera and microphone WebRTC streams
+  showLoading('Activating webcam & microphone…', 'Both camera and microphone must be enabled for proctoring.');
   const mediaStreamsOk = await initProctorMediaStreams();
   if (!mediaStreamsOk) {
+    hideLoading();
     cleanupStreams();
-    alert('Security prerequisite: Both microphone and webcam feed must be active.');
+    await smoothAlert(
+      'Both your webcam and microphone must be active for proctored assessments. Please grant browser permissions and try again.',
+      'Security Prerequisite',
+      '📷', 'warn'
+    );
     return;
   }
 
   // 3. Check Bluetooth prerequisite (runs after WebRTC permissions are granted so device names are resolved!)
+  showLoading('Checking device connections…', 'Bluetooth and external device check in progress.');
   const bluetoothOk = await checkBluetoothPrerequisite();
   if (!bluetoothOk) {
+    hideLoading();
     cleanupStreams();
     return;
   }
 
-  // 3. Enforce Full Screen LAST (after all permission dialogs are done)
+  // Hide loading overlay to allow user interaction with the smoothAlert modal
+  hideLoading();
+
+  // Show a beautiful gesture confirmation dialog to reset user activation token!
+  await smoothAlert(
+    'All proctoring feeds and security checks are active. Click OK to enter secure Full Screen mode and unlock the assessment arena.',
+    'Unlock Secure Arena',
+    '🔒', 'success'
+  );
+
+  // Enforce Full Screen synchronously after the click gesture
+  showLoading('Entering secure fullscreen mode…', 'The exam requires fullscreen to prevent context switching.');
   try {
     await document.documentElement.requestFullscreen();
   } catch (err) {
-    alert('Security prerequisite: Full Screen mode must be permitted to unlock high-security assessments.');
+    hideLoading();
     cleanupStreams();
+    await smoothAlert(
+      'Full Screen mode is required to unlock this assessment. Please allow fullscreen when prompted.',
+      'Security Prerequisite',
+      '🔒', 'warn'
+    );
     return;
   }
+  hideLoading();
 
   // Call Server to register TIMED attempt
   fetch('/api/exams/start', {
@@ -7803,6 +7834,16 @@ async function startScheduledExam(scheduleId) {
     return;
   }
 
+  // Hide loading to show smoothAlert
+  hideLoading();
+
+  // Show a beautiful gesture confirmation dialog to reset user activation token!
+  await smoothAlert(
+    'All proctoring feeds and security checks are active. Click OK to enter secure Full Screen mode and unlock the assessment arena.',
+    'Unlock Secure Arena',
+    '🔒', 'success'
+  );
+
   // ── STEP 4: Full Screen ──
   showLoading('Entering secure fullscreen mode…', 'The exam requires fullscreen to prevent context switching.');
   try {
@@ -7817,6 +7858,7 @@ async function startScheduledExam(scheduleId) {
     );
     return;
   }
+  hideLoading();
 
   // ── STEP 5: Register attempt with server ──
   showLoading('Starting your secure exam session…', 'Registering your attempt and loading questions. Please wait.');
