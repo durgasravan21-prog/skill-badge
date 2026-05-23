@@ -152,17 +152,30 @@ app.use(async (req, res, next) => {
     }
 
     if (['POST', 'PUT', 'DELETE'].includes(req.method)) {
-      res.on('finish', () => {
-        dbSync.pushLatestDb()
-          .then(success => {
-            if (success) {
-              console.log('[DB Sync Middleware] Auto-pushed database successfully.');
-            }
-          })
-          .catch(err => {
-            console.error('[DB Sync Middleware] Push failed:', err.message);
-          });
-      });
+      const originalJson = res.json;
+      const originalSend = res.send;
+      
+      let pushed = false;
+      const pushSafe = async () => {
+        if (pushed) return;
+        pushed = true;
+        try {
+          console.log('[DB Sync] Awaiting pushLatestDb before response transmission...');
+          await dbSync.pushLatestDb();
+        } catch (e) {
+          console.error('[DB Sync] Push error in response override:', e.message);
+        }
+      };
+
+      res.json = async function(body) {
+        await pushSafe();
+        return originalJson.call(this, body);
+      };
+
+      res.send = async function(body) {
+        await pushSafe();
+        return originalSend.call(this, body);
+      };
     }
   }
   next();
