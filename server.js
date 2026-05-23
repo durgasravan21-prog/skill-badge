@@ -1993,26 +1993,28 @@ app.get('/api/student/schedules', async (req, res) => {
       // Even without claimed skills, show all company-dispatched schedules
       schedules = await dbAll(
         `SELECT es.*, s.name as skill_name, c.name as company_name, c.domain as company_domain,
-                (SELECT status FROM challenges WHERE student_id = ? AND skill_id = es.skill_id AND recruiter_id = es.recruiter_id LIMIT 1) as attempt_status,
-                (SELECT id FROM challenges WHERE student_id = ? AND skill_id = es.skill_id AND recruiter_id = es.recruiter_id LIMIT 1) as attempt_id
+                (SELECT status FROM challenges WHERE student_id = ? AND skill_id = es.skill_id AND (company_id = es.company_id OR (company_id IS NULL AND es.company_id IS NULL)) LIMIT 1) as attempt_status,
+                (SELECT id FROM challenges WHERE student_id = ? AND skill_id = es.skill_id AND (company_id = es.company_id OR (company_id IS NULL AND es.company_id IS NULL)) LIMIT 1) as attempt_id
          FROM exam_schedules es
          JOIN skills s ON es.skill_id = s.id
          LEFT JOIN companies c ON es.company_id = c.id
+         WHERE es.invited_student_id IS NULL OR es.invited_student_id = ?
          ORDER BY es.start_time DESC`,
-        [student.id, student.id]
+        [student.id, student.id, student.id]
       );
     } else {
       const placeholders = skillIds.map(() => '?').join(',');
       schedules = await dbAll(
         `SELECT es.*, s.name as skill_name, c.name as company_name, c.domain as company_domain,
-                (SELECT status FROM challenges WHERE student_id = ? AND skill_id = es.skill_id AND recruiter_id = es.recruiter_id LIMIT 1) as attempt_status,
-                (SELECT id FROM challenges WHERE student_id = ? AND skill_id = es.skill_id AND recruiter_id = es.recruiter_id LIMIT 1) as attempt_id
+                (SELECT status FROM challenges WHERE student_id = ? AND skill_id = es.skill_id AND (company_id = es.company_id OR (company_id IS NULL AND es.company_id IS NULL)) LIMIT 1) as attempt_status,
+                (SELECT id FROM challenges WHERE student_id = ? AND skill_id = es.skill_id AND (company_id = es.company_id OR (company_id IS NULL AND es.company_id IS NULL)) LIMIT 1) as attempt_id
          FROM exam_schedules es
          JOIN skills s ON es.skill_id = s.id
          LEFT JOIN companies c ON es.company_id = c.id
-         WHERE es.skill_id IN (${placeholders}) OR es.company_id IS NOT NULL
+         WHERE (es.skill_id IN (${placeholders}) OR es.company_id IS NOT NULL)
+           AND (es.invited_student_id IS NULL OR es.invited_student_id = ?)
          ORDER BY es.start_time DESC`,
-        [student.id, student.id, ...skillIds]
+        [student.id, student.id, ...skillIds, student.id]
       );
     }
     res.json(schedules);
@@ -2049,7 +2051,18 @@ app.post('/api/exams/start-scheduled', examLimiter, async (req, res) => {
 
     // Enforce attempts cap (3 + extra_attempts) and check active status
     const nowISO = new Date().toISOString();
-    const attempts = await dbAll('SELECT id, status, expires_at, question_id, time_limit_mins, ip_address, device_signature, device_flagged, joins_count, max_joins FROM challenges WHERE student_id = ? AND skill_id = ?', [student.id, schedule.skill_id]);
+    let attempts;
+    if (schedule.company_id) {
+      attempts = await dbAll(
+        'SELECT id, status, expires_at, question_id, time_limit_mins, ip_address, device_signature, device_flagged, joins_count, max_joins FROM challenges WHERE student_id = ? AND skill_id = ? AND company_id = ?',
+        [student.id, schedule.skill_id, schedule.company_id]
+      );
+    } else {
+      attempts = await dbAll(
+        'SELECT id, status, expires_at, question_id, time_limit_mins, ip_address, device_signature, device_flagged, joins_count, max_joins FROM challenges WHERE student_id = ? AND skill_id = ? AND company_id IS NULL',
+        [student.id, schedule.skill_id]
+      );
+    }
 
     // Automatically mark expired attempts
     for (const att of attempts) {
