@@ -3129,6 +3129,46 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // 1. Join Exam Code input - Enter key submits
+  const joinExamCodeInput = document.getElementById('join-exam-code-input');
+  if (joinExamCodeInput) {
+    joinExamCodeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        joinExamViaCode();
+      }
+    });
+  }
+
+  // 2. Exam Password input - Enter key checks rules and submits
+  const examPasswordInput = document.getElementById('exam-password-input');
+  if (examPasswordInput) {
+    examPasswordInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const checkbox = document.getElementById('accept-rules-checkbox');
+        if (checkbox) {
+          checkbox.checked = true;
+          toggleStartExamBtn(true);
+        }
+        confirmStartExam();
+      }
+    });
+  }
+
+  // 3. Student Onboarding inputs - Enter key submits onboarding
+  const studentOnboardPhone = document.getElementById('student-onboard-phone');
+  const studentOnboardCollege = document.getElementById('student-onboard-college');
+  const triggerOnboardSubmit = (e) => {
+    if (e.key === 'Enter') {
+      submitStudentOnboarding();
+    }
+  };
+  if (studentOnboardPhone) {
+    studentOnboardPhone.addEventListener('keydown', triggerOnboardSubmit);
+  }
+  if (studentOnboardCollege) {
+    studentOnboardCollege.addEventListener('keydown', triggerOnboardSubmit);
+  }
+
 
   // Restore branding color theme if stored
   try {
@@ -3525,6 +3565,8 @@ function initOTPEvents() {
           e.target.value = '';
         }
         e.preventDefault();
+      } else if (e.key === 'Enter') {
+        submitRecruiterOTP();
       }
     });
     
