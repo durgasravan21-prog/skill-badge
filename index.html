@@ -2721,7 +2721,30 @@ window.fetch = function(resource, init) {
   }
 
   return originalFetch.call(this, resource, init).then(response => {
-    if (currentUser && response.ok) {
+    if (response.status === 401) {
+      // Session expired or unauthorized — force client logout!
+      currentUser = null;
+      currentCompany = null;
+      safeLocalStorage.removeItem('skillproof_user');
+      safeLocalStorage.removeItem('skillproof_company');
+      safeLocalStorage.removeItem('skillproof_session_token');
+      safeLocalStorage.removeItem('skillproof_login_time');
+      
+      // Update main navbar profile buttons back to guest
+      const loginBtn = document.getElementById('nav-login-btn');
+      if (loginBtn) loginBtn.style.display = 'inline-block';
+      const logoutBtn = document.getElementById('nav-logout-btn');
+      if (logoutBtn) logoutBtn.style.display = 'none';
+      const ctaBtn = document.getElementById('nav-cta-btn');
+      if (ctaBtn) {
+        ctaBtn.innerText = 'Get started →';
+        ctaBtn.onclick = () => showView('auth');
+      }
+      
+      // Route back to landing or auth view and show clear alert
+      showView('auth');
+      alert('Your session has expired. Please log in again to continue.');
+    } else if (currentUser && response.ok) {
       safeLocalStorage.setItem('skillproof_login_time', Date.now());
     }
     return response;
