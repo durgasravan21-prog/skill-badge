@@ -7034,7 +7034,7 @@ function loadRecruiterDashboard() {
       if (e.status === 'active') {
         label = `[ACTIVE] Candidate <strong>${escapeHTML(e.student_name)}</strong> joined/resumed <strong>${escapeHTML(e.skill_name || 'Assessment')}</strong>`;
         color = 'var(--orange-deep)';
-      } else if (e.status === 'completed') {
+      } else if (e.status === 'completed' || e.status === 'evaluated') {
         label = `[COMPLETED] Candidate <strong>${escapeHTML(e.student_name)}</strong> finished <strong>${escapeHTML(e.skill_name || 'Assessment')}</strong> with score <strong>${e.score}/100</strong>`;
         color = '#2E7D32';
       } else if (e.status === 'disqualified') {

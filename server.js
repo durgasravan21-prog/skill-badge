@@ -2046,14 +2046,14 @@ app.get('/api/student/schedules', async (req, res) => {
                      schedule_id = es.id 
                      OR (es.company_id IS NULL AND schedule_id IS NULL AND skill_id = es.skill_id)
                      OR (es.company_id IS NOT NULL AND schedule_id IS NULL AND company_id = es.company_id AND skill_id = es.skill_id)
-                   ) LIMIT 1) as attempt_status,
+                   ) ORDER BY started_at DESC LIMIT 1) as attempt_status,
                 (SELECT id FROM challenges 
                  WHERE student_id = ? 
                    AND (
                      schedule_id = es.id 
                      OR (es.company_id IS NULL AND schedule_id IS NULL AND skill_id = es.skill_id)
                      OR (es.company_id IS NOT NULL AND schedule_id IS NULL AND company_id = es.company_id AND skill_id = es.skill_id)
-                   ) LIMIT 1) as attempt_id
+                   ) ORDER BY started_at DESC LIMIT 1) as attempt_id
          FROM exam_schedules es
          JOIN skills s ON es.skill_id = s.id
          LEFT JOIN companies c ON es.company_id = c.id
@@ -2071,14 +2071,14 @@ app.get('/api/student/schedules', async (req, res) => {
                      schedule_id = es.id 
                      OR (es.company_id IS NULL AND schedule_id IS NULL AND skill_id = es.skill_id)
                      OR (es.company_id IS NOT NULL AND schedule_id IS NULL AND company_id = es.company_id AND skill_id = es.skill_id)
-                   ) LIMIT 1) as attempt_status,
+                   ) ORDER BY started_at DESC LIMIT 1) as attempt_status,
                 (SELECT id FROM challenges 
                  WHERE student_id = ? 
                    AND (
                      schedule_id = es.id 
                      OR (es.company_id IS NULL AND schedule_id IS NULL AND skill_id = es.skill_id)
                      OR (es.company_id IS NOT NULL AND schedule_id IS NULL AND company_id = es.company_id AND skill_id = es.skill_id)
-                   ) LIMIT 1) as attempt_id
+                   ) ORDER BY started_at DESC LIMIT 1) as attempt_id
          FROM exam_schedules es
          JOIN skills s ON es.skill_id = s.id
          LEFT JOIN companies c ON es.company_id = c.id
@@ -2377,9 +2377,9 @@ app.post('/api/exams/next-scheduled', async (req, res) => {
     const startTime = new Date().toISOString();
 
     await dbRun(
-      `INSERT INTO challenges (id, student_id, recruiter_id, skill_id, question_id, difficulty, time_limit_mins, status, started_at, expires_at, violations_count, company_id, joins_count, max_joins)
-       VALUES (?, ?, ?, ?, ?, ?, 20, 'active', ?, ?, ?, ?, ?, ?)`,
-      [challengeId, student.id, schedule.recruiter_id, schedule.skill_id, question.id, question.difficulty, startTime, expiresAt, violations, schedule.company_id, joinsCount, maxJoins]
+      `INSERT INTO challenges (id, student_id, recruiter_id, skill_id, question_id, difficulty, time_limit_mins, status, started_at, expires_at, violations_count, company_id, joins_count, max_joins, schedule_id)
+       VALUES (?, ?, ?, ?, ?, ?, 20, 'active', ?, ?, ?, ?, ?, ?, ?)`,
+      [challengeId, student.id, schedule.recruiter_id, schedule.skill_id, question.id, question.difficulty, startTime, expiresAt, violations, schedule.company_id, joinsCount, maxJoins, scheduleId]
     );
 
     const testCases = generateTestCases(question.difficulty, question.title);
@@ -2387,6 +2387,7 @@ app.post('/api/exams/next-scheduled', async (req, res) => {
     res.json({
       message: 'Next scheduled question loaded',
       examId: challengeId,
+      scheduleId: scheduleId,
       codeTemplate: stripToSnippet(question.code_template),
       questionTitle: question.title,
       testCases: testCases
