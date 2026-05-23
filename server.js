@@ -2037,15 +2037,27 @@ app.get('/api/student/schedules', async (req, res) => {
 
     let schedules;
     if (skillIds.length === 0) {
-      // Even without claimed skills, show all company-dispatched schedules
+      // Show only private/corporate schedules explicitly dispatched to this student
       schedules = await dbAll(
         `SELECT es.*, s.name as skill_name, c.name as company_name, c.domain as company_domain,
-                (SELECT status FROM challenges WHERE student_id = ? AND (schedule_id = es.id OR (es.company_id IS NULL AND es.invited_student_id IS NULL AND schedule_id IS NULL AND skill_id = es.skill_id)) LIMIT 1) as attempt_status,
-                (SELECT id FROM challenges WHERE student_id = ? AND (schedule_id = es.id OR (es.company_id IS NULL AND es.invited_student_id IS NULL AND schedule_id IS NULL AND skill_id = es.skill_id)) LIMIT 1) as attempt_id
+                (SELECT status FROM challenges 
+                 WHERE student_id = ? 
+                   AND (
+                     schedule_id = es.id 
+                     OR (es.company_id IS NULL AND schedule_id IS NULL AND skill_id = es.skill_id)
+                     OR (es.company_id IS NOT NULL AND schedule_id IS NULL AND company_id = es.company_id AND skill_id = es.skill_id)
+                   ) LIMIT 1) as attempt_status,
+                (SELECT id FROM challenges 
+                 WHERE student_id = ? 
+                   AND (
+                     schedule_id = es.id 
+                     OR (es.company_id IS NULL AND schedule_id IS NULL AND skill_id = es.skill_id)
+                     OR (es.company_id IS NOT NULL AND schedule_id IS NULL AND company_id = es.company_id AND skill_id = es.skill_id)
+                   ) LIMIT 1) as attempt_id
          FROM exam_schedules es
          JOIN skills s ON es.skill_id = s.id
          LEFT JOIN companies c ON es.company_id = c.id
-         WHERE es.invited_student_id IS NULL OR es.invited_student_id = ?
+         WHERE es.invited_student_id = ?
          ORDER BY es.start_time DESC`,
         [student.id, student.id, student.id]
       );
@@ -2053,13 +2065,30 @@ app.get('/api/student/schedules', async (req, res) => {
       const placeholders = skillIds.map(() => '?').join(',');
       schedules = await dbAll(
         `SELECT es.*, s.name as skill_name, c.name as company_name, c.domain as company_domain,
-                (SELECT status FROM challenges WHERE student_id = ? AND (schedule_id = es.id OR (es.company_id IS NULL AND es.invited_student_id IS NULL AND schedule_id IS NULL AND skill_id = es.skill_id)) LIMIT 1) as attempt_status,
-                (SELECT id FROM challenges WHERE student_id = ? AND (schedule_id = es.id OR (es.company_id IS NULL AND es.invited_student_id IS NULL AND schedule_id IS NULL AND skill_id = es.skill_id)) LIMIT 1) as attempt_id
+                (SELECT status FROM challenges 
+                 WHERE student_id = ? 
+                   AND (
+                     schedule_id = es.id 
+                     OR (es.company_id IS NULL AND schedule_id IS NULL AND skill_id = es.skill_id)
+                     OR (es.company_id IS NOT NULL AND schedule_id IS NULL AND company_id = es.company_id AND skill_id = es.skill_id)
+                   ) LIMIT 1) as attempt_status,
+                (SELECT id FROM challenges 
+                 WHERE student_id = ? 
+                   AND (
+                     schedule_id = es.id 
+                     OR (es.company_id IS NULL AND schedule_id IS NULL AND skill_id = es.skill_id)
+                     OR (es.company_id IS NOT NULL AND schedule_id IS NULL AND company_id = es.company_id AND skill_id = es.skill_id)
+                   ) LIMIT 1) as attempt_id
          FROM exam_schedules es
          JOIN skills s ON es.skill_id = s.id
          LEFT JOIN companies c ON es.company_id = c.id
-         WHERE (es.skill_id IN (${placeholders}) OR es.company_id IS NOT NULL)
-           AND (es.invited_student_id IS NULL OR es.invited_student_id = ?)
+         WHERE (
+           -- Public schedules for claimed skills
+           (es.company_id IS NULL AND es.invited_student_id IS NULL AND es.skill_id IN (${placeholders}))
+           OR
+           -- Private corporate/scheduled dispatches specifically for this student
+           (es.invited_student_id = ?)
+         )
          ORDER BY es.start_time DESC`,
         [student.id, student.id, ...skillIds, student.id]
       );
