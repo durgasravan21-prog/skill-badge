@@ -1511,13 +1511,13 @@ app.get('/api/exams/history', async (req, res) => {
                       (SELECT COUNT(*) FROM challenges WHERE student_id = c.student_id AND skill_id = c.skill_id) as attempts_count,
                       (SELECT COALESCE(extra_attempts, 0) FROM student_skills WHERE student_id = c.student_id AND skill_id = c.skill_id) as extra_attempts,
                       u.name as student_name, u.email as student_email,
-                      q.title as question_title,
+                      COALESCE(q.title, 'Technical Assessment') as question_title,
                       sk.name as skill_name,
                       e.total_score as score, e.ai_summary,
                       s.code as submitted_code
                FROM challenges c
                JOIN users u ON c.student_id = u.id
-               JOIN questions q ON c.question_id = q.id
+               LEFT JOIN questions q ON c.question_id = q.id
                JOIN skills sk ON c.skill_id = sk.id
                LEFT JOIN (SELECT challenge_id, code FROM submissions GROUP BY challenge_id) s ON s.challenge_id = c.id
                LEFT JOIN (SELECT challenge_id, total_score, ai_summary FROM evaluations GROUP BY challenge_id) e ON e.challenge_id = c.id`;
@@ -1527,8 +1527,17 @@ app.get('/api/exams/history', async (req, res) => {
     // MULTI-TENANT ISOLATION: If company_id provided, only show that company's data
     // If it is the special admin company, let the owner view everything!
     if (companyId && companyId !== 'admin-company-uuid') {
-      sql += ' WHERE c.company_id = ?';
-      params.push(companyId);
+      sql += ` WHERE (
+        c.company_id = ?
+        OR (
+          c.company_id IS NULL
+          AND c.student_id IN (
+            SELECT invited_student_id FROM exam_schedules 
+            WHERE company_id = ? AND invited_student_id IS NOT NULL AND skill_id = c.skill_id
+          )
+        )
+      )`;
+      params.push(companyId, companyId);
     }
 
     sql += ' ORDER BY c.started_at DESC';
@@ -2045,14 +2054,14 @@ app.get('/api/student/schedules', async (req, res) => {
                    AND (
                      schedule_id = es.id 
                      OR (es.company_id IS NULL AND schedule_id IS NULL AND skill_id = es.skill_id)
-                     OR (es.company_id IS NOT NULL AND schedule_id IS NULL AND company_id = es.company_id AND skill_id = es.skill_id)
+                     OR (es.company_id IS NOT NULL AND schedule_id IS NULL AND (company_id = es.company_id OR company_id IS NULL) AND skill_id = es.skill_id)
                    ) ORDER BY started_at DESC LIMIT 1) as attempt_status,
                 (SELECT id FROM challenges 
                  WHERE student_id = ? 
                    AND (
                      schedule_id = es.id 
                      OR (es.company_id IS NULL AND schedule_id IS NULL AND skill_id = es.skill_id)
-                     OR (es.company_id IS NOT NULL AND schedule_id IS NULL AND company_id = es.company_id AND skill_id = es.skill_id)
+                     OR (es.company_id IS NOT NULL AND schedule_id IS NULL AND (company_id = es.company_id OR company_id IS NULL) AND skill_id = es.skill_id)
                    ) ORDER BY started_at DESC LIMIT 1) as attempt_id
          FROM exam_schedules es
          JOIN skills s ON es.skill_id = s.id
@@ -2070,14 +2079,14 @@ app.get('/api/student/schedules', async (req, res) => {
                    AND (
                      schedule_id = es.id 
                      OR (es.company_id IS NULL AND schedule_id IS NULL AND skill_id = es.skill_id)
-                     OR (es.company_id IS NOT NULL AND schedule_id IS NULL AND company_id = es.company_id AND skill_id = es.skill_id)
+                     OR (es.company_id IS NOT NULL AND schedule_id IS NULL AND (company_id = es.company_id OR company_id IS NULL) AND skill_id = es.skill_id)
                    ) ORDER BY started_at DESC LIMIT 1) as attempt_status,
                 (SELECT id FROM challenges 
                  WHERE student_id = ? 
                    AND (
                      schedule_id = es.id 
                      OR (es.company_id IS NULL AND schedule_id IS NULL AND skill_id = es.skill_id)
-                     OR (es.company_id IS NOT NULL AND schedule_id IS NULL AND company_id = es.company_id AND skill_id = es.skill_id)
+                     OR (es.company_id IS NOT NULL AND schedule_id IS NULL AND (company_id = es.company_id OR company_id IS NULL) AND skill_id = es.skill_id)
                    ) ORDER BY started_at DESC LIMIT 1) as attempt_id
          FROM exam_schedules es
          JOIN skills s ON es.skill_id = s.id
@@ -2130,12 +2139,12 @@ app.post('/api/exams/start-scheduled', examLimiter, async (req, res) => {
     let attempts;
     if (scheduleId) {
       attempts = await dbAll(
-        'SELECT id, status, expires_at, question_id, time_limit_mins, ip_address, device_signature, device_flagged, joins_count, max_joins FROM challenges WHERE student_id = ? AND schedule_id = ?',
-        [student.id, scheduleId]
+        'SELECT id, status, expires_at, question_id, time_limit_mins, ip_address, device_signature, device_flagged, joins_count, max_joins FROM challenges WHERE student_id = ? AND (schedule_id = ? OR (skill_id = ? AND company_id IS NULL))',
+        [student.id, scheduleId, schedule.skill_id]
       );
     } else if (schedule.company_id) {
       attempts = await dbAll(
-        'SELECT id, status, expires_at, question_id, time_limit_mins, ip_address, device_signature, device_flagged, joins_count, max_joins FROM challenges WHERE student_id = ? AND skill_id = ? AND company_id = ?',
+        'SELECT id, status, expires_at, question_id, time_limit_mins, ip_address, device_signature, device_flagged, joins_count, max_joins FROM challenges WHERE student_id = ? AND skill_id = ? AND (company_id = ? OR company_id IS NULL)',
         [student.id, schedule.skill_id, schedule.company_id]
       );
     } else {
@@ -2216,8 +2225,8 @@ app.post('/api/exams/start-scheduled', examLimiter, async (req, res) => {
     }
 
     const finishedScheduleChallenge = await dbGet(
-      "SELECT id FROM challenges WHERE student_id = ? AND schedule_id = ? AND status IN ('submitted', 'evaluated', 'badge_awarded', 'badge_denied', 'disqualified')",
-      [student.id, scheduleId]
+      "SELECT id FROM challenges WHERE student_id = ? AND (schedule_id = ? OR (skill_id = ? AND company_id IS NULL)) AND status IN ('submitted', 'evaluated', 'badge_awarded', 'badge_denied', 'disqualified')",
+      [student.id, scheduleId, schedule.skill_id]
     );
     if (finishedScheduleChallenge) {
       return res.status(403).json({
@@ -2610,9 +2619,9 @@ app.post('/api/recruiter/assign-badge', async (req, res) => {
     }
     
     const challenge = await dbGet(
-      `SELECT c.*, q.title as question_title, s.name as skill_name
+      `SELECT c.*, COALESCE(q.title, 'Technical Assessment') as question_title, s.name as skill_name
        FROM challenges c
-       JOIN questions q ON c.question_id = q.id
+       LEFT JOIN questions q ON c.question_id = q.id
        JOIN skills s ON c.skill_id = s.id
        WHERE c.id = ?`,
       [challengeId]
