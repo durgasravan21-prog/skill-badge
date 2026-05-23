@@ -2613,6 +2613,16 @@ SkillProof HR Recruiting Team</textarea>
 </div>
 
 <script>
+// --- Real-time Sync & Broadcast channel for multi-tab updates ---
+const syncChannel = new BroadcastChannel('skillproof_sync');
+syncChannel.onmessage = (event) => {
+  if (event.data === 'badge_updated' && currentUser && currentUser.role === 'student') {
+    console.log('[Sync] Received real-time badge update signal. Refreshing student dashboard...');
+    loadStudentDashboard();
+    updateNotificationBadge();
+  }
+};
+
 // --- Secure HTML Escaping Utility for XSS Prevention ---
 function escapeHTML(str) {
   if (typeof str !== 'string') return '';
@@ -3221,6 +3231,15 @@ window.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('click', throttleSessionUpdate);
   window.addEventListener('scroll', throttleSessionUpdate);
   window.addEventListener('touchstart', throttleSessionUpdate);
+
+  // Real-time synchronization polling for active student dashboard view
+  setInterval(() => {
+    const studentView = document.getElementById('view-student');
+    if (currentUser && currentUser.role === 'student' && studentView && studentView.classList.contains('active')) {
+      loadStudentDashboard();
+      updateNotificationBadge();
+    }
+  }, 6000);
 });
 
 // Quick-fill helper function
@@ -6774,6 +6793,26 @@ function viewCandidateCode(examId) {
   if (denyBtn) {
     denyBtn.onclick = () => evaluateBadgeAward('deny');
   }
+
+  const actionRow = document.getElementById('badge-award-action-row');
+  if (actionRow) {
+    if (exam.status === 'badge_awarded' || exam.status === 'badge_denied') {
+      actionRow.style.display = 'none';
+      let evaluatedBanner = document.getElementById('modal-evaluated-banner');
+      if (!evaluatedBanner) {
+        evaluatedBanner = document.createElement('div');
+        evaluatedBanner.id = 'modal-evaluated-banner';
+        actionRow.parentElement.insertBefore(evaluatedBanner, actionRow);
+      }
+      evaluatedBanner.style.cssText = 'padding:14px 18px; background:var(--gray-50); border: 1.5px solid var(--gray-200); border-radius:10px; margin-bottom:20px; font-weight:700; color:var(--gray-700); text-align:center; font-size:14px;';
+      evaluatedBanner.innerHTML = `🏆 This candidate assessment has already been evaluated.<br/><span style="font-size:12px; font-weight:600; color:var(--gray-500); margin-top:4px; display:inline-block;">Status: <span class="status-tag ${exam.status}">${exam.status.toUpperCase()}</span></span>`;
+      evaluatedBanner.style.display = 'block';
+    } else {
+      actionRow.style.display = 'flex';
+      const evaluatedBanner = document.getElementById('modal-evaluated-banner');
+      if (evaluatedBanner) evaluatedBanner.style.display = 'none';
+    }
+  }
   
   const modal = document.getElementById('view-submitted-code-modal');
   if (modal) {
@@ -6793,6 +6832,11 @@ function evaluateBadgeAward(actionType) {
     
   if (!confirm(confirmMsg)) return;
   
+  const awardBtn = document.getElementById('award-badge-btn');
+  const denyBtn = document.getElementById('deny-badge-btn');
+  if (awardBtn) awardBtn.disabled = true;
+  if (denyBtn) denyBtn.disabled = true;
+  
   fetch('/api/recruiter/assign-badge', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -6804,15 +6848,25 @@ function evaluateBadgeAward(actionType) {
   })
   .then(res => res.json())
   .then(data => {
+    if (awardBtn) awardBtn.disabled = false;
+    if (denyBtn) denyBtn.disabled = false;
     if (data.error) {
       alert(`Error: ${data.error}`);
     } else {
       alert(data.message || 'Verification processed successfully!');
+      
+      // Broadcast update to sync other tabs under the same origin immediately
+      if (typeof syncChannel !== 'undefined') {
+        syncChannel.postMessage('badge_updated');
+      }
+      
       closeSubmittedCodeModal();
       loadAdminHistory(); // Refresh the recruiter dashboard history list!
     }
   })
   .catch(err => {
+    if (awardBtn) awardBtn.disabled = false;
+    if (denyBtn) denyBtn.disabled = false;
     console.error('Failed to assign badge:', err);
     alert('Error connecting to the server. Please try again.');
   });
