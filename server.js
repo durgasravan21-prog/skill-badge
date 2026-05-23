@@ -1993,8 +1993,8 @@ app.get('/api/student/schedules', async (req, res) => {
       // Even without claimed skills, show all company-dispatched schedules
       schedules = await dbAll(
         `SELECT es.*, s.name as skill_name, c.name as company_name, c.domain as company_domain,
-                (SELECT status FROM challenges WHERE student_id = ? AND skill_id = es.skill_id AND (company_id = es.company_id OR (company_id IS NULL AND es.company_id IS NULL)) LIMIT 1) as attempt_status,
-                (SELECT id FROM challenges WHERE student_id = ? AND skill_id = es.skill_id AND (company_id = es.company_id OR (company_id IS NULL AND es.company_id IS NULL)) LIMIT 1) as attempt_id
+                (SELECT status FROM challenges WHERE student_id = ? AND (schedule_id = es.id OR (schedule_id IS NULL AND skill_id = es.skill_id AND (company_id = es.company_id OR (company_id IS NULL AND es.company_id IS NULL)))) LIMIT 1) as attempt_status,
+                (SELECT id FROM challenges WHERE student_id = ? AND (schedule_id = es.id OR (schedule_id IS NULL AND skill_id = es.skill_id AND (company_id = es.company_id OR (company_id IS NULL AND es.company_id IS NULL)))) LIMIT 1) as attempt_id
          FROM exam_schedules es
          JOIN skills s ON es.skill_id = s.id
          LEFT JOIN companies c ON es.company_id = c.id
@@ -2006,8 +2006,8 @@ app.get('/api/student/schedules', async (req, res) => {
       const placeholders = skillIds.map(() => '?').join(',');
       schedules = await dbAll(
         `SELECT es.*, s.name as skill_name, c.name as company_name, c.domain as company_domain,
-                (SELECT status FROM challenges WHERE student_id = ? AND skill_id = es.skill_id AND (company_id = es.company_id OR (company_id IS NULL AND es.company_id IS NULL)) LIMIT 1) as attempt_status,
-                (SELECT id FROM challenges WHERE student_id = ? AND skill_id = es.skill_id AND (company_id = es.company_id OR (company_id IS NULL AND es.company_id IS NULL)) LIMIT 1) as attempt_id
+                (SELECT status FROM challenges WHERE student_id = ? AND (schedule_id = es.id OR (schedule_id IS NULL AND skill_id = es.skill_id AND (company_id = es.company_id OR (company_id IS NULL AND es.company_id IS NULL)))) LIMIT 1) as attempt_status,
+                (SELECT id FROM challenges WHERE student_id = ? AND (schedule_id = es.id OR (schedule_id IS NULL AND skill_id = es.skill_id AND (company_id = es.company_id OR (company_id IS NULL AND es.company_id IS NULL)))) LIMIT 1) as attempt_id
          FROM exam_schedules es
          JOIN skills s ON es.skill_id = s.id
          LEFT JOIN companies c ON es.company_id = c.id
@@ -2161,9 +2161,9 @@ app.post('/api/exams/start-scheduled', examLimiter, async (req, res) => {
 
     // Created challenge is correctly tagged with schedule's company_id for multi-tenant isolation!
     await dbRun(
-      `INSERT INTO challenges (id, student_id, recruiter_id, skill_id, question_id, difficulty, time_limit_mins, status, started_at, expires_at, violations_count, company_id, ip_address, device_signature, device_flagged, joins_count, max_joins)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, 0, ?, ?, ?, ?, 1, 4)`,
-      [challengeId, student.id, schedule.recruiter_id, schedule.skill_id, question.id, question.difficulty, timeLimitMins, startTime, expiresTime, schedule.company_id, ipAddress, deviceSignature, deviceFlagged]
+      `INSERT INTO challenges (id, student_id, recruiter_id, skill_id, question_id, difficulty, time_limit_mins, status, started_at, expires_at, violations_count, company_id, ip_address, device_signature, device_flagged, joins_count, max_joins, schedule_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, 0, ?, ?, ?, ?, 1, 4, ?)`,
+      [challengeId, student.id, schedule.recruiter_id, schedule.skill_id, question.id, question.difficulty, timeLimitMins, startTime, expiresTime, schedule.company_id, ipAddress, deviceSignature, deviceFlagged, scheduleId]
     );
 
     // Record breach if device changed

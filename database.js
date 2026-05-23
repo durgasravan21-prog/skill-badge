@@ -234,6 +234,7 @@ async function createSchema() {
     device_flagged   INTEGER DEFAULT 0,
     joins_count      INTEGER DEFAULT 1,
     max_joins        INTEGER DEFAULT 4,
+    schedule_id      TEXT,
     FOREIGN KEY (student_id)  REFERENCES users(id),
     FOREIGN KEY (skill_id)    REFERENCES skills(id),
     FOREIGN KEY (question_id) REFERENCES questions(id),
@@ -375,6 +376,11 @@ async function createSchema() {
   }
   try {
     await runAsync('ALTER TABLE challenges ADD COLUMN max_joins INTEGER DEFAULT 4;');
+  } catch (err) {
+    // Ignore if column already exists
+  }
+  try {
+    await runAsync('ALTER TABLE challenges ADD COLUMN schedule_id TEXT;');
   } catch (err) {
     // Ignore if column already exists
   }
