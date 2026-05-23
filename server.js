@@ -2139,7 +2139,22 @@ app.post('/api/exams/start-scheduled', examLimiter, async (req, res) => {
       await dbRun('UPDATE challenges SET joins_count = joins_count + 1 WHERE id = ?', [activeAttempt.id]);
 
       // Resume the existing active attempt!
-      const activeQuestion = await dbGet('SELECT * FROM questions WHERE id = ?', [activeAttempt.question_id]);
+      let activeQuestion = await dbGet('SELECT * FROM questions WHERE id = ?', [activeAttempt.question_id]);
+      if (!activeQuestion) {
+        console.log(`[DB Self-Healing] Active session question ID ${activeAttempt.question_id} not found. Healing...`);
+        activeQuestion = await dbGet(
+          'SELECT * FROM questions WHERE skill_id = ? AND difficulty = ? ORDER BY RANDOM() LIMIT 1',
+          [activeAttempt.skill_id, activeAttempt.difficulty || 'medium']
+        );
+        if (!activeQuestion) {
+          activeQuestion = await dbGet('SELECT * FROM questions WHERE skill_id = ? LIMIT 1', [activeAttempt.skill_id]);
+        }
+        if (activeQuestion) {
+          // Update the challenge in the DB so it's healed permanently!
+          await dbRun('UPDATE challenges SET question_id = ? WHERE id = ?', [activeQuestion.id, activeAttempt.id]);
+          console.log(`[DB Self-Healing] Healed active attempt ${activeAttempt.id} to question ${activeQuestion.id}`);
+        }
+      }
       if (!activeQuestion) {
         return res.status(404).json({ error: 'Active session question not found' });
       }
@@ -2216,7 +2231,23 @@ app.post('/api/exams/start-scheduled', examLimiter, async (req, res) => {
     }
 
     const firstQuestionId = questionIds[0];
-    const question = await dbGet('SELECT * FROM questions WHERE id = ?', [firstQuestionId]);
+    let question = await dbGet('SELECT * FROM questions WHERE id = ?', [firstQuestionId]);
+    if (!question) {
+      console.log(`[DB Self-Healing] Target question ID ${firstQuestionId} not found. Healing...`);
+      question = await dbGet(
+        'SELECT * FROM questions WHERE skill_id = ? AND difficulty = ? ORDER BY RANDOM() LIMIT 1',
+        [schedule.skill_id, 'easy']
+      );
+      if (!question) {
+        question = await dbGet('SELECT * FROM questions WHERE skill_id = ? LIMIT 1', [schedule.skill_id]);
+      }
+      if (question) {
+        // Remap schedule's question list in DB as well!
+        const updatedOrder = [question.id, ...questionIds.slice(1)].join(',');
+        await dbRun('UPDATE exam_schedules SET question_order = ? WHERE id = ?', [updatedOrder, schedule.id]);
+        console.log(`[DB Self-Healing] Healed schedule ${schedule.id} first question to ${question.id}`);
+      }
+    }
     if (!question) return res.status(404).json({ error: 'Target question not found' });
 
     const challengeId = crypto.randomUUID();
@@ -2276,7 +2307,27 @@ app.post('/api/exams/next-scheduled', async (req, res) => {
     const schedule = await dbGet('SELECT * FROM exam_schedules WHERE id = ?', [scheduleId]);
     if (!schedule) return res.status(404).json({ error: 'Scheduled exam not found' });
 
-    const question = await dbGet('SELECT * FROM questions WHERE id = ?', [questionId]);
+    let question = await dbGet('SELECT * FROM questions WHERE id = ?', [questionId]);
+    if (!question) {
+      console.log(`[DB Self-Healing] next-scheduled Question ID ${questionId} not found. Healing...`);
+      question = await dbGet(
+        'SELECT * FROM questions WHERE skill_id = ? AND difficulty = ? ORDER BY RANDOM() LIMIT 1',
+        [schedule.skill_id, 'medium']
+      );
+      if (!question) {
+        question = await dbGet('SELECT * FROM questions WHERE skill_id = ? LIMIT 1', [schedule.skill_id]);
+      }
+      if (question) {
+        // Remap schedule's question list in DB as well!
+        const questionIds = schedule.question_order.split(',');
+        const qIndex = questionIds.indexOf(questionId);
+        if (qIndex !== -1) {
+          questionIds[qIndex] = question.id;
+          await dbRun('UPDATE exam_schedules SET question_order = ? WHERE id = ?', [questionIds.join(','), schedule.id]);
+          console.log(`[DB Self-Healing] Healed next-scheduled index ${qIndex} to question ${question.id}`);
+        }
+      }
+    }
     if (!question) return res.status(404).json({ error: 'Question not found' });
 
     let violations = 0;
