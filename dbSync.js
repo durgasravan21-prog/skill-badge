@@ -32,10 +32,9 @@ if (process.env.VERCEL) {
   DB_PATH = '/tmp/app.db';
 }
 
-// Local tracking of last synchronized timestamp and stale state
+// Local tracking of last synchronized timestamp and pull promises
 let lastSyncTimestamp = null;
 let lastPullPromise = null;
-let isLocalStale = false;
 
 /**
  * Fetch the latest db_timestamp from Supabase
@@ -90,7 +89,6 @@ async function pullLatestDb() {
       });
       if (!res.ok) {
         console.error('[DB Sync] Failed to fetch database file from Supabase:', res.status);
-        isLocalStale = true;
         return false;
       }
 
@@ -113,12 +111,10 @@ async function pullLatestDb() {
       // Write to write-safe path
       fs.writeFileSync(DB_PATH, dbBuffer);
       lastSyncTimestamp = remoteTS;
-      isLocalStale = false; // Successfully synced, clear stale status
       console.log(`[DB Sync] Database successfully synced to disk. Size: ${dbBuffer.length} bytes.`);
       return true;
     } catch (err) {
       console.error('[DB Sync] Critical failure during database pull:', err.message);
-      isLocalStale = true;
       return false;
     } finally {
       lastPullPromise = null;
@@ -138,17 +134,10 @@ async function pushLatestDb() {
       return false;
     }
 
-    // 1. OCC: Block push if the local container state is stale
-    if (isLocalStale) {
-      console.warn('[DB Sync OCC] Aborting push. Local container database is marked as stale.');
-      return false;
-    }
-
-    // 2. OCC: Fetch remote timestamp immediately before pushing to ensure no other container has updated it
+    // OCC: Fetch remote timestamp immediately before pushing to ensure no other container has updated it
     const remoteTS = await fetchRemoteTimestamp();
     if (remoteTS && remoteTS !== lastSyncTimestamp) {
       console.warn(`[DB Sync OCC] Aborting push. Remote database was updated by another container. Local TS: ${lastSyncTimestamp}, Remote TS: ${remoteTS}`);
-      isLocalStale = true; // Mark local container as stale to enforce next pull to sync first
       return false;
     }
 
@@ -171,7 +160,6 @@ async function pushLatestDb() {
 
     if (!dbRes.ok) {
       console.error('[DB Sync] Failed to upsert database payload to Supabase:', dbRes.status);
-      isLocalStale = true;
       return false;
     }
 
@@ -187,17 +175,14 @@ async function pushLatestDb() {
 
     if (!tsRes.ok) {
       console.error('[DB Sync] Failed to upsert timestamp status to Supabase:', tsRes.status);
-      isLocalStale = true;
       return false;
     }
 
     lastSyncTimestamp = newTS;
-    isLocalStale = false;
     console.log(`[DB Sync] Database push completed successfully. Timestamp: ${newTS}`);
     return true;
   } catch (err) {
     console.error('[DB Sync] Critical failure during database push:', err.message);
-    isLocalStale = true;
     return false;
   }
 }
@@ -206,7 +191,7 @@ module.exports = {
   DB_PATH,
   pullLatestDb,
   pushLatestDb,
-  getLastSyncTimestamp: () => lastSyncTimestamp,
-  getIsLocalStale: () => isLocalStale
+  getLastSyncTimestamp: () => lastSyncTimestamp
 };
+
 
