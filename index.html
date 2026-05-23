@@ -94,7 +94,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,
 .nav-right{display:flex;align-items:center;gap:12px}
 .nav-login{font-size:14px;font-weight:500;color:var(--gray-700);text-decoration:none;padding:8px 16px;border-radius:var(--radius-sm);transition:background .2s}
 .nav-login:hover{background:var(--gray-50)}
-.nav-cta{background:var(--orange);color:#fff;padding:9px 20px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;text-decoration:none;font-family:var(--font-display);letter-spacing:.3px;transition:background .2s,transform .15s}
+.nav-cta{background:var(--orange);color:#fff;padding:9px 20px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;text-decoration:none;font-family:var(--font-display);letter-spacing:.3px;transition:background .2s,transform .15s;display:inline-block;vertical-align:middle;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nav-cta:hover{background:var(--orange-deep);transform:translateY(-1px)}
 
 /* ── HERO ── */
@@ -419,6 +419,10 @@ body.dark-theme{
   --text-notif-title: var(--gray-900);
   --text-notif-desc: var(--gray-500);
 }
+body.dark-theme .status-tag.completed { background: rgba(46, 125, 50, 0.18) !important; color: #81C784 !important; }
+body.dark-theme .status-tag.expired { background: rgba(69, 90, 100, 0.22) !important; color: #B0BEC5 !important; }
+body.dark-theme .status-tag.disqualified { background: rgba(198, 40, 40, 0.20) !important; color: #E57373 !important; }
+body.dark-theme ::placeholder { color: #85847E !important; }
 body.dark-theme nav{background:rgba(12, 10, 9, 0.96);border-bottom-color:#2A2624}
 body.dark-theme .logo, body.dark-theme .logo span{color:#FFF}
 body.dark-theme .logo span{color:var(--orange)}
@@ -3107,12 +3111,19 @@ window.addEventListener('DOMContentLoaded', () => {
 
     if (savedUser && savedLoginTime) {
       const elapsed = Date.now() - parseInt(savedLoginTime, 10);
-      if (elapsed < 10 * 60 * 1000) { // 10 minutes
+      if (elapsed < 24 * 60 * 60 * 1000) { // 24 hours
         currentUser = JSON.parse(savedUser);
         if (currentUser && typeof currentUser.skillproof_score !== 'number') {
           currentUser.skillproof_score = 0;
         }
-        currentCompany = savedCompany ? JSON.parse(savedCompany) : null;
+        currentCompany = (savedCompany && savedCompany !== "null" && savedCompany !== "undefined") ? JSON.parse(savedCompany) : null;
+        if (!currentCompany && currentUser && currentUser.company_id) {
+          currentCompany = {
+            id: currentUser.company_id,
+            name: currentUser.company || 'Enterprise'
+          };
+          safeLocalStorage.setItem('skillproof_company', JSON.stringify(currentCompany));
+        }
         
         // Update rolling session timestamp
         safeLocalStorage.setItem('skillproof_login_time', Date.now());
@@ -3147,6 +3158,7 @@ window.addEventListener('DOMContentLoaded', () => {
         safeLocalStorage.removeItem('skillproof_user');
         safeLocalStorage.removeItem('skillproof_company');
         safeLocalStorage.removeItem('skillproof_login_time');
+        safeLocalStorage.removeItem('skillproof_session_token');
       }
     }
   } catch (err) {
@@ -3155,6 +3167,7 @@ window.addEventListener('DOMContentLoaded', () => {
       safeLocalStorage.removeItem('skillproof_user');
       safeLocalStorage.removeItem('skillproof_company');
       safeLocalStorage.removeItem('skillproof_login_time');
+      safeLocalStorage.removeItem('skillproof_session_token');
     } catch(e) {}
   }
 
@@ -3845,6 +3858,18 @@ function loadStudentDashboard() {
   
   const avatarLetter = document.getElementById('student-avatar-letter');
   if (avatarLetter) avatarLetter.innerText = currentUser.name.charAt(0).toUpperCase();
+
+  // Sync welcome title banner
+  const welcomeTitle = document.getElementById('home-welcome-title');
+  if (welcomeTitle) {
+    welcomeTitle.innerText = `Welcome back, ${currentUser.name}!`;
+  }
+
+  // Sync top right navbar CTA button name
+  const ctaBtn = document.getElementById('nav-cta-btn');
+  if (ctaBtn) {
+    ctaBtn.innerText = `Dashboard (${currentUser.name})`;
+  }
 
   const profileName = document.getElementById('student-profile-name');
   if (profileName) {
@@ -6664,6 +6689,12 @@ function switchRecruiterTab(tabName) {
 function loadRecruiterDashboard() {
   if (!currentUser) return;
   
+  // Sync top right navbar CTA button name
+  const ctaBtn = document.getElementById('nav-cta-btn');
+  if (ctaBtn) {
+    ctaBtn.innerText = `Dashboard (${currentUser.name})`;
+  }
+
   // Bind recruiter profile fields to Sidebar
   const avatarLetter = document.getElementById('recruiter-avatar-letter');
   if (avatarLetter) {
@@ -7100,6 +7131,14 @@ function addCandidateRow() {
 
 // Dispatch real exam invites to candidates
 async function runBulkDispatch() {
+  if (!currentCompany && currentUser && currentUser.company_id) {
+    currentCompany = {
+      id: currentUser.company_id,
+      name: currentUser.company || 'Enterprise'
+    };
+    safeLocalStorage.setItem('skillproof_company', JSON.stringify(currentCompany));
+  }
+
   if (!currentUser || !currentCompany) {
     alert('You must be logged in as a recruiter with a company account.');
     return;
