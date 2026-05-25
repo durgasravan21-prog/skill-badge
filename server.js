@@ -3213,6 +3213,62 @@ app.get('/api/profile/:slug', async (req, res) => {
   }
 });
 
+// ═══════════════════════════════════════════════════════════════
+// 17. BADGE VERIFICATION — Airtight Authenticator API (public)
+// ═══════════════════════════════════════════════════════════════
+app.get('/api/badge/verify', async (req, res) => {
+  try {
+    const badgeId = sanitizeString(req.query.badge_id || '', 50).trim();
+    if (!badgeId) {
+      return res.status(400).json({ error: 'Missing credential badge ID' });
+    }
+
+    const ss = await dbGet(
+      `SELECT ss.*, u.name as student_name, u.college, u.email as student_email, u.github_profile, u.linkedin_profile, s.name as skill_name
+       FROM student_skills ss
+       JOIN users u ON ss.student_id = u.id
+       JOIN skills s ON ss.skill_id = s.id
+       WHERE ss.id = ?`,
+      [badgeId]
+    );
+
+    if (ss) {
+      if (ss.status === 'verified') {
+        return res.json({
+          status: 'legitimate',
+          message: '🏆 LEGITIMATE CREDENTIAL: This SkillProof digital badge is authentic and officially verified.',
+          data: {
+            badge_id: ss.id,
+            student_name: ss.student_name,
+            college: ss.college || 'Self-Taught / University',
+            student_email: ss.student_email,
+            skill_name: ss.skill_name,
+            verified_score: ss.verified_score || 100.0,
+            verified_at: ss.verified_at,
+            verified_by: ss.verified_by,
+            badge_tag: ss.badge_tag,
+            github_profile: ss.github_profile,
+            linkedin_profile: ss.linkedin_profile
+          }
+        });
+      } else {
+        return res.json({
+          status: 'invalid',
+          message: '⚠️ INVALID CREDENTIAL: This badge record exists, but has not completed proctored verification review.'
+        });
+      }
+    }
+
+    res.json({
+      status: 'invalid',
+      message: '❌ FORGED OR FAKE CREDENTIAL: This badge ID does not match any official records in our secure ledger. Do not trust this credential.'
+    });
+  } catch (err) {
+    console.error('[Badge Verify Error]', err.message);
+    res.status(500).json({ error: 'Internal server error verifying credential' });
+  }
+});
+
 // ── NEW: PROFILE & SETTINGS PERSISTENCE ENDPOINTS ──
 
 // Student Profile & Settings Update Endpoint

@@ -1533,6 +1533,26 @@ body.dark-theme .smooth-modal-btn.ghost:hover { background: #171412; }
           <p>Dynamic talent aggregate score index recalculates on the user's secure server record.</p>
         </div>
       </div>
+
+      <!-- Public Digital Credential Ledger Authenticator -->
+      <div style="margin-top: 50px; background: var(--gray-50); border: 1.5px solid var(--gray-200); border-radius: 12px; padding: 32px; box-shadow: var(--shadow-sm); max-width: 900px; margin-left: auto; margin-right: auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:20px; text-align:left;">
+          <div style="max-width: 450px;">
+            <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(0,119,181,0.1); color: #0077B5; font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 4px 10px; border-radius: 100px; margin-bottom: 8px;">
+              🛡️ Decentralized Trust Ledger
+            </div>
+            <h3 style="font-family: var(--font-display); font-size: 20px; font-weight: 800; color: var(--gray-900); margin:0;">Public Badge Authenticator</h3>
+            <p style="font-size: 13px; color: var(--gray-600); margin: 6px 0 0 0; line-height:1.5;">Employers and recruiters can instantly check the cryptographic validity of any SkillProof verified badge. Simply copy and paste the candidate's Credential ID below.</p>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; flex:1; justify-content:flex-end; min-width:320px;">
+            <input type="text" id="public-verify-badge-id" placeholder="Enter Credential/Badge ID..." style="padding:12px 18px; border:1.5px solid var(--gray-200); border-radius:var(--radius-sm); font-size:13px; width:100%; max-width:300px; background:#FFF;" />
+            <button onclick="verifyBadgeAuthenticator('public')" class="btn-primary" style="padding:12px 24px; font-size:13px; font-weight:700;">Verify Cryptographic ID</button>
+          </div>
+        </div>
+        <div id="public-verify-result-box" style="display:none; margin-top:24px; border-radius:8px; padding:20px; font-size:13px; text-align:left; line-height:1.6;">
+          <!-- Verification result report populated here -->
+        </div>
+      </div>
     </div>
   </section>
 </div>
@@ -2171,6 +2191,23 @@ body.dark-theme .smooth-modal-btn.ghost:hover { background: #171412; }
               <!-- Dynamically populated activities -->
               <div style="font-size: 12px; color: var(--gray-400); padding: 4px 0;">[SYSTEM] Secure proctor console initialised.</div>
             </div>
+          </div>
+        </div>
+
+        <!-- Real-Time Credential Authenticator Section -->
+        <div class="admin-card" style="margin-top: 24px; border: 1.5px dashed var(--orange-deep);">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:12px;">
+            <div>
+              <h3 style="font-family: var(--font-display); font-size: 18px; font-weight: 800; color: var(--gray-900); margin:0;">🛡️ Real-Time Credential Authenticator</h3>
+              <p style="font-size: 13px; color: var(--gray-500); margin: 2px 0 0 0;">Instantly verify if a candidate's SkillProof badge ID is legitimate or forged.</p>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+              <input type="text" id="recruiter-verify-badge-id" placeholder="Enter Badge or Credential ID..." style="padding:10px 16px; border:1px solid var(--gray-200); border-radius:var(--radius-sm); font-size:13px; width:320px;" />
+              <button onclick="verifyBadgeAuthenticator('recruiter')" class="btn-primary" style="padding:10px 20px; font-size:13px; font-weight:700;">Verify Authenticity</button>
+            </div>
+          </div>
+          <div id="recruiter-verify-result-box" style="display:none; margin-top:16px; border-radius:8px; padding:16px; font-size:13px; font-family:var(--font-sans); line-height:1.6;">
+            <!-- Verification result report populated here -->
           </div>
         </div>
       </div>
@@ -4458,20 +4495,119 @@ Verify credential: ${shareUrl}
   window.open(url, '_blank');
 }
 
-function copyCredentialLink(badgeId) {
-  const shareUrl = `https://skill-badge-scanner.vercel.app/#/verify?badge_id=${encodeURIComponent(badgeId)}`;
-  navigator.clipboard.writeText(shareUrl).then(() => {
-    showToast('✓ Credential link copied to clipboard!', 'success');
-  }).catch(() => {
-    const el = document.createElement('textarea');
-    el.value = shareUrl;
-    document.body.appendChild(el);
-    el.select();
-    document.execCommand('copy');
-    document.body.removeChild(el);
-    showToast('✓ Credential link copied to clipboard!', 'success');
-  });
+async function verifyBadgeAuthenticator(context) {
+  const inputId = context === 'recruiter' ? 'recruiter-verify-badge-id' : 'public-verify-badge-id';
+  const resultBoxId = context === 'recruiter' ? 'recruiter-verify-result-box' : 'public-verify-result-box';
+
+  const inputEl = document.getElementById(inputId);
+  const resultBox = document.getElementById(resultBoxId);
+  if (!inputEl || !resultBox) return;
+
+  const badgeId = inputEl.value.trim();
+  if (!badgeId) {
+    showToast('⚠️ Please enter a valid Credential or Badge ID.', 'error');
+    return;
+  }
+
+  resultBox.style.display = 'block';
+  resultBox.style.background = 'var(--gray-50)';
+  resultBox.style.border = '1px solid var(--gray-200)';
+  resultBox.style.color = 'var(--gray-700)';
+  resultBox.innerHTML = '<div style="display:flex; align-items:center; gap:8px;">⏳ Connecting to secure ledger database...</div>';
+
+  try {
+    const res = await fetch(`/api/badge/verify?badge_id=${encodeURIComponent(badgeId)}`);
+    const data = await res.json();
+
+    if (!res.ok || data.status === 'invalid') {
+      resultBox.style.background = '#FFEBEE';
+      resultBox.style.border = '1.5px solid #EF5350';
+      resultBox.style.color = '#C62828';
+      resultBox.innerHTML = `
+        <div style="font-weight:700; font-size:14px; margin-bottom:4px;">❌ Cryptographic Verification Failed</div>
+        <div>${escapeHTML(data.message || 'The provided credential ID does not match any authenticated skill badge.')}</div>
+      `;
+      return;
+    }
+
+    const ss = data.data;
+    const dateFormatted = new Date(ss.verified_at).toLocaleDateString('en-GB', {
+      day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+
+    let verifiersHTML = '';
+    const verifiersList = ss.badge_tag.includes('Verified by ')
+      ? ss.badge_tag.split('Verified by ')[1].split(', ').map(v => v.trim())
+      : [ss.verified_by];
+
+    verifiersList.forEach(v => {
+      const name = v === 'SkillProof Head Admin' ? 'SkillProof' : v;
+      verifiersHTML += `<span style="display:inline-flex; align-items:center; background:#FFF9C4; color:#F57F17; border:1px solid #FBC02D; font-size:11px; font-weight:800; padding:4px 8px; border-radius:6px; margin-right:6px; margin-top:4px;">🏆 ${escapeHTML(name)} Verified</span>`;
+    });
+
+    let linksHTML = '';
+    if (ss.github_profile) {
+      linksHTML += `<a href="${escapeHTML(ss.github_profile)}" target="_blank" style="display:inline-flex; align-items:center; background:#24292E; color:#FFF; font-size:11px; font-weight:700; padding:4px 8px; border-radius:6px; text-decoration:none; margin-right:6px; margin-top:4px;">💻 GitHub</a>`;
+    }
+    if (ss.linkedin_profile) {
+      linksHTML += `<a href="${escapeHTML(ss.linkedin_profile)}" target="_blank" style="display:inline-flex; align-items:center; background:#0077B5; color:#FFF; font-size:11px; font-weight:700; padding:4px 8px; border-radius:6px; text-decoration:none; margin-top:4px;">🔗 LinkedIn</a>`;
+    }
+
+    resultBox.style.background = '#E8F5E9';
+    resultBox.style.border = '1.5px solid #4CAF50';
+    resultBox.style.color = '#2E7D32';
+    resultBox.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; border-bottom:1px solid rgba(76,175,80,0.2); padding-bottom:10px; margin-bottom:12px;">
+        <div style="font-weight:800; font-size:15px; display:flex; align-items:center; gap:6px;">
+          ✅ CRYPTOGRAPHIC VALIDITY CONFIRMED
+        </div>
+        <div style="font-size:11px; font-weight:700; background:#4CAF50; color:#FFF; padding:2px 8px; border-radius:4px; text-transform:uppercase;">Authentic</div>
+      </div>
+      <div style="display:grid; grid-template-columns:120px 1fr; gap:8px; line-height:1.6;">
+        <strong style="color:#1B5E20;">Candidate Name:</strong> <span>${escapeHTML(ss.student_name)}</span>
+        <strong style="color:#1B5E20;">Affiliation:</strong> <span>${escapeHTML(ss.college)}</span>
+        <strong style="color:#1B5E20;">Verified Skill:</strong> <strong>${escapeHTML(ss.skill_name)}</strong>
+        <strong style="color:#1B5E20;">Evaluation Score:</strong> <span style="font-weight:700;">${escapeHTML(String(ss.verified_score))}/100</span>
+        <strong style="color:#1B5E20;">Issued Ledger ID:</strong> <span style="font-family:monospace; font-size:11px; background:rgba(255,255,255,0.6); padding:2px 6px; border-radius:4px; word-break:break-all;">${escapeHTML(ss.badge_id)}</span>
+        <strong style="color:#1B5E20;">Verification Date:</strong> <span>${escapeHTML(dateFormatted)}</span>
+        <strong style="color:#1B5E20;">Issued Badges:</strong> <div style="display:flex; flex-wrap:wrap;">${verifiersHTML}</div>
+        ${linksHTML ? `<strong style="color:#1B5E20;">Student Links:</strong> <div style="display:flex; flex-wrap:wrap;">${linksHTML}</div>` : ''}
+      </div>
+    `;
+
+    showToast('✓ Cryptographic validity successfully verified!', 'success');
+  } catch (err) {
+    resultBox.style.background = '#FFEBEE';
+    resultBox.style.border = '1.5px solid #EF5350';
+    resultBox.style.color = '#C62828';
+    resultBox.innerHTML = `
+      <div style="font-weight:700; font-size:14px; margin-bottom:4px;">❌ Verification Connection Error</div>
+      <div>Could not establish connection to the SkillProof database ledger: ${escapeHTML(err.message)}</div>
+    `;
+  }
 }
+
+// Handle direct verification link sharing
+const checkUrlVerification = () => {
+  const hash = window.location.hash || '';
+  if (hash.includes('badge_id=')) {
+    const match = hash.match(/badge_id=([^&]+)/);
+    if (match && match[1]) {
+      const badgeId = decodeURIComponent(match[1]);
+      showView('landing');
+      const inputEl = document.getElementById('public-verify-badge-id');
+      if (inputEl) {
+        inputEl.value = badgeId;
+        setTimeout(() => {
+          inputEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          verifyBadgeAuthenticator('public');
+        }, 800);
+      }
+    }
+  }
+};
+window.addEventListener('hashchange', checkUrlVerification);
+window.addEventListener('load', () => { setTimeout(checkUrlVerification, 1000); });
 
 function resetProgressSteps() {
   document.getElementById('prog-step-easy').className = 'progress-step';
