@@ -1128,6 +1128,171 @@ body.dark-theme .smooth-modal-btn.ghost:hover { background: #171412; }
   border-color: var(--orange);
   box-shadow: 0 0 0 3px rgba(230,81,0,0.15);
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   💎 PREMIUM MASTERCLASS DASHBOARD VISUAL OVERRIDES & ACCENTS 
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Unified Glassmorphism & Elastic Transition System */
+.admin-card, .workspace-card, .premium-metric-card, .verified-skill-row, .student-profile-card, .proctor-box {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.3s ease, 
+              background 0.3s ease;
+  will-change: transform, box-shadow;
+}
+
+/* Smooth Premium Hover Scaling & Glow Effect */
+.admin-card:hover, .workspace-card:hover, .student-profile-card:hover {
+  transform: translateY(-5px) scale(1.002);
+  box-shadow: 0 20px 40px rgba(28, 26, 23, 0.04), 0 1px 3px rgba(28, 26, 23, 0.02);
+  border-color: var(--orange-mid);
+}
+
+body.dark-theme .admin-card:hover, body.dark-theme .workspace-card:hover, body.dark-theme .student-profile-card:hover {
+  transform: translateY(-5px) scale(1.002);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5), 0 0 2px rgba(230, 81, 0, 0.2);
+  border-color: rgba(230, 81, 0, 0.25);
+}
+
+/* Upgraded Premium Metric Cards */
+.premium-metric-card {
+  position: relative;
+  overflow: hidden;
+  border-left: 3px solid var(--orange-mid);
+}
+.premium-metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(135deg, rgba(230, 81, 0, 0.03) 0%, transparent 60%);
+  pointer-events: none;
+}
+.premium-metric-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: var(--shadow-lg);
+  border-left-color: var(--orange);
+  border-color: var(--orange-mid);
+}
+body.dark-theme .premium-metric-card {
+  border-left-color: rgba(230, 81, 0, 0.3);
+}
+body.dark-theme .premium-metric-card:hover {
+  border-left-color: var(--orange);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.4);
+}
+
+/* Masterclass Floating Active Navigation Tabs */
+.student-nav-menu {
+  padding: 10px;
+  background: var(--white);
+  border: 1px solid var(--gray-100);
+}
+.student-nav-item {
+  position: relative;
+  border-left: 3px solid transparent !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: var(--radius-sm) !important;
+  padding-left: 14px;
+}
+.student-nav-item:hover {
+  background: var(--orange-light) !important;
+  color: var(--orange-deep) !important;
+  padding-left: 18px;
+}
+body.dark-theme .student-nav-item:hover {
+  background: rgba(230, 81, 0, 0.08) !important;
+  color: #FF8A65 !important;
+}
+.student-nav-item.active {
+  background: linear-gradient(90deg, rgba(230, 81, 0, 0.08) 0%, rgba(230, 81, 0, 0.02) 100%) !important;
+  border-left: 3.5px solid var(--orange) !important;
+  color: var(--orange-deep) !important;
+  font-weight: 800;
+  padding-left: 18px !important;
+  box-shadow: inset 1px 0 0 rgba(230, 81, 0, 0.1);
+}
+body.dark-theme .student-nav-item.active {
+  background: linear-gradient(90deg, rgba(230, 81, 0, 0.15) 0%, rgba(230, 81, 0, 0.03) 100%) !important;
+  color: #FF8A65 !important;
+  border-left-color: var(--orange);
+}
+
+/* Premium Gold Badge & Verification Row Accent */
+.verified-skill-row {
+  border-left: 4px solid var(--orange) !important;
+  position: relative;
+}
+.verified-skill-row::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0; width: 6px;
+  background: linear-gradient(180deg, var(--orange-mid) 0%, transparent 100%);
+  opacity: 0.3;
+  border-top-right-radius: var(--radius-lg);
+  border-bottom-right-radius: var(--radius-lg);
+}
+
+/* Dynamic Interactive Shuffling Progress Indicator */
+.progress-container {
+  border-left: 3px solid var(--orange);
+  background: linear-gradient(90deg, var(--orange-light) 0%, var(--white) 100%);
+}
+body.dark-theme .progress-container {
+  background: linear-gradient(90deg, rgba(230, 81, 0, 0.05) 0%, var(--white) 100%);
+}
+.progress-step {
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.progress-step.active {
+  transform: scale(1.15);
+  box-shadow: 0 0 0 4px rgba(230, 81, 0, 0.18);
+  font-weight: 900;
+}
+.progress-step.passed {
+  animation: stepPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes stepPop {
+  0% { transform: scale(0.8); }
+  100% { transform: scale(1); }
+}
+
+/* Premium Interactive CTA Buttons */
+.btn-primary, .btn-secondary {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-primary:active, .btn-secondary:active {
+  transform: scale(0.97) translateY(0);
+}
+
+/* Sleek WebRTC Proctoring Camera Portal Glow */
+.proctor-box {
+  border: 1.5px solid var(--gray-200);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+}
+.proctor-box::after {
+  content: 'LIVE STREAM';
+  position: absolute;
+  top: 12px; left: 12px;
+  font-family: var(--font-display);
+  font-size: 9px; font-weight: 800;
+  letter-spacing: 1px;
+  background: #E53935; color: #FFF;
+  padding: 3px 8px; border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(229, 57, 53, 0.4);
+  animation: liveBlink 2s infinite ease-in-out;
+}
+@keyframes liveBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Input Fields Enhancement */
+.admin-card input[type="text"], .admin-card input[type="number"], .admin-card select, .admin-card textarea {
+  transition: border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
 </style>
 
 <!-- TensorFlow.js + COCO-SSD for real-time phone detection -->
