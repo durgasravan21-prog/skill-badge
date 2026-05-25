@@ -1602,6 +1602,7 @@ body.dark-theme .smooth-modal-btn.ghost:hover { background: #171412; }
         <div class="student-name" id="student-profile-name">Student Name</div>
         <div class="student-email-tag" id="student-profile-email">email@domain.com</div>
         <div class="student-slug" id="student-profile-slug">Personal slug: ...</div>
+        <div id="student-profile-links" style="margin-top: 10px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;"></div>
         
         <!-- Score Rating Index horizontal bar display -->
         <div style="margin-top: 20px; border-top: 1px solid var(--gray-100); padding-top: 16px; text-align: left;">
@@ -2593,6 +2594,16 @@ SkillProof HR Recruiting Team</textarea>
       <div class="oauth-field-group" style="margin-top: 16px;">
         <label style="font-weight: 700; color: var(--gray-700);">College / University Name</label>
         <input type="text" id="student-onboard-college" placeholder="e.g. Indian Institute of Technology, Madras" style="background: var(--bg-input); border: 1.5px solid var(--border-color); color: var(--gray-900); padding: 12px; width: 100%; border-radius: var(--radius-sm); outline: none;" />
+      </div>
+      
+      <div class="oauth-field-group" style="margin-top: 16px;">
+        <label style="font-weight: 700; color: var(--gray-700);">GitHub Profile URL (Required)</label>
+        <input type="text" id="student-onboard-github" placeholder="e.g. https://github.com/yourusername" style="background: var(--bg-input); border: 1.5px solid var(--border-color); color: var(--gray-900); padding: 12px; width: 100%; border-radius: var(--radius-sm); outline: none;" />
+      </div>
+      
+      <div class="oauth-field-group" style="margin-top: 16px;">
+        <label style="font-weight: 700; color: var(--gray-700);">LinkedIn Profile URL (Required)</label>
+        <input type="text" id="student-onboard-linkedin" placeholder="e.g. https://linkedin.com/in/yourusername" style="background: var(--bg-input); border: 1.5px solid var(--border-color); color: var(--gray-900); padding: 12px; width: 100%; border-radius: var(--radius-sm); outline: none;" />
       </div>
       
       <div style="margin-top: 24px;">
@@ -3701,9 +3712,25 @@ function closeStudentOnboardingModal() {
 function submitStudentOnboarding() {
   const phone = document.getElementById('student-onboard-phone').value.trim();
   const college = document.getElementById('student-onboard-college').value.trim();
+  const github = document.getElementById('student-onboard-github').value.trim();
+  const linkedin = document.getElementById('student-onboard-linkedin').value.trim();
 
   if (!phone || !college) {
     alert('Please fill out both your phone number and your college/university.');
+    return;
+  }
+
+  // Link validation (GitHub & LinkedIn)
+  const githubRegex = /^(https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9_-]+\/?$/i;
+  const linkedinRegex = /^(https?:\/\/)?([a-z]{2,3}\.)?linkedin\.com\/(in|pub|profile)\/[a-zA-Z0-9_-]+\/?$/i;
+
+  if (!github || !githubRegex.test(github)) {
+    alert('❌ Please enter a valid GitHub profile URL (e.g. https://github.com/yourusername). Other websites are not accepted.');
+    return;
+  }
+
+  if (!linkedin || !linkedinRegex.test(linkedin)) {
+    alert('❌ Please enter a valid LinkedIn profile URL (e.g. https://linkedin.com/in/yourusername). Other websites are not accepted.');
     return;
   }
 
@@ -3720,7 +3747,9 @@ function submitStudentOnboarding() {
     body: JSON.stringify({
       student_email: currentUser.email,
       phone: phone,
-      college: college
+      college: college,
+      github_profile: github,
+      linkedin_profile: linkedin
     })
   })
   .then(res => res.json())
@@ -3975,6 +4004,17 @@ function loadStudentDashboard() {
   const profileSlug = document.getElementById('student-profile-slug');
   if (profileSlug) profileSlug.innerText = `Personal slug: ${currentUser.profile_slug}`;
 
+  const profileLinks = document.getElementById('student-profile-links');
+  if (profileLinks) {
+    profileLinks.innerHTML = '';
+    if (currentUser.github_profile) {
+      profileLinks.innerHTML += `<a href="${escapeHTML(currentUser.github_profile)}" target="_blank" style="display:inline-flex; align-items:center; background:#1C1A17; color:#F5F4F0; border:1px solid #333; font-size:11px; font-weight:700; padding:4px 8px; border-radius:6px; text-decoration:none; margin-right:4px;">💻 GitHub</a>`;
+    }
+    if (currentUser.linkedin_profile) {
+      profileLinks.innerHTML += `<a href="${escapeHTML(currentUser.linkedin_profile)}" target="_blank" style="display:inline-flex; align-items:center; background:#0077B5; color:#FFF; font-size:11px; font-weight:700; padding:4px 8px; border-radius:6px; text-decoration:none;">🔗 LinkedIn</a>`;
+    }
+  }
+
   const sidebarScore = document.getElementById('student-sidebar-score');
   if (sidebarScore) sidebarScore.innerText = currentUser.skillproof_score.toFixed(2);
 
@@ -4202,15 +4242,29 @@ function renderProgressiveVerifier(claimed) {
     if (c.status === 'verified' && c.badge_tag) {
       const badge = document.createElement('div');
       badge.className = 'verified-skill-row';
-      const verifiedByLabel = c.verified_by || 'SkillProof AI';
-      const goldBadgeHTML = (c.verified_score >= 60 || c.status === 'verified')
-        ? ` <span class="certified-gold-badge" style="margin-left: 8px;">🏆 ${escapeHTML(verifiedByLabel)} Verified</span>`
-        : '';
+      
+      let verifiers = [];
+      if (c.badge_tag.includes('Verified by ')) {
+        const parts = c.badge_tag.split('Verified by ')[1];
+        verifiers = parts.split(', ').map(v => v.trim()).filter(Boolean);
+      } else {
+        verifiers = [c.verified_by || 'SkillProof AI'];
+      }
+      
+      let goldBadgesHTML = '';
+      verifiers.forEach(v => {
+        const label = v === 'SkillProof Head Admin' ? 'SkillProof' : v;
+        goldBadgesHTML += ` <span class="certified-gold-badge" style="margin-left: 8px; display: inline-flex; align-items: center; gap: 4px;">🏆 ${escapeHTML(label)} Verified</span>`;
+      });
+
       const scoreLabel = c.verified_score ? ` · Score: ${escapeHTML(String(c.verified_score))}/100` : '';
       badge.innerHTML = `
         <div>
-          <strong style="font-size:16px;">${escapeHTML(c.skill_name)}${goldBadgeHTML}</strong>
-          <div style="font-size:12px; color:var(--gray-500); margin-top:2px;">Verified by ${escapeHTML(verifiedByLabel)}${scoreLabel}</div>
+          <strong style="font-size:16px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+            ${escapeHTML(c.skill_name)}
+            ${goldBadgesHTML}
+          </strong>
+          <div style="font-size:12px; color:var(--gray-500); margin-top:2px;">Verified by ${escapeHTML(verifiers.join(', '))}${scoreLabel}</div>
         </div>
         <span class="verified-tag">${escapeHTML(c.badge_tag)}</span>
       `;
@@ -4548,11 +4602,13 @@ async function captureIdVerifyPhoto() {
 
   // ── Person count check BEFORE accepting selfie ──
   if (idVerifyCurrentStep === 1) {
-    const detectionOk = await _verifyPersonCount(video, photoData);
+    const detectionOk = await _verifyPersonCount(video);
     if (!detectionOk) return; // Message already shown inside
     capturedSelfiePhotoData = photoData;
     document.getElementById('id-verify-preview-label').textContent = '✅ Selfie captured — face clearly visible';
   } else {
+    const idOk = await _verifyIdDocument(video);
+    if (!idOk) return;
     capturedIdPhotoData = photoData;
     document.getElementById('id-verify-preview-label').textContent = '✅ Govt ID captured successfully';
   }
@@ -4573,18 +4629,47 @@ async function _verifyPersonCount(video) {
   }
   try {
     const predictions = await phoneDetectionModel.detect(video);
-    const persons = predictions.filter(p => p.class === 'person' && p.score >= 0.45);
+    const persons = predictions.filter(p => p.class === 'person' && p.score >= 0.60);
     if (persons.length === 0) {
-      alert('❌ No person detected in the frame. Please ensure your face is clearly visible, well-lit, and looking at the camera. Try again.');
+      alert('❌ No face or person detected clearly. Please ensure your face is well-lit, directly looking at the camera, and fully visible, then try again.');
       return false;
     }
     if (persons.length > 1) {
-      alert(`🚫 ${persons.length} people detected in the frame. Only the exam candidate should be visible. Please ensure you are alone and retry.`);
+      alert(`🚫 Multiple people (${persons.length}) detected in the frame. Only the exam candidate should be visible. Please ensure you are alone and retry.`);
       return false;
     }
     return true; // Exactly 1 person — pass
   } catch (err) {
     console.warn('[ID Verify] Person detection error:', err);
+    return true; // Soft pass on error
+  }
+}
+
+async function _verifyIdDocument(video) {
+  if (!phoneDetectionModel) {
+    console.warn('[ID Verify] COCO-SSD model not loaded — skipping ID document validation');
+    return true;
+  }
+  try {
+    const predictions = await phoneDetectionModel.detect(video);
+    
+    // Check for cell phone, laptop, keyboard, mouse, remote which are forbidden in ID scans
+    const invalidItems = predictions.filter(p => ['cell phone', 'laptop', 'keyboard', 'mouse', 'remote'].includes(p.class) && p.score >= 0.4);
+    if (invalidItems.length > 0) {
+      alert('❌ Invalid electronic device detected (e.g. phone or laptop screen). Please present only your physical Government ID card to the camera, and remove all other objects.');
+      return false;
+    }
+
+    // Ensure candidate is present holding the ID card
+    const persons = predictions.filter(p => p.class === 'person' && p.score >= 0.45);
+    if (persons.length === 0) {
+      alert('❌ Candidate face/person not detected in the frame. Please hold the ID card next to your face so both are visible, and try again.');
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.warn('[ID Verify] ID validation error:', err);
     return true; // Soft pass on error
   }
 }
@@ -6609,6 +6694,20 @@ function loadAdminHistory() {
             ? `<button onclick="grantExtraAttempt('${escapeHTML(exam.student_email)}', '${escapeHTML(exam.skill_id)}')" class="btn-secondary" style="padding: 6px; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 4px; width: 100%; border: 1px solid var(--orange-mid); background: #FFF; color: var(--orange-deep); font-weight:800;">➕ Grant Extra Attempt</button>`
             : `<button disabled class="btn-ghost" style="padding: 6px; font-size: 11px; font-weight: 700; cursor: not-allowed; display: flex; align-items: center; justify-content: center; border-radius: 4px; width: 100%; border: 1px solid var(--gray-100); background: var(--gray-50); color: var(--gray-400); opacity: 0.6;">Attempts Remaining</button>`;
 
+          const verifierLabel = currentCompany ? currentCompany.name : 'SkillProof Head Admin';
+          const isAlreadyAwarded = exam.student_badge_tag && exam.student_badge_tag.includes(verifierLabel);
+
+          let profileLinksHTML = '';
+          if (exam.github_profile) {
+            profileLinksHTML += ` <a href="${escapeHTML(exam.github_profile)}" target="_blank" style="display:inline-flex; align-items:center; background:#1C1A17; color:#F5F4F0; border:1px solid #333; font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px; margin-top:4px; text-decoration:none; margin-right:4px;">💻 GitHub</a>`;
+          }
+          if (exam.linkedin_profile) {
+            profileLinksHTML += ` <a href="${escapeHTML(exam.linkedin_profile)}" target="_blank" style="display:inline-flex; align-items:center; background:#0077B5; color:#FFF; font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px; margin-top:4px; text-decoration:none;">🔗 LinkedIn</a>`;
+          }
+          if (profileLinksHTML) {
+            profileLinksHTML = `<div style="margin-top: 4px;">${profileLinksHTML}</div>`;
+          }
+
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td style="text-align: center;">
@@ -6617,6 +6716,7 @@ function loadAdminHistory() {
             <td>
               <strong>${escapeHTML(exam.student_name)}${goldBadgeHTML}${deviceFlagHTML}</strong><br/>
               <span style="color:var(--gray-500); font-size:11px">${escapeHTML(exam.student_email)}</span>
+              ${profileLinksHTML}
             </td>
             <td>
               <strong>${escapeHTML(exam.skill_name || 'Technical Test')}</strong><br/>
@@ -6632,8 +6732,8 @@ function loadAdminHistory() {
             <td><strong>${exam.status === 'disqualified' ? 'Result Withheld' : finalScore + '/100'}</strong></td>
             <td>
               <div style="display: flex; flex-direction: column; gap: 8px;">
-                <button onclick="viewCandidateCode('${exam.examId}')" class="btn-ghost" ${exam.status === 'badge_awarded' ? 'disabled' : ''} style="padding: 6px; font-size: 11px; font-weight: 700; cursor: ${exam.status === 'badge_awarded' ? 'not-allowed' : 'pointer'}; display: flex; align-items: center; justify-content: center; gap: 4px; border-radius: 4px; width: 100%; border: 1px solid var(--gray-200); opacity: ${exam.status === 'badge_awarded' ? '0.5' : '1'};">
-                  ${exam.status === 'badge_awarded' ? '🏆 Badge Awarded' : '💻 View Code & Award Badge'}
+                <button onclick="viewCandidateCode('${exam.examId}')" class="btn-ghost" ${isAlreadyAwarded ? 'disabled' : ''} style="padding: 6px; font-size: 11px; font-weight: 700; cursor: ${isAlreadyAwarded ? 'not-allowed' : 'pointer'}; display: flex; align-items: center; justify-content: center; gap: 4px; border-radius: 4px; width: 100%; border: 1px solid var(--gray-200); opacity: ${isAlreadyAwarded ? '0.5' : '1'};">
+                  ${isAlreadyAwarded ? `🏆 Awarded by ${verifierLabel}` : '💻 View Code & Award Badge'}
                 </button>
                 <button onclick="triggerInviteForCandidate('${exam.examId}')" class="btn-primary" style="padding: 6px; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 4px; width: 100%; border: none; background: var(--orange-deep); color: #fff;">
                   ✉️ Invite to Next Round

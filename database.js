@@ -184,6 +184,14 @@ async function createSchema() {
     // Column already exists, safe to ignore
   }
 
+  try {
+    await runAsync(`ALTER TABLE users ADD COLUMN github_profile TEXT;`);
+  } catch (err) {}
+
+  try {
+    await runAsync(`ALTER TABLE users ADD COLUMN linkedin_profile TEXT;`);
+  } catch (err) {}
+
   await runAsync(`CREATE TABLE IF NOT EXISTS skills (
     id       TEXT PRIMARY KEY,
     name     TEXT NOT NULL,

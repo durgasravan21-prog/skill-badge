@@ -936,6 +936,8 @@ app.post('/api/student/onboard', async (req, res) => {
     const studentEmail = sanitizeString(req.body.student_email, 254).toLowerCase();
     const phone = sanitizeString(req.body.phone, 30);
     const college = sanitizeString(req.body.college, 150);
+    const githubProfile = sanitizeString(req.body.github_profile || '', 200).trim();
+    const linkedinProfile = sanitizeString(req.body.linkedin_profile || '', 200).trim();
 
     if (!studentEmail) {
       return res.status(400).json({ error: 'Missing student email' });
@@ -944,9 +946,20 @@ app.post('/api/student/onboard', async (req, res) => {
     const student = await ensureStudentExists(studentEmail);
     if (!student) return res.status(404).json({ error: 'Student not found' });
 
+    // Server-side link validation
+    const githubRegex = /^(https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9_-]+\/?$/i;
+    const linkedinRegex = /^(https?:\/\/)?([a-z]{2,3}\.)?linkedin\.com\/(in|pub|profile)\/[a-zA-Z0-9_-]+\/?$/i;
+
+    if (githubProfile && !githubRegex.test(githubProfile)) {
+      return res.status(400).json({ error: 'Invalid GitHub profile URL link' });
+    }
+    if (linkedinProfile && !linkedinRegex.test(linkedinProfile)) {
+      return res.status(400).json({ error: 'Invalid LinkedIn profile URL link' });
+    }
+
     await dbRun(
-      'UPDATE users SET phone = ?, college = ? WHERE id = ?',
-      [phone, college, student.id]
+      'UPDATE users SET phone = ?, college = ?, github_profile = ?, linkedin_profile = ? WHERE id = ?',
+      [phone, college, githubProfile || null, linkedinProfile || null, student.id]
     );
 
     const updatedUser = await dbGet('SELECT * FROM users WHERE id = ?', [student.id]);
@@ -1513,9 +1526,14 @@ app.post('/api/exams/submit', authenticateSession, async (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 // 5. EXAM HISTORY — COMPANY-ISOLATED (Multi-Tenant)
 // ═══════════════════════════════════════════════════════════════
-app.get('/api/exams/history', async (req, res) => {
+app.get('/api/exams/history', authenticateSession, async (req, res) => {
   try {
-    const companyId = sanitizeString(req.query.company_id, 50);
+    if (req.user.role !== 'recruiter' && req.user.role !== 'owner') {
+      return res.status(403).json({ error: 'Forbidden: Access denied.' });
+    }
+
+    const isHeadAdmin = req.user.email.toLowerCase() === HEAD_ADMIN_EMAIL || req.user.company_id === 'admin-company-uuid';
+    const companyId = isHeadAdmin ? sanitizeString(req.query.company_id, 50) : req.user.company_id;
 
     // Base query — use subqueries for latest submission and evaluation to prevent duplicate rows
     let sql = `SELECT c.id as examId, c.status, c.violations_count, c.started_at, c.submitted_at,
@@ -1523,7 +1541,8 @@ app.get('/api/exams/history', async (req, res) => {
                       c.joins_count, c.max_joins,
                       (SELECT COUNT(*) FROM challenges WHERE student_id = c.student_id AND skill_id = c.skill_id) as attempts_count,
                       (SELECT COALESCE(extra_attempts, 0) FROM student_skills WHERE student_id = c.student_id AND skill_id = c.skill_id) as extra_attempts,
-                      u.name as student_name, u.email as student_email,
+                      (SELECT badge_tag FROM student_skills WHERE student_id = c.student_id AND skill_id = c.skill_id) as student_badge_tag,
+                      u.name as student_name, u.email as student_email, u.github_profile, u.linkedin_profile,
                       COALESCE(q.title, 'Technical Assessment') as question_title,
                       sk.name as skill_name,
                       e.total_score as score, e.ai_summary,
@@ -1537,20 +1556,37 @@ app.get('/api/exams/history', async (req, res) => {
 
     let params = [];
 
-    // MULTI-TENANT ISOLATION: If company_id provided, only show that company's data
-    // If it is the special admin company, let the owner view everything!
-    if (companyId && companyId !== 'admin-company-uuid') {
-      sql += ` WHERE (
-        c.company_id = ?
-        OR (
-          c.company_id IS NULL
-          AND c.student_id IN (
-            SELECT invited_student_id FROM exam_schedules 
-            WHERE company_id = ? AND invited_student_id IS NOT NULL AND skill_id = c.skill_id
+    // MULTI-TENANT ISOLATION
+    if (isHeadAdmin) {
+      if (companyId && companyId !== 'admin-company-uuid') {
+        sql += ` WHERE (
+          c.company_id = ?
+          OR (
+            c.company_id IS NULL
+            AND c.student_id IN (
+              SELECT invited_student_id FROM exam_schedules 
+              WHERE company_id = ? AND invited_student_id IS NOT NULL AND skill_id = c.skill_id
+            )
           )
-        )
-      )`;
-      params.push(companyId, companyId);
+        )`;
+        params.push(companyId, companyId);
+      }
+    } else {
+      if (companyId) {
+        sql += ` WHERE (
+          c.company_id = ?
+          OR (
+            c.company_id IS NULL
+            AND c.student_id IN (
+              SELECT invited_student_id FROM exam_schedules 
+              WHERE company_id = ? AND invited_student_id IS NOT NULL AND skill_id = c.skill_id
+            )
+          )
+        )`;
+        params.push(companyId, companyId);
+      } else {
+        sql += ` WHERE 1=0`;
+      }
     }
 
     sql += ' ORDER BY c.started_at DESC';
@@ -1678,11 +1714,9 @@ app.post('/api/recruiter/send-bulk-email', bulkLimiter, async (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 // 6B. IN-APP NOTIFICATIONS API
 // ═══════════════════════════════════════════════════════════════
-app.get('/api/notifications', async (req, res) => {
+app.get('/api/notifications', authenticateSession, async (req, res) => {
   try {
-    const userId = sanitizeString(req.query.user_id, 50);
-    if (!userId) return res.status(400).json({ error: 'Missing user_id' });
-
+    const userId = req.user.id;
     const notifications = await dbAll(
       `SELECT * FROM notifications WHERE recipient_id = ? ORDER BY created_at DESC LIMIT 50`,
       [userId]
@@ -1694,11 +1728,9 @@ app.get('/api/notifications', async (req, res) => {
   }
 });
 
-app.get('/api/notifications/unread-count', async (req, res) => {
+app.get('/api/notifications/unread-count', authenticateSession, async (req, res) => {
   try {
-    const userId = sanitizeString(req.query.user_id, 50);
-    if (!userId) return res.status(400).json({ error: 'Missing user_id' });
-
+    const userId = req.user.id;
     const result = await dbGet(
       `SELECT COUNT(*) as count FROM notifications WHERE recipient_id = ? AND is_read = 0`,
       [userId]
@@ -1709,13 +1741,14 @@ app.get('/api/notifications/unread-count', async (req, res) => {
   }
 });
 
-app.post('/api/notifications/mark-read', async (req, res) => {
+app.post('/api/notifications/mark-read', authenticateSession, async (req, res) => {
   try {
-    const { notification_id, user_id } = req.body;
+    const userId = req.user.id;
+    const { notification_id } = req.body;
     if (notification_id) {
-      await dbRun('UPDATE notifications SET is_read = 1 WHERE id = ? AND recipient_id = ?', [notification_id, user_id]);
-    } else if (user_id) {
-      await dbRun('UPDATE notifications SET is_read = 1 WHERE recipient_id = ?', [user_id]);
+      await dbRun('UPDATE notifications SET is_read = 1 WHERE id = ? AND recipient_id = ?', [notification_id, userId]);
+    } else {
+      await dbRun('UPDATE notifications SET is_read = 1 WHERE recipient_id = ?', [userId]);
     }
     res.json({ message: 'Marked as read' });
   } catch (err) {
@@ -1748,8 +1781,9 @@ app.post('/api/recruiter/dispatch-and-evaluate', bulkLimiter, async (req, res) =
       return res.status(400).json({ error: 'Maximum 500 candidates per batch' });
     }
 
-    const companyId = sanitizeString(company_id, 50) || null;
-    let recruiterId = sanitizeString(recruiter_id, 50) || null;
+    const isHeadAdmin = req.user.email.toLowerCase() === HEAD_ADMIN_EMAIL || req.user.company_id === 'admin-company-uuid';
+    const companyId = isHeadAdmin ? (sanitizeString(company_id, 50) || null) : req.user.company_id;
+    let recruiterId = isHeadAdmin ? (sanitizeString(recruiter_id, 50) || null) : req.user.id;
     const results = [];
     const now = new Date().toISOString();
 
@@ -2017,25 +2051,41 @@ app.post('/api/exams/join', async (req, res) => {
 
 app.get('/api/recruiter/schedules', async (req, res) => {
   try {
-    const companyId = sanitizeString(req.query.company_id, 50);
+    const isHeadAdmin = req.user.email.toLowerCase() === HEAD_ADMIN_EMAIL || req.user.company_id === 'admin-company-uuid';
+    const companyId = isHeadAdmin ? sanitizeString(req.query.company_id, 50) : req.user.company_id;
 
     let schedules;
-    if (!companyId || companyId === 'admin-company-uuid') {
-      schedules = await dbAll(
-        `SELECT es.*, s.name as skill_name
-         FROM exam_schedules es
-         JOIN skills s ON es.skill_id = s.id
-         ORDER BY es.start_time DESC`
-      );
+    if (isHeadAdmin) {
+      if (!companyId || companyId === 'admin-company-uuid') {
+        schedules = await dbAll(
+          `SELECT es.*, s.name as skill_name
+           FROM exam_schedules es
+           JOIN skills s ON es.skill_id = s.id
+           ORDER BY es.start_time DESC`
+        );
+      } else {
+        schedules = await dbAll(
+          `SELECT es.*, s.name as skill_name
+           FROM exam_schedules es
+           JOIN skills s ON es.skill_id = s.id
+           WHERE es.company_id = ?
+           ORDER BY es.start_time DESC`,
+          [companyId]
+        );
+      }
     } else {
-      schedules = await dbAll(
-        `SELECT es.*, s.name as skill_name
-         FROM exam_schedules es
-         JOIN skills s ON es.skill_id = s.id
-         WHERE es.company_id = ?
-         ORDER BY es.start_time DESC`,
-        [companyId]
-      );
+      if (companyId) {
+        schedules = await dbAll(
+          `SELECT es.*, s.name as skill_name
+           FROM exam_schedules es
+           JOIN skills s ON es.skill_id = s.id
+           WHERE es.company_id = ?
+           ORDER BY es.start_time DESC`,
+          [companyId]
+        );
+      } else {
+        schedules = [];
+      }
     }
     res.json(schedules);
   } catch (err) {
@@ -2623,11 +2673,9 @@ app.post('/api/recruiter/assign-badge', async (req, res) => {
       return res.status(400).json({ error: 'Invalid action' });
     }
     
-    const verifyingUser = await dbGet('SELECT * FROM users WHERE email = ? COLLATE NOCASE', [recruiterEmail]);
-    if (!verifyingUser) return res.status(403).json({ error: 'User not found' });
-    
-    const isHeadAdmin = verifyingUser.email === HEAD_ADMIN_EMAIL;
-    if (!isHeadAdmin && verifyingUser.role !== 'recruiter') {
+    const verifyingUser = req.user;
+    const isHeadAdmin = verifyingUser.email === HEAD_ADMIN_EMAIL || verifyingUser.company_id === 'admin-company-uuid';
+    if (!isHeadAdmin && verifyingUser.role !== 'recruiter' && verifyingUser.role !== 'owner') {
       return res.status(403).json({ error: 'Unauthorized: Only Recruiters and Head Admin can issue badges.' });
     }
     
@@ -2649,27 +2697,35 @@ app.post('/api/recruiter/assign-badge', async (req, res) => {
     
     if (action === 'award') {
       const existing = await dbGet('SELECT badge_tag FROM student_skills WHERE student_id = ? AND skill_id = ?', [challenge.student_id, challenge.skill_id]);
-      let newTag = '';
+      const currentTag = (existing && existing.badge_tag) ? existing.badge_tag : '';
       
-      if (isHeadAdmin) {
-        newTag = `${challenge.skill_name} Expert — Verified by SkillProof Head Admin`;
-      } else {
-        const currentTag = (existing && existing.badge_tag) ? existing.badge_tag : '';
-        if (currentTag && currentTag.includes('Verified by')) {
-           if (!currentTag.includes(verifierName)) {
-             newTag = currentTag + `, ${verifierName}`;
-           } else {
-             newTag = currentTag; // Already has this company
-           }
-        } else {
-           newTag = `${challenge.skill_name} Expert — Verified by ${verifierName}`;
-        }
+      let verifiers = [];
+      if (currentTag && currentTag.includes('Verified by ')) {
+        const parts = currentTag.split('Verified by ')[1];
+        verifiers = parts.split(', ').map(v => v.trim()).filter(Boolean);
       }
+      
+      if (!verifiers.includes(verifierName)) {
+        verifiers.push(verifierName);
+      }
+      
+      const newTag = `${challenge.skill_name} Expert — Verified by ${verifiers.join(', ')}`;
 
-      await dbRun(
-        `UPDATE student_skills SET status = 'verified', verified_by = ?, badge_tag = ?, verified_at = ? WHERE student_id = ? AND skill_id = ?`,
-        [verifierName, newTag, now, challenge.student_id, challenge.skill_id]
-      );
+      if (!existing) {
+        // Insert new verified record if student has not explicitly claimed this skill yet
+        const ssId = crypto.randomUUID();
+        await dbRun(
+          `INSERT INTO student_skills (id, student_id, skill_id, self_rating, status, verified_score, verified_at, verified_by, badge_tag)
+           VALUES (?, ?, ?, 5, 'verified', 100.0, ?, ?, ?)`,
+          [ssId, challenge.student_id, challenge.skill_id, now, verifierName, newTag]
+        );
+      } else {
+        // Update existing student_skills record
+        await dbRun(
+          `UPDATE student_skills SET status = 'verified', verified_by = ?, badge_tag = ?, verified_at = ? WHERE student_id = ? AND skill_id = ?`,
+          [verifierName, newTag, now, challenge.student_id, challenge.skill_id]
+        );
+      }
       await dbRun(`UPDATE challenges SET status = 'badge_awarded' WHERE id = ?`, [challengeId]);
 
       // Send in-app notification to student
@@ -2717,10 +2773,8 @@ app.post('/api/recruiter/grant-attempt', async (req, res) => {
       return res.status(400).json({ error: 'Missing required parameters' });
     }
 
-    const verifyingUser = await dbGet('SELECT * FROM users WHERE email = ? COLLATE NOCASE', [recruiterEmail]);
-    if (!verifyingUser) return res.status(403).json({ error: 'User not found' });
-    
-    const isHeadAdmin = verifyingUser.email === HEAD_ADMIN_EMAIL;
+    const verifyingUser = req.user;
+    const isHeadAdmin = verifyingUser.email === HEAD_ADMIN_EMAIL || verifyingUser.company_id === 'admin-company-uuid';
     if (!isHeadAdmin && verifyingUser.role !== 'recruiter' && verifyingUser.role !== 'owner') {
       return res.status(403).json({ error: 'Unauthorized: Only Recruiters, Owners and Head Admin can grant attempts.' });
     }

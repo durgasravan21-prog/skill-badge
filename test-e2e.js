@@ -246,21 +246,21 @@ async function runTests() {
     logTest('Company B dispatch returns 200', dispatchB.statusCode === 200);
 
     // Company A should only see its own candidates
-    const historyA = await makeRequest('GET', `/api/exams/history?company_id=${companyAId}`);
+    const historyA = await makeRequest('GET', `/api/exams/history?company_id=${companyAId}`, null, recruiterAlphaToken);
     const examsA = JSON.parse(historyA.body);
-    const hasOnlyCompanyA = examsA.every(e => e.company_id === companyAId || e.company_id === null);
+    const hasOnlyCompanyA = Array.isArray(examsA) && examsA.every(e => e.company_id === companyAId || e.company_id === null);
     logTest('Company A sees only its own candidates', hasOnlyCompanyA);
-    const companyAHasAlice = examsA.some(e => e.student_name === 'Alice Alpha');
+    const companyAHasAlice = Array.isArray(examsA) && examsA.some(e => e.student_name === 'Alice Alpha');
     logTest('Company A sees Alice Alpha', companyAHasAlice);
-    const companyASeeBob = examsA.some(e => e.student_name === 'Bob Beta');
+    const companyASeeBob = Array.isArray(examsA) && examsA.some(e => e.student_name === 'Bob Beta');
     logTest('Company A does NOT see Bob Beta (isolation!)', !companyASeeBob);
 
     // Company B should only see its own candidates
-    const historyB = await makeRequest('GET', `/api/exams/history?company_id=${companyBId}`);
+    const historyB = await makeRequest('GET', `/api/exams/history?company_id=${companyBId}`, null, recruiterBetaToken);
     const examsB = JSON.parse(historyB.body);
-    const companyBHasBob = examsB.some(e => e.student_name === 'Bob Beta');
+    const companyBHasBob = Array.isArray(examsB) && examsB.some(e => e.student_name === 'Bob Beta');
     logTest('Company B sees Bob Beta', companyBHasBob);
-    const companyBSeeAlice = examsB.some(e => e.student_name === 'Alice Alpha');
+    const companyBSeeAlice = Array.isArray(examsB) && examsB.some(e => e.student_name === 'Alice Alpha');
     logTest('Company B does NOT see Alice Alpha (isolation!)', !companyBSeeAlice);
 
     // ═══════════════════════════════════════════════════════

@@ -1,0 +1,35 @@
+{
+  "name": "SkillProof — Verified Skills Platform",
+  "short_name": "SkillProof",
+  "description": "The only platform where recruiters challenge you live and your badges update instantly. Share your profile. Get hired.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0C0A09",
+  "theme_color": "#E65100",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgcng9IjMyIiBmaWxsPSIjRTY1MTAwIi8+PHRleHQgeD0iOTYiIHk9IjEyOCIgZm9udC1zaXplPSIxMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGRkYiPuKsnDwvdGV4dD48L3N2Zz4=",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjgwIiBmaWxsPSIjRTY1MTAwIi8+PHRleHQgeD0iMjU2IiB5PSIzNDAiIGZvbnQtc2l6ZT0iMzAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkZGIj7irJw8L3RleHQ+PC9zdmc+",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "education", "business"],
+  "shortcuts": [
+    {
+      "name": "My Dashboard",
+      "short_name": "Dashboard",
+      "description": "Jump to your skill dashboard",
+      "url": "/#dashboard",
+      "icons": [{ "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5NiA5NiI+PHJlY3Qgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2IiByeD0iMTYiIGZpbGw9IiNFNjUxMDAiLz48dGV4dCB4PSI0OCIgeT0iNjQiIGZvbnQtc2l6ZT0iNTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGRkYiPuKsnDwvdGV4dD48L3N2Zz4=", "sizes": "96x96" }]
+    }
+  ],
+  "prefer_related_applications": false
+}
