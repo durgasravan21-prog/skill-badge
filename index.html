@@ -4496,6 +4496,21 @@ Verify credential: ${shareUrl}
   window.open(url, '_blank');
 }
 
+function copyCredentialLink(badgeId) {
+  const shareUrl = `https://skill-badge-scanner.vercel.app/#/verify?badge_id=${encodeURIComponent(badgeId)}`;
+  navigator.clipboard.writeText(shareUrl).then(() => {
+    showToast('✓ Credential link copied to clipboard!', 'success');
+  }).catch(() => {
+    const el = document.createElement('textarea');
+    el.value = shareUrl;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    showToast('✓ Credential link copied to clipboard!', 'success');
+  });
+}
+
 async function verifyBadgeAuthenticator(context) {
   const inputId = context === 'recruiter' ? 'recruiter-verify-badge-id' : 'public-verify-badge-id';
   const resultBoxId = context === 'recruiter' ? 'recruiter-verify-result-box' : 'public-verify-result-box';
