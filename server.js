@@ -3224,9 +3224,25 @@ app.post('/api/student/update_profile', async (req, res) => {
     const college = sanitizeString(req.body.college || '', 150);
     const rawSlug = sanitizeString(req.body.profile_slug || '', 100);
     const profileSlug = rawSlug.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    const github = sanitizeString(req.body.github_profile || '', 200).trim();
+    const linkedin = sanitizeString(req.body.linkedin_profile || '', 200).trim();
 
     if (!studentEmail) {
       return res.status(400).json({ error: 'Missing student email' });
+    }
+
+    // Link validations (GitHub & LinkedIn)
+    if (github) {
+      const githubRegex = /^(https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9_-]+\/?$/i;
+      if (!githubRegex.test(github)) {
+        return res.status(400).json({ error: 'Invalid GitHub profile URL (e.g. https://github.com/username).' });
+      }
+    }
+    if (linkedin) {
+      const linkedinRegex = /^(https?:\/\/)?([a-z]{2,3}\.)?linkedin\.com\/(in|pub|profile)\/[a-zA-Z0-9_-]+\/?$/i;
+      if (!linkedinRegex.test(linkedin)) {
+        return res.status(400).json({ error: 'Invalid LinkedIn profile URL (e.g. https://linkedin.com/in/username).' });
+      }
     }
 
     const student = await dbGet('SELECT * FROM users WHERE email = ? COLLATE NOCASE', [studentEmail]);
@@ -3241,12 +3257,14 @@ app.post('/api/student/update_profile', async (req, res) => {
     }
 
     await dbRun(
-      'UPDATE users SET name = ?, phone = ?, college = ?, profile_slug = ? WHERE id = ?',
+      'UPDATE users SET name = ?, phone = ?, college = ?, profile_slug = ?, github_profile = ?, linkedin_profile = ? WHERE id = ?',
       [
         name || student.name,
         phone !== undefined ? phone : student.phone,
         college !== undefined ? college : student.college,
         profileSlug || student.profile_slug,
+        github !== undefined ? github : student.github_profile,
+        linkedin !== undefined ? linkedin : student.linkedin_profile,
         student.id
       ]
     );

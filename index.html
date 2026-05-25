@@ -1858,6 +1858,14 @@ body.dark-theme .smooth-modal-btn.ghost:hover { background: #171412; }
               <input type="text" id="settings-student-college" placeholder="College / University..." />
             </div>
             <div class="admin-form-group">
+              <label>GitHub Profile URL</label>
+              <input type="text" id="settings-student-github" placeholder="e.g. https://github.com/yourusername" />
+            </div>
+            <div class="admin-form-group">
+              <label>LinkedIn Profile URL</label>
+              <input type="text" id="settings-student-linkedin" placeholder="e.g. https://linkedin.com/in/yourusername" />
+            </div>
+            <div class="admin-form-group">
               <label>Personal Portfolio URL Slug</label>
               <input type="text" id="settings-student-slug" placeholder="e.g. john-doe" style="text-transform: lowercase;" />
               <span style="font-size: 11px; color: var(--gray-400); display: block; margin-top: 4px;">Only lowercase letters, numbers, and hyphens allowed.</span>
@@ -4033,6 +4041,14 @@ function loadStudentDashboard() {
   const settingsSCollege = document.getElementById('settings-student-college');
   if (settingsSCollege && document.activeElement !== settingsSCollege) {
     settingsSCollege.value = currentUser.college || '';
+  }
+  const settingsSGithub = document.getElementById('settings-student-github');
+  if (settingsSGithub && document.activeElement !== settingsSGithub) {
+    settingsSGithub.value = currentUser.github_profile || '';
+  }
+  const settingsSLinkedin = document.getElementById('settings-student-linkedin');
+  if (settingsSLinkedin && document.activeElement !== settingsSLinkedin) {
+    settingsSLinkedin.value = currentUser.linkedin_profile || '';
   }
   const settingsSSlug = document.getElementById('settings-student-slug');
   if (settingsSSlug && document.activeElement !== settingsSSlug) {
@@ -7276,11 +7292,29 @@ async function saveStudentProfileSettings() {
   const name = document.getElementById('settings-student-name').value.trim();
   const phone = document.getElementById('settings-student-phone').value.trim();
   const college = document.getElementById('settings-student-college').value.trim();
+  const github = document.getElementById('settings-student-github').value.trim();
+  const linkedin = document.getElementById('settings-student-linkedin').value.trim();
   const slugInput = document.getElementById('settings-student-slug').value.trim();
 
   if (!name) {
     showToast('Name is required.', 'error');
     return;
+  }
+
+  // Link validation (GitHub & LinkedIn)
+  if (github) {
+    const githubRegex = /^(https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9_-]+\/?$/i;
+    if (!githubRegex.test(github)) {
+      showToast('❌ Invalid GitHub profile URL (e.g. https://github.com/username).', 'error');
+      return;
+    }
+  }
+  if (linkedin) {
+    const linkedinRegex = /^(https?:\/\/)?([a-z]{2,3}\.)?linkedin\.com\/(in|pub|profile)\/[a-zA-Z0-9_-]+\/?$/i;
+    if (!linkedinRegex.test(linkedin)) {
+      showToast('❌ Invalid LinkedIn profile URL (e.g. https://linkedin.com/in/username).', 'error');
+      return;
+    }
   }
 
   const saveStatus = document.getElementById('settings-save-status');
@@ -7299,6 +7333,8 @@ async function saveStudentProfileSettings() {
         name,
         phone,
         college,
+        github_profile: github,
+        linkedin_profile: linkedin,
         profile_slug: slugInput
       })
     });
