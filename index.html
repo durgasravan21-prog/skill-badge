@@ -4275,15 +4275,32 @@ function renderProgressiveVerifier(claimed) {
 
       const scoreLabel = c.verified_score ? ` · Score: ${escapeHTML(String(c.verified_score))}/100` : '';
       badge.innerHTML = `
-        <div>
-          <strong style="font-size:16px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
-            ${escapeHTML(c.skill_name)}
-            ${goldBadgesHTML}
-          </strong>
-          <div style="font-size:12px; color:var(--gray-500); margin-top:2px;">Verified by ${escapeHTML(verifiers.join(', '))}${scoreLabel}</div>
+        <div style="display:flex; flex-direction:column; gap:10px; width:100%;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px; width:100%;">
+            <div>
+              <strong style="font-size:16px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+                ${escapeHTML(c.skill_name)}
+                ${goldBadgesHTML}
+              </strong>
+              <div style="font-size:12px; color:var(--gray-500); margin-top:2px;">Verified by ${escapeHTML(verifiers.join(', '))}${scoreLabel}</div>
+            </div>
+            <span class="verified-tag">${escapeHTML(c.badge_tag)}</span>
+          </div>
+          
+          <!-- Share options & Badge Credential Actions -->
+          <div style="display: flex; gap: 8px; align-items: center; margin-top: 6px; flex-wrap: wrap; border-top: 1px solid var(--gray-100); padding-top: 10px;">
+            <button onclick="shareBadgeOnLinkedIn('${escapeHTML(c.skill_name)}', '${escapeHTML(verifiers.join(', '))}', '${escapeHTML(c.id)}')" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 11px; font-weight: 700; border-radius: 6px; cursor: pointer; background: #0077B5; color: #FFF; border: none; transition: transform 0.2s ease;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="display:block;"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+              Share on LinkedIn
+            </button>
+            <button onclick="shareBadgeOnX('${escapeHTML(c.skill_name)}', '${escapeHTML(verifiers.join(', '))}', '${escapeHTML(c.id)}')" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 11px; font-weight: 700; border-radius: 6px; cursor: pointer; background: #1C1A17; color: #FFF; border: 1px solid #333; transition: transform 0.2s ease;">
+              <span style="font-size: 10px; font-weight:800;">𝕏</span> Share on X
+            </button>
+            <button onclick="copyCredentialLink('${escapeHTML(c.id)}')" class="btn-ghost" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 11px; font-weight: 700; border-radius: 6px; cursor: pointer; background: var(--gray-50); border: 1px solid var(--gray-200); color: var(--gray-700); transition: transform 0.2s ease;">
+              🔗 Copy Credential Link
+            </button>
+          </div>
         </div>
-        <span class="verified-tag">${escapeHTML(c.badge_tag)}</span>
-      `;
       badgesList.appendChild(badge);
     } else if (c.status === 'pending_review') {
       const badge = document.createElement('div');
@@ -4411,6 +4428,48 @@ function renderProgressiveVerifier(claimed) {
           questionsList.appendChild(qCard);
         }
       });
+  });
+}
+
+function shareBadgeOnLinkedIn(skillName, verifiers, badgeId) {
+  const shareUrl = `https://skill-badge-scanner.vercel.app/#/verify?badge_id=${encodeURIComponent(badgeId)}`;
+  const text = `🏆 I am thrilled to announce that I have successfully earned the verified "${skillName}" expert badge through @SkillProof, verified by ${verifiers}!
+
+This rigorous proctored multi-stage coding challenge validates my software engineering and systems architecture capabilities. 
+
+Verify my credential directly here:
+👉 ${shareUrl}
+
+#SkillProof #TechHiring #SoftwareEngineering #CareerGrowth`;
+
+  const url = `https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent(text)}`;
+  window.open(url, '_blank');
+}
+
+function shareBadgeOnX(skillName, verifiers, badgeId) {
+  const shareUrl = `https://skill-badge-scanner.vercel.app/#/verify?badge_id=${encodeURIComponent(badgeId)}`;
+  const text = `🏆 Earned the verified "${skillName}" expert badge through @SkillProof, verified by ${verifiers}!
+
+Verify credential: ${shareUrl}
+
+#SkillProof #TechHiring`;
+
+  const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+  window.open(url, '_blank');
+}
+
+function copyCredentialLink(badgeId) {
+  const shareUrl = `https://skill-badge-scanner.vercel.app/#/verify?badge_id=${encodeURIComponent(badgeId)}`;
+  navigator.clipboard.writeText(shareUrl).then(() => {
+    showToast('✓ Credential link copied to clipboard!', 'success');
+  }).catch(() => {
+    const el = document.createElement('textarea');
+    el.value = shareUrl;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    showToast('✓ Credential link copied to clipboard!', 'success');
   });
 }
 
