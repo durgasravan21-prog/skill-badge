@@ -2496,13 +2496,13 @@ body.dark-theme .progress-container {
               <table class="history-table">
                 <thead>
                   <tr>
-                    <th style="width: 40px; text-align: center;"><input type="checkbox" id="select-all-history" onchange="toggleSelectAllCandidates(this.checked)" style="transform: scale(1.25); cursor: pointer;" /></th>
-                    <th style="width: 180px;">Student / Email</th>
-                    <th style="width: 140px;">Skill</th>
-                    <th style="width: 100px;">Infractions</th>
-                    <th style="width: 120px;">Status</th>
-                    <th style="width: 80px;">Score</th>
-                    <th style="width: 240px;">Actions</th>
+                    <th style="width: 5%; text-align: center;"><input type="checkbox" id="select-all-history" onchange="toggleSelectAllCandidates(this.checked)" style="transform: scale(1.1); cursor: pointer;" /></th>
+                    <th style="width: 28%;">Student / Email</th>
+                    <th style="width: 22%;">Skill</th>
+                    <th style="width: 12%; text-align: center;">Infractions</th>
+                    <th style="width: 13%; text-align: center;">Status</th>
+                    <th style="width: 10%; text-align: center;">Score</th>
+                    <th style="width: 10%; text-align: center;">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="admin-history-list">
@@ -2520,11 +2520,11 @@ body.dark-theme .progress-container {
               <table class="history-table">
                 <thead>
                   <tr>
-                    <th style="width: 250px;">Skill</th>
-                    <th style="width: 200px;">Difficulty Sequence</th>
-                    <th style="width: 200px;">Start Date &amp; Time</th>
-                    <th style="width: 150px;">Time Limit</th>
-                    <th style="width: 300px;">Access Link / ID</th>
+                    <th style="width: 25%;">Skill</th>
+                    <th style="width: 15%; text-align: center;">Difficulty Sequence</th>
+                    <th style="width: 20%;">Start Date &amp; Time</th>
+                    <th style="width: 15%; text-align: center;">Time Limit</th>
+                    <th style="width: 25%;">Access Link / ID</th>
                   </tr>
                 </thead>
                 <tbody id="recruiter-schedules-list">
@@ -7082,9 +7082,9 @@ function loadAdminHistory() {
 
           const canGrant = (currentAttempts >= allowedAttempts) || isTechnicalLockout;
 
-          const grantAttemptBtn = canGrant
-            ? `<button onclick="grantExtraAttempt('${escapeHTML(exam.student_email)}', '${escapeHTML(exam.skill_id)}')" class="btn-secondary" style="padding: 6px; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 4px; width: 100%; border: 1px solid var(--orange-mid); background: #FFF; color: var(--orange-deep); font-weight:800;">➕ Grant Extra Attempt</button>`
-            : `<button disabled class="btn-ghost" style="padding: 6px; font-size: 11px; font-weight: 700; cursor: not-allowed; display: flex; align-items: center; justify-content: center; border-radius: 4px; width: 100%; border: 1px solid var(--gray-100); background: var(--gray-50); color: var(--gray-400); opacity: 0.6;">Attempts Remaining</button>`;
+          const grantAttemptIconBtn = canGrant
+            ? `<button onclick="grantExtraAttempt('${escapeHTML(exam.student_email)}', '${escapeHTML(exam.skill_id)}')" class="btn-secondary" title="Grant Extra Attempt" style="width: 30px; height: 30px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; border: 1.5px solid var(--orange-mid); background: #FFF; color: var(--orange-deep); font-size: 11px; font-weight: 800; cursor: pointer;">➕</button>`
+            : `<button disabled class="btn-ghost" title="Attempts Remaining" style="width: 30px; height: 30px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; border: 1.5px solid var(--gray-100); background: var(--gray-50); color: var(--gray-400); font-size: 11px; cursor: not-allowed; opacity: 0.5;">✅</button>`;
 
           const verifierLabel = currentCompany ? currentCompany.name : 'SkillProof Head Admin';
           const isAlreadyAwarded = exam.student_badge_tag && exam.student_badge_tag.includes(verifierLabel);
@@ -7115,27 +7115,31 @@ function loadAdminHistory() {
               <span style="font-size:10px; color:var(--gray-500);" title="${escapeHTML(exam.question_title)}">${escapeHTML(exam.question_title.substring(0,30))}...</span>
               ${attemptsHTML}
             </td>
-            <td>
+            <td style="text-align: center;">
               <strong style="color:${exam.violations_count > 0 ? '#C62828' : '#2E7D32'}">
                 ${escapeHTML(String(exam.violations_count))}
               </strong>
             </td>
-            <td><span class="status-tag ${exam.status}">${exam.status === 'disqualified' ? 'DISQUALIFIED' : exam.status.toUpperCase()}</span></td>
-            <td><strong>${exam.status === 'disqualified' ? 'Result Withheld' : finalScore + '/100'}</strong></td>
-            <td>
-              <div style="display: flex; flex-direction: column; gap: 8px;">
-                <button onclick="viewCandidateCode('${exam.examId}')" class="btn-ghost" ${isAlreadyAwarded ? 'disabled' : ''} style="padding: 6px; font-size: 11px; font-weight: 700; cursor: ${isAlreadyAwarded ? 'not-allowed' : 'pointer'}; display: flex; align-items: center; justify-content: center; gap: 4px; border-radius: 4px; width: 100%; border: 1px solid var(--gray-200); opacity: ${isAlreadyAwarded ? '0.5' : '1'};">
-                  ${isAlreadyAwarded ? `🏆 Awarded by ${verifierLabel}` : '💻 View Code & Award Badge'}
+            <td style="text-align: center;"><span class="status-tag ${exam.status}">${exam.status === 'disqualified' ? 'DISQUALIFIED' : exam.status.toUpperCase()}</span></td>
+            <td style="text-align: center;"><strong>${exam.status === 'disqualified' ? 'Withheld' : finalScore + '/100'}</strong></td>
+            <td style="text-align: center;">
+              <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                <button onclick="viewCandidateCode('${exam.examId}')" class="btn-ghost" ${isAlreadyAwarded ? 'disabled' : ''} title="${isAlreadyAwarded ? `Awarded by ${verifierLabel}` : 'View Code & Award Badge'}" style="width: 30px; height: 30px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; border: 1.5px solid var(--gray-200); font-size: 13px; cursor: ${isAlreadyAwarded ? 'not-allowed' : 'pointer'}; opacity: ${isAlreadyAwarded ? '0.5' : '1'};">
+                  ${isAlreadyAwarded ? '🏆' : '💻'}
                 </button>
-                <button onclick="triggerInviteForCandidate('${exam.examId}')" class="btn-primary" style="padding: 6px; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 4px; width: 100%; border: none; background: var(--orange-deep); color: #fff;">
-                  ✉️ Invite to Next Round
+                <button onclick="triggerInviteForCandidate('${exam.examId}')" class="btn-primary" title="Invite Candidate to Next Round" style="width: 30px; height: 30px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; border: none; background: var(--orange-deep); color: #fff; font-size: 13px; cursor: pointer;">
+                  ✉️
                 </button>
-                ${grantAttemptBtn}
+                ${grantAttemptIconBtn}
               </div>
             </td>
           `;
           historyBody.appendChild(tr);
         });
+      })
+      .catch(err => {
+        console.error('Failed to load history logs:', err);
+        historyBody.innerHTML = '<tr><td colspan="7" style="color:#C62828; font-weight:700; text-align:center; padding:20px 0;">⚠️ Failed to sync history logs. <button onclick="loadAdminHistory()" class="btn-primary" style="display:inline-flex; align-items:center; padding:6px 12px; font-size:11px; margin-left:8px; cursor:pointer;">Retry Sync</button></td></tr>';
       });
   };
 

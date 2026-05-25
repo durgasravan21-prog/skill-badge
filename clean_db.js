@@ -40,6 +40,22 @@ db.serialize(() => {
     if (err) console.error(err);
     else console.log(`Deleted ${this.changes} dangling student_skills.`);
   });
+
+  // Clean up dangling exam_schedules, notifications, and exam_photos
+  db.run(`DELETE FROM exam_schedules WHERE invited_student_id NOT IN (SELECT id FROM users) OR recruiter_id NOT IN (SELECT id FROM users)`, function(err) {
+    if (err) console.error(err);
+    else console.log(`Deleted ${this.changes} dangling exam_schedules.`);
+  });
+
+  db.run(`DELETE FROM notifications WHERE recipient_id NOT IN (SELECT id FROM users)`, function(err) {
+    if (err) console.error(err);
+    else console.log(`Deleted ${this.changes} dangling notifications.`);
+  });
+
+  db.run(`DELETE FROM exam_photos WHERE challenge_id NOT IN (SELECT id FROM challenges)`, function(err) {
+    if (err) console.error(err);
+    else console.log(`Deleted ${this.changes} dangling exam_photos.`);
+  });
 });
 
 db.close(() => console.log('Cleanup finished.'));
