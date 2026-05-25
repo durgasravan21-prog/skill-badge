@@ -2716,14 +2716,16 @@ app.post('/api/recruiter/assign-badge', async (req, res) => {
         const ssId = crypto.randomUUID();
         await dbRun(
           `INSERT INTO student_skills (id, student_id, skill_id, self_rating, status, verified_score, verified_at, verified_by, badge_tag)
-           VALUES (?, ?, ?, 5, 'verified', 100.0, ?, ?, ?)`,
-          [ssId, challenge.student_id, challenge.skill_id, now, verifierName, newTag]
+           VALUES (?, ?, ?, 5, 'verified', ?, ?, ?, ?)`,
+          [ssId, challenge.student_id, challenge.skill_id, challenge.total_score || 100.0, now, verifierName, newTag]
         );
       } else {
-        // Update existing student_skills record
+        // Update existing student_skills record - securely saving evaluation score
         await dbRun(
-          `UPDATE student_skills SET status = 'verified', verified_by = ?, badge_tag = ?, verified_at = ? WHERE student_id = ? AND skill_id = ?`,
-          [verifierName, newTag, now, challenge.student_id, challenge.skill_id]
+          `UPDATE student_skills 
+           SET status = 'verified', verified_by = ?, badge_tag = ?, verified_at = ?, verified_score = ? 
+           WHERE student_id = ? AND skill_id = ?`,
+          [verifierName, newTag, now, challenge.total_score || 100.0, challenge.student_id, challenge.skill_id]
         );
       }
       await dbRun(`UPDATE challenges SET status = 'badge_awarded' WHERE id = ?`, [challengeId]);
