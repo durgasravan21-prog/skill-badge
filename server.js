@@ -522,23 +522,30 @@ app.use((req, res, next) => {
 // (not variables) so Vercel's Node File Trace can statically detect and
 // bundle the HTML files into the serverless function zip.
 
-let _indexHtml = null;
-let _githubLoginHtml = null;
-let _googleLoginHtml = null;
+function readIndexHtml() {
+  try { return fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8'); } catch(e) {
+    try { return fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf8'); } catch(e2) {
+      console.error('[WARN] index.html not found');
+      return null;
+    }
+  }
+}
 
-try { _indexHtml = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8'); } catch(e) {
-  try { _indexHtml = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf8'); } catch(e2) {
-    console.error('[WARN] index.html not found in __dirname or cwd');
+function readGithubHtml() {
+  try { return fs.readFileSync(path.join(__dirname, 'github-login.html'), 'utf8'); } catch(e) {
+    try { return fs.readFileSync(path.resolve(process.cwd(), 'github-login.html'), 'utf8'); } catch(e2) {
+      console.error('[WARN] github-login.html not found');
+      return null;
+    }
   }
 }
-try { _githubLoginHtml = fs.readFileSync(path.join(__dirname, 'github-login.html'), 'utf8'); } catch(e) {
-  try { _githubLoginHtml = fs.readFileSync(path.resolve(process.cwd(), 'github-login.html'), 'utf8'); } catch(e2) {
-    console.error('[WARN] github-login.html not found');
-  }
-}
-try { _googleLoginHtml = fs.readFileSync(path.join(__dirname, 'google-login.html'), 'utf8'); } catch(e) {
-  try { _googleLoginHtml = fs.readFileSync(path.resolve(process.cwd(), 'google-login.html'), 'utf8'); } catch(e2) {
-    console.error('[WARN] google-login.html not found');
+
+function readGoogleHtml() {
+  try { return fs.readFileSync(path.join(__dirname, 'google-login.html'), 'utf8'); } catch(e) {
+    try { return fs.readFileSync(path.resolve(process.cwd(), 'google-login.html'), 'utf8'); } catch(e2) {
+      console.error('[WARN] google-login.html not found');
+      return null;
+    }
   }
 }
 
@@ -552,10 +559,22 @@ function sendHtmlWithNoCache(res, html) {
     .send(html);
 }
 
-app.get('/', (req, res) => _indexHtml ? sendHtmlWithNoCache(res, _indexHtml) : res.status(404).send('index.html not found'));
-app.get('/index.html', (req, res) => _indexHtml ? sendHtmlWithNoCache(res, _indexHtml) : res.status(404).send('index.html not found'));
-app.get('/github-login.html', (req, res) => _githubLoginHtml ? sendHtmlWithNoCache(res, _githubLoginHtml) : res.status(404).send('not found'));
-app.get('/google-login.html', (req, res) => _googleLoginHtml ? sendHtmlWithNoCache(res, _googleLoginHtml) : res.status(404).send('not found'));
+app.get('/', (req, res) => {
+  const html = readIndexHtml();
+  return html ? sendHtmlWithNoCache(res, html) : res.status(404).send('index.html not found');
+});
+app.get('/index.html', (req, res) => {
+  const html = readIndexHtml();
+  return html ? sendHtmlWithNoCache(res, html) : res.status(404).send('index.html not found');
+});
+app.get('/github-login.html', (req, res) => {
+  const html = readGithubHtml();
+  return html ? sendHtmlWithNoCache(res, html) : res.status(404).send('not found');
+});
+app.get('/google-login.html', (req, res) => {
+  const html = readGoogleHtml();
+  return html ? sendHtmlWithNoCache(res, html) : res.status(404).send('not found');
+});
 
 // Serve other static assets (CSS, JS, fonts, images)
 // Assets get long cache since they're versioned by name changes
