@@ -167,13 +167,14 @@ async function createSchema() {
     id               TEXT PRIMARY KEY,
     name             TEXT NOT NULL,
     email            TEXT UNIQUE NOT NULL COLLATE NOCASE,
-    role             TEXT NOT NULL,
+        role             TEXT NOT NULL,
     college          TEXT,
     company          TEXT,
     company_id       TEXT,
     profile_slug     TEXT,
     skillproof_score REAL DEFAULT 0.0,
     phone            TEXT,
+    dream_role       TEXT,
     created_at       TEXT NOT NULL,
     FOREIGN KEY (company_id) REFERENCES companies(id)
   );`);
@@ -190,6 +191,10 @@ async function createSchema() {
 
   try {
     await runAsync(`ALTER TABLE users ADD COLUMN linkedin_profile TEXT;`);
+  } catch (err) {}
+
+  try {
+    await runAsync(`ALTER TABLE users ADD COLUMN dream_role TEXT;`);
   } catch (err) {}
 
   await runAsync(`CREATE TABLE IF NOT EXISTS skills (
@@ -424,17 +429,19 @@ const MASTER_SKILLS = [
   { name: 'AWS',                 category: 'Cloud Computing' },
   { name: 'React',               category: 'Web Development' },
   { name: 'Node.js',             category: 'Web Development' },
-  { name: 'HTML5 & CSS3',        category: 'Web Development' }
+  { name: 'HTML5 & CSS3',        category: 'Web Development' },
+  { name: 'Java Programming',    category: 'Software Engineering' }
 ];
 
 async function seedSkills() {
-  const { cnt } = await getAsync('SELECT COUNT(*) as cnt FROM skills');
-  if (cnt > 0) { console.log('[DB] Skills already seeded.'); return; }
-
-  const stmt = db.prepare('INSERT INTO skills (id, name, category) VALUES (?, ?, ?)');
-  for (const s of MASTER_SKILLS) stmt.run(crypto.randomUUID(), s.name, s.category);
-  await new Promise((res, rej) => stmt.finalize(err => err ? rej(err) : res()));
-  console.log(`[DB] Seeded ${MASTER_SKILLS.length} skills.`);
+  for (const s of MASTER_SKILLS) {
+    const existing = await getAsync('SELECT id FROM skills WHERE name = ?', [s.name]);
+    if (!existing) {
+      await runAsync('INSERT INTO skills (id, name, category) VALUES (?, ?, ?)', [crypto.randomUUID(), s.name, s.category]);
+      console.log(`[DB] Seeded skill: ${s.name}`);
+    }
+  }
+  console.log('[DB] Skills seeded or verified.');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -586,6 +593,32 @@ const PROBLEMS = {
       { s: 'implement optimistic locking with version columns to prevent lost updates',
         c: '-- Implement optimistic locking with version columns to prevent lost updates\n-- Write your SQL update and verification statements below\n' },
     ]
+  },
+  Java: {
+    easy: [
+      { s: 'write a Java method to reverse a String without using StringBuilder.reverse()',
+        c: 'public class Solution {\n    public static String reverseString(String s) {\n        // TODO: Write your solution here\n        return s;\n    }\n}\n' },
+      { s: 'implement a Java method to check whether a given integer is a prime number',
+        c: 'public class Solution {\n    public static boolean isPrime(int n) {\n        // TODO: Write your solution here\n        return false;\n    }\n}\n' },
+      { s: 'write a Java method that finds and returns the maximum value in an integer array',
+        c: 'public class Solution {\n    public static int findMax(int[] arr) {\n        // TODO: Write your solution here\n        return 0;\n    }\n}\n' }
+    ],
+    medium: [
+      { s: 'implement a generic Stack<T> class in Java using a singly linked list',
+        c: 'public class Stack<T> {\n    private static class Node<T> {\n        T data;\n        Node<T> next;\n        Node(T data) { this.data = data; }\n    }\n    private Node<T> top;\n    public void push(T item) {\n        // TODO: Implement push\n    }\n    public T pop() {\n        // TODO: Implement pop\n        return null;\n    }\n    public T peek() {\n        // TODO: Implement peek\n        return null;\n    }\n    public boolean isEmpty() {\n        // TODO: Implement isEmpty\n        return true;\n    }\n}\n' },
+      { s: 'implement insert and search operations for a Binary Search Tree (BST) in Java',
+        c: 'public class BST {\n    static class Node {\n        int val;\n        Node left, right;\n        Node(int val) { this.val = val; }\n    }\n    private Node root;\n    public void insert(int val) {\n        // TODO: Implement insert\n    }\n    public boolean search(int val) {\n        // TODO: Implement search\n        return false;\n    }\n}\n' },
+      { s: 'implement the classic thread-safe Producer-Consumer pattern in Java',
+        c: 'import java.util.LinkedList;\npublic class ProducerConsumer {\n    private final LinkedList<Integer> queue = new LinkedList<>();\n    private final int CAPACITY = 5;\n    public synchronized void produce(int item) throws InterruptedException {\n        // TODO: Implement produce\n    }\n    public synchronized int consume() throws InterruptedException {\n        // TODO: Implement consume\n        return -1;\n    }\n}\n' }
+    ],
+    hard: [
+      { s: 'design and implement an LRU (Least Recently Used) Cache in Java with O(1) operations',
+        c: 'import java.util.HashMap;\npublic class LRUCache {\n    private final int capacity;\n    public LRUCache(int capacity) {\n        this.capacity = capacity;\n        // TODO: Initialize data structures\n    }\n    public int get(int key) {\n        // TODO: Implement get\n        return -1;\n    }\n    public void put(int key, int value) {\n        // TODO: Implement put\n    }\n}\n' },
+      { s: 'implement Breadth-First Search (BFS) to find the shortest path in an unweighted directed graph in Java',
+        c: 'import java.util.*;\npublic class GraphBFS {\n    private Map<Integer, List<Integer>> adjList = new HashMap<>();\n    public void addEdge(int from, int to) {\n        adjList.computeIfAbsent(from, k -> new ArrayList<>()).add(to);\n    }\n    public List<Integer> shortestPath(int start, int end) {\n        // TODO: Implement shortestPath BFS\n        return Collections.emptyList();\n    }\n}\n' },
+      { s: 'implement a custom fixed-size thread pool executor with a blocking task queue in Java',
+        c: 'import java.util.concurrent.LinkedBlockingQueue;\npublic class CustomThreadPool {\n    private final int poolSize;\n    private final Thread[] workers;\n    private final LinkedBlockingQueue<Runnable> taskQueue;\n    private volatile boolean isShutdown = false;\n    public CustomThreadPool(int poolSize) {\n        this.poolSize = poolSize;\n        this.workers = new Thread[poolSize];\n        this.taskQueue = new LinkedBlockingQueue<>();\n        // TODO: Initialize and start worker threads\n    }\n    public void submit(Runnable task) {\n        // TODO: Implement submit\n    }\n    public void shutdown() {\n        // TODO: Implement shutdown\n    }\n}\n' }
+    ]
   }
 };
 
@@ -602,6 +635,7 @@ function placeholderCode(lang) {
     React: 'import React, { useState, useEffect } from "react";\n\nexport default function App() {\n  const [data, setData] = useState(null);\n  useEffect(() => {\n    fetch("/api/data").then(r=>r.json()).then(setData);\n  }, []);\n  return <div>{data ? JSON.stringify(data) : "Loading..."}</div>;\n}\n',
     Node: 'const http = require("http");\nconst server = http.createServer((req, res) => {\n  res.writeHead(200, {"Content-Type": "application/json"});\n  res.end(JSON.stringify({ status: "ok" }));\n});\nserver.listen(3000, () => console.log("Listening on 3000"));\n',
     HTMLCSS: '<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Page</title>\n  <style>\n    body { font-family: Inter, sans-serif; margin: 0; padding: 2rem; background: #f8fafc; }\n    .card { background: #fff; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,.08); }\n  </style>\n</head>\n<body>\n  <div class="card"><h1>Hello World</h1></div>\n</body>\n</html>\n',
+    Java: 'public class Solution {\n    public static void main(String[] args) {\n        // TODO\n    }\n}\n'
   };
   return map[lang] || `// ${lang} — implement the solution below\n`;
 }
@@ -621,12 +655,10 @@ const SKILL_LANG_MAP = {
   'React':                 'React',
   'Node.js':               'Node',
   'HTML5 & CSS3':          'HTMLCSS',
+  'Java Programming':      'Java',
 };
 
 async function generateQuestions() {
-  const { cnt } = await getAsync('SELECT COUNT(*) as cnt FROM questions');
-  if (cnt > 0) { console.log(`[DB] Questions already generated (${cnt} found).`); return; }
-
   const skills = await allAsync('SELECT id, name FROM skills');
   const stmt = db.prepare(
     'INSERT INTO questions (id, skill_id, title, difficulty, expiration_minutes, code_template) VALUES (?,?,?,?,?,?)'
@@ -634,6 +666,9 @@ async function generateQuestions() {
 
   let total = 0;
   for (const skill of skills) {
+    const { qCount } = await getAsync('SELECT COUNT(*) as qCount FROM questions WHERE skill_id = ?', [skill.id]);
+    if (qCount > 0) continue;
+
     const lang = SKILL_LANG_MAP[skill.name] || 'Python';
     const templates = PROBLEMS[lang] || PROBLEMS['Python'];
     const difficulties = ['easy', 'medium', 'hard'];
@@ -654,7 +689,11 @@ async function generateQuestions() {
   }
 
   await new Promise((res, rej) => stmt.finalize(err => err ? rej(err) : res()));
-  console.log(`[DB] Generated ${total} questions across ${skills.length} skills.`);
+  if (total > 0) {
+    console.log(`[DB] Generated ${total} new questions.`);
+  } else {
+    console.log('[DB] No new questions needed generation.');
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

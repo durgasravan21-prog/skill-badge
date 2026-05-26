@@ -952,11 +952,12 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
 // Student Onboarding Endpoint
 app.post('/api/student/onboard', async (req, res) => {
   try {
-    const studentEmail = sanitizeString(req.body.student_email, 254).toLowerCase();
+        const studentEmail = sanitizeString(req.body.student_email, 254).toLowerCase();
     const phone = sanitizeString(req.body.phone, 30);
     const college = sanitizeString(req.body.college, 150);
     const githubProfile = sanitizeString(req.body.github_profile || '', 200).trim();
     const linkedinProfile = sanitizeString(req.body.linkedin_profile || '', 200).trim();
+    const dreamRole = sanitizeString(req.body.dream_role || '', 100);
 
     if (!studentEmail) {
       return res.status(400).json({ error: 'Missing student email' });
@@ -977,8 +978,8 @@ app.post('/api/student/onboard', async (req, res) => {
     }
 
     await dbRun(
-      'UPDATE users SET phone = ?, college = ?, github_profile = ?, linkedin_profile = ? WHERE id = ?',
-      [phone, college, githubProfile || null, linkedinProfile || null, student.id]
+      'UPDATE users SET phone = ?, college = ?, github_profile = ?, linkedin_profile = ?, dream_role = ? WHERE id = ?',
+      [phone, college, githubProfile || null, linkedinProfile || null, dreamRole || null, student.id]
     );
 
     const updatedUser = await dbGet('SELECT * FROM users WHERE id = ?', [student.id]);
@@ -3036,17 +3037,33 @@ const LANGUAGE_IDS = {
   javascript:63, python:71, java:62, cpp:54, 'c++':54, c:50,
   go:60, rust:73, typescript:74, sql:82, kotlin:78, swift:83, ruby:72, php:68, csharp:51
 };
+
+function getLanguageId(skillOrLang) {
+  if (!skillOrLang) return 63;
+  const name = String(skillOrLang).toLowerCase();
+  if (name.includes('python')) return 71;
+  if (name.includes('javascript') || name.includes('js') || name.includes('react') || name.includes('node')) return 63;
+  if (name.includes('java')) return 62;
+  if (name.includes('c++') || name.includes('cpp')) return 54;
+  if (name.includes('c sys') || name.includes('c prog') || name === 'c') return 50;
+  if (name.includes('go')) return 60;
+  if (name.includes('rust')) return 73;
+  if (name.includes('typescript') || name === 'ts') return 74;
+  if (name.includes('sql')) return 82;
+  return 63; // fallback
+}
+
 const codeExecLimiter = rateLimit({ windowMs:60000, max:30, validate:false,
   message:{ error:'Too many code execution requests. Please slow down.' }});
 
 app.post('/api/exams/run-code', codeExecLimiter, async (req, res) => {
   try {
     const code     = sanitizeCode(req.body.code || '');
-    const language = sanitizeString(req.body.language || 'javascript', 20).toLowerCase();
+    const language = sanitizeString(req.body.language || 'javascript', 50);
     const stdin    = sanitizeString(req.body.stdin || '', 2000);
     if (!code) return res.status(400).json({ error: 'No code provided' });
 
-    const languageId = LANGUAGE_IDS[language];
+    const languageId = getLanguageId(language);
     if (!languageId) return res.status(400).json({ error: `Unsupported language: ${language}` });
 
     if (!JUDGE0_KEY) {
@@ -3143,7 +3160,7 @@ app.post('/api/exams/run-tests', codeExecLimiter, async (req, res) => {
       }
     } else {
       // Use Live Judge0 if key is present
-      const langId = LANGUAGE_IDS[(language || 'javascript').toLowerCase()] || 63;
+      const langId = getLanguageId(language);
       for (const tc of cases) {
         try {
           const r = await fetch(`${JUDGE0_BASE}/submissions?base64_encoded=false&wait=true`, {
@@ -3295,7 +3312,7 @@ app.get('/api/badge/verify', async (req, res) => {
 // Student Profile & Settings Update Endpoint
 app.post('/api/student/update_profile', async (req, res) => {
   try {
-    const studentEmail = sanitizeString(req.body.student_email || '', 254).toLowerCase();
+        const studentEmail = sanitizeString(req.body.student_email || '', 254).toLowerCase();
     const name = sanitizeString(req.body.name || '', 100);
     const phone = sanitizeString(req.body.phone || '', 30);
     const college = sanitizeString(req.body.college || '', 150);
@@ -3303,6 +3320,7 @@ app.post('/api/student/update_profile', async (req, res) => {
     const profileSlug = rawSlug.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
     const github = sanitizeString(req.body.github_profile || '', 200).trim();
     const linkedin = sanitizeString(req.body.linkedin_profile || '', 200).trim();
+    const dreamRole = sanitizeString(req.body.dream_role || '', 100);
 
     if (!studentEmail) {
       return res.status(400).json({ error: 'Missing student email' });
@@ -3334,7 +3352,7 @@ app.post('/api/student/update_profile', async (req, res) => {
     }
 
     await dbRun(
-      'UPDATE users SET name = ?, phone = ?, college = ?, profile_slug = ?, github_profile = ?, linkedin_profile = ? WHERE id = ?',
+      'UPDATE users SET name = ?, phone = ?, college = ?, profile_slug = ?, github_profile = ?, linkedin_profile = ?, dream_role = ? WHERE id = ?',
       [
         name || student.name,
         phone !== undefined ? phone : student.phone,
@@ -3342,6 +3360,7 @@ app.post('/api/student/update_profile', async (req, res) => {
         profileSlug || student.profile_slug,
         github !== undefined ? github : student.github_profile,
         linkedin !== undefined ? linkedin : student.linkedin_profile,
+        dreamRole !== undefined ? dreamRole : student.dream_role,
         student.id
       ]
     );

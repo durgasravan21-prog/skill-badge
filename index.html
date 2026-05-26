@@ -1826,48 +1826,48 @@ body.dark-theme .feature-image-col {
 }
 
 /* 3D Perspective Card Tilt Class */
-.tilt-3d {
+.tilt-profile {
   transform-style: preserve-3d;
   perspective: 1000px;
   transition: transform 0.15s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s ease !important;
 }
-.tilt-3d > * {
+.tilt-profile > * {
   transform: translateZ(24px);
   transform-style: preserve-3d;
 }
 
 /* 💎 Multi-layered 3D Pop-out Effects */
-.tilt-3d .student-avatar, 
-.tilt-3d .recruiter-avatar-letter {
+.tilt-profile .student-avatar, 
+.tilt-profile .recruiter-avatar-letter {
   transform: translateZ(60px) scale(1.05);
   box-shadow: 0 12px 28px rgba(var(--orange-rgb, 230, 81, 0), 0.25);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-.tilt-3d .student-name, 
-.tilt-3d #recruiter-profile-company {
+.tilt-profile .student-name, 
+.tilt-profile #recruiter-profile-company {
   transform: translateZ(40px);
   text-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
-.tilt-3d .student-email-tag, 
-.tilt-3d .student-slug {
+.tilt-profile .student-email-tag, 
+.tilt-profile .student-slug {
   transform: translateZ(30px);
 }
-.tilt-3d h2 {
+.tilt-profile h2 {
   transform: translateZ(45px);
 }
-.tilt-3d p {
+.tilt-profile p {
   transform: translateZ(30px);
 }
-.tilt-3d .btn-primary {
+.tilt-profile .btn-primary {
   transform: translateZ(50px) scale(1.02);
   box-shadow: 0 8px 24px rgba(var(--orange-rgb, 230, 81, 0), 0.3);
 }
-.tilt-3d h3 {
+.tilt-profile h3 {
   transform: translateZ(55px);
   text-shadow: 0 6px 12px rgba(0,0,0,0.08);
 }
-.tilt-3d .home-score-bar, 
-.tilt-3d .student-score-bar {
+.tilt-profile .home-score-bar, 
+.tilt-profile .student-score-bar {
   transform: translateZ(35px);
 }
 
@@ -2615,10 +2615,11 @@ body.dark-theme .premium-metric-card:hover {
     <!-- Left Sidebar: Profile viewing, rating, and navigation -->
     <div class="student-sidebar">
       <!-- Profile Card -->
-      <div class="student-profile-card tilt-3d">
+      <div class="student-profile-card tilt-profile">
         <div class="student-avatar" id="student-avatar-letter">C</div>
         <div class="student-name" id="student-profile-name">Student Name</div>
         <div class="student-email-tag" id="student-profile-email">email@domain.com</div>
+        <div id="student-profile-dream-role" style="margin-top: 8px; font-weight:700; color:var(--orange-deep); font-size:12px; display:none; background:rgba(230,81,0,0.08); padding:3px 10px; border-radius:100px;">Dream Role: ...</div>
         <div class="student-slug" id="student-profile-slug">Personal slug: ...</div>
         <div id="student-profile-links" style="margin-top: 10px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;"></div>
         
@@ -2673,6 +2674,24 @@ body.dark-theme .premium-metric-card:hover {
       
       <!-- Tab 0: Dashboard Home (Default active) -->
       <div id="tab-home" class="student-workspace-panel active">
+        <!-- Dream Role Suggestion Container -->
+        <div id="dream-role-suggestions-container" style="display: none; margin-bottom: 24px; background: linear-gradient(135deg, rgba(230,81,0,0.04) 0%, rgba(255,140,0,0.04) 100%); border: 1.5px dashed rgba(230,81,0,0.25); border-radius: 16px; padding: 22px; text-align: left; transition: all 0.3s ease; box-shadow: 0 4px 20px rgba(0,0,0,0.02);">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="background: var(--orange); color: white; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; box-shadow: 0 4px 12px rgba(230,81,0,0.25);">🎯</div>
+              <div>
+                <h4 style="font-family: var(--font-display); font-size: 16px; font-weight: 800; color: var(--gray-900); margin: 0;">Dream Career Goal: <span id="dream-role-title" style="color: var(--orange-deep);">...</span></h4>
+                <p style="font-size: 12px; color: var(--gray-500); margin: 2px 0 0 0;">Get certified in these key languages & tools to stand out to elite recruiters.</p>
+              </div>
+            </div>
+            <div style="background: rgba(230,81,0,0.08); color: var(--orange-deep); font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 5px 12px; border-radius: 100px; border: 1px solid rgba(230,81,0,0.15);">Target Badges</div>
+          </div>
+          
+          <div id="dream-role-skills-suggestions" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+            <!-- Loaded dynamically based on the selected dream role -->
+          </div>
+        </div>
+
         <!-- Glassmorphic Welcome Banner -->
         <div class="premium-welcome-card tilt-3d" style="margin-bottom: 24px;">
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
@@ -2884,6 +2903,20 @@ body.dark-theme .premium-metric-card:hover {
               <input type="text" id="settings-student-linkedin" placeholder="e.g. https://linkedin.com/in/yourusername" />
             </div>
             <div class="admin-form-group">
+              <label>Your Dream Career Role</label>
+              <select id="settings-student-dream-role" style="background: var(--bg-input); border: 1.5px solid var(--border-color); color: var(--gray-900); padding: 12px; width: 100%; border-radius: var(--radius-sm); outline: none; font-size:13px; font-weight:500;">
+                <option value="" disabled selected>Select your dream career path...</option>
+                <option value="Fullstack Developer">Fullstack Developer</option>
+                <option value="Backend Engineer">Backend Engineer</option>
+                <option value="Frontend Engineer">Frontend Engineer</option>
+                <option value="Data Scientist">Data Scientist</option>
+                <option value="DevOps Engineer">DevOps Engineer</option>
+                <option value="Cybersecurity Specialist">Cybersecurity Specialist</option>
+                <option value="Android Developer">Android Developer</option>
+                <option value="Java Enterprise Developer">Java Enterprise Developer</option>
+              </select>
+            </div>
+            <div class="admin-form-group">
               <label>Personal Portfolio URL Slug</label>
               <input type="text" id="settings-student-slug" placeholder="e.g. john-doe" style="text-transform: lowercase;" />
               <span style="font-size: 11px; color: var(--gray-400); display: block; margin-top: 4px;">Only lowercase letters, numbers, and hyphens allowed.</span>
@@ -3069,7 +3102,7 @@ body.dark-theme .premium-metric-card:hover {
     <!-- Left Sidebar: Profile viewing, rating, and navigation -->
     <div class="student-sidebar">
       <!-- Profile Card -->
-      <div class="student-profile-card tilt-3d">
+      <div class="student-profile-card tilt-profile">
         <div class="student-avatar" id="recruiter-avatar-letter">🏢</div>
         <div class="student-name" id="recruiter-profile-company">Google HR</div>
         <div class="student-email-tag" id="recruiter-profile-name">Recruiter Contact</div>
@@ -3670,6 +3703,21 @@ SkillProof HR Recruiting Team</textarea>
       <div class="oauth-field-group" style="margin-top: 16px;">
         <label style="font-weight: 700; color: var(--gray-700);">LinkedIn Profile URL (Required)</label>
         <input type="text" id="student-onboard-linkedin" placeholder="e.g. https://linkedin.com/in/yourusername" style="background: var(--bg-input); border: 1.5px solid var(--border-color); color: var(--gray-900); padding: 12px; width: 100%; border-radius: var(--radius-sm); outline: none;" />
+      </div>
+      
+      <div class="oauth-field-group" style="margin-top: 16px;">
+        <label style="font-weight: 700; color: var(--gray-700);">Your Dream Career Role (Required)</label>
+        <select id="student-onboard-dream-role" style="background: var(--bg-input); border: 1.5px solid var(--border-color); color: var(--gray-900); padding: 12px; width: 100%; border-radius: var(--radius-sm); outline: none; font-size:13px; font-weight:500;">
+          <option value="" disabled selected>Select your dream career path...</option>
+          <option value="Fullstack Developer">Fullstack Developer</option>
+          <option value="Backend Engineer">Backend Engineer</option>
+          <option value="Frontend Engineer">Frontend Engineer</option>
+          <option value="Data Scientist">Data Scientist</option>
+          <option value="DevOps Engineer">DevOps Engineer</option>
+          <option value="Cybersecurity Specialist">Cybersecurity Specialist</option>
+          <option value="Android Developer">Android Developer</option>
+          <option value="Java Enterprise Developer">Java Enterprise Developer</option>
+        </select>
       </div>
       
       <div style="margin-top: 24px;">
@@ -4365,9 +4413,9 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   }, 6000);
 
-  // 💎 3D Mouse-Tracking Perspective Tilt Effect for Profile Cards
+  // 💎 3D Mouse-Tracking Perspective Tilt Effect for Profile Cards (Subtle angle, profile only)
   document.addEventListener('mousemove', (e) => {
-    const cards = document.querySelectorAll('.tilt-3d');
+    const cards = document.querySelectorAll('.tilt-profile');
     cards.forEach(card => {
       if (card.offsetWidth === 0 || card.offsetHeight === 0) return;
       const rect = card.getBoundingClientRect();
@@ -4380,14 +4428,14 @@ window.addEventListener('DOMContentLoaded', () => {
       const dx = x - xc;
       const dy = y - yc;
       
-      // Smooth 3D tilt perspective with responsive shadow glow
-      card.style.transform = `perspective(1000px) rotateY(${dx / 12}deg) rotateX(${-dy / 12}deg) translateY(-2px)`;
+      // Smooth 3D tilt perspective with responsive shadow glow (Subtle rotation divisor 45)
+      card.style.transform = `perspective(1000px) rotateY(${dx / 45}deg) rotateX(${-dy / 45}deg) translateY(-2px)`;
       card.style.boxShadow = `0 16px 36px rgba(var(--orange-rgb, 230, 81, 0), ${Math.min(0.12, Math.max(0.04, Math.abs(dx) / rect.width))})`;
     });
   });
 
   document.addEventListener('mouseleave', () => {
-    const cards = document.querySelectorAll('.tilt-3d');
+    const cards = document.querySelectorAll('.tilt-profile');
     cards.forEach(card => {
       card.style.transform = 'perspective(1000px) rotateY(0deg) rotateX(0deg) translateY(0px)';
       card.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.02)';
@@ -4815,9 +4863,15 @@ function submitStudentOnboarding() {
   const college = document.getElementById('student-onboard-college').value.trim();
   const github = document.getElementById('student-onboard-github').value.trim();
   const linkedin = document.getElementById('student-onboard-linkedin').value.trim();
+  const dreamRole = document.getElementById('student-onboard-dream-role').value;
 
   if (!phone || !college) {
     alert('Please fill out both your phone number and your college/university.');
+    return;
+  }
+
+  if (!dreamRole) {
+    alert('Please select your dream career role path.');
     return;
   }
 
@@ -4850,7 +4904,8 @@ function submitStudentOnboarding() {
       phone: phone,
       college: college,
       github_profile: github,
-      linkedin_profile: linkedin
+      linkedin_profile: linkedin,
+      dream_role: dreamRole
     })
   })
   .then(res => res.json())
@@ -5069,8 +5124,8 @@ function loadStudentDashboard() {
     currentUser.skillproof_score = 0;
   }
 
-  // Trigger onboarding modal for students if profile details are blank/default
-  if (!currentUser.phone || !currentUser.college || currentUser.college === 'Self-Taught / University') {
+  // Trigger onboarding modal for students if profile details are blank/default or dream role is not set
+  if (!currentUser.phone || !currentUser.college || currentUser.college === 'Self-Taught / University' || !currentUser.dream_role) {
     openStudentOnboardingModal();
     return;
   }
@@ -5208,6 +5263,14 @@ function loadStudentDashboard() {
         .then(masterSkills => {
           if (!Array.isArray(masterSkills)) masterSkills = [];
           renderClaimsSection(masterSkills, claimedSkills);
+          
+          if (currentUser.dream_role) {
+            renderDreamRoleSuggestions(currentUser.dream_role, masterSkills, claimedSkills);
+          } else {
+            const container = document.getElementById('dream-role-suggestions-container');
+            if (container) container.style.display = 'none';
+          }
+
           renderProgressiveVerifier(claimedSkills);
           loadStudentSchedules();
         });
@@ -5292,7 +5355,8 @@ const SKILL_LANG_DISPLAY = {
   'AWS': 'YAML/CloudFormation',
   'React': 'JSX/React',
   'Node.js': 'Node.js',
-  'HTML5 & CSS3': 'HTML/CSS'
+  'HTML5 & CSS3': 'HTML/CSS',
+  'Java Programming': 'Java'
 };
 
 function detectLangFromSkill(skillName) {
@@ -5315,7 +5379,109 @@ function detectLangFromSkill(skillName) {
   if (lower.includes('docker')) return 'Dockerfile';
   if (lower.includes('kubernetes')) return 'YAML';
   if (lower.includes('aws')) return 'YAML/CloudFormation';
+  if (lower.includes('java')) return 'Java';
   return null;
+}
+
+function renderDreamRoleSuggestions(dreamRole, masterSkills, claimedSkills) {
+  const container = document.getElementById('dream-role-suggestions-container');
+  const titleSpan = document.getElementById('dream-role-title');
+  const suggestionsGrid = document.getElementById('dream-role-skills-suggestions');
+  if (!container || !titleSpan || !suggestionsGrid) return;
+
+  const roleSkillsMap = {
+    'Fullstack Developer': ['JavaScript', 'TypeScript', 'React', 'Node.js', 'SQL Database Design'],
+    'Backend Engineer': ['Python Programming', 'Node.js', 'Go', 'SQL Database Design', 'Docker'],
+    'Frontend Engineer': ['JavaScript', 'TypeScript', 'React', 'HTML5 & CSS3'],
+    'Data Scientist': ['Python Programming', 'SQL Database Design', 'AWS'],
+    'DevOps Engineer': ['Docker', 'Kubernetes', 'AWS', 'Go'],
+    'Cybersecurity Specialist': ['C Systems Programming', 'Python Programming', 'SQL Database Design', 'Rust'],
+    'Android Developer': ['Java Programming', 'Node.js', 'SQL Database Design'],
+    'Java Enterprise Developer': ['Java Programming', 'SQL Database Design', 'Docker', 'AWS']
+  };
+
+  const reqSkillNames = roleSkillsMap[dreamRole] || [];
+  if (reqSkillNames.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+
+  titleSpan.innerText = dreamRole;
+  suggestionsGrid.innerHTML = '';
+  container.style.display = 'block';
+
+  reqSkillNames.forEach(skillName => {
+    const masterSkill = masterSkills.find(m => m.name === skillName);
+    if (!masterSkill) return;
+
+    const userClaim = claimedSkills.find(c => c.skill_id === masterSkill.id);
+    let statusLabel = '';
+    let statusColor = '';
+    let actionBtnHTML = '';
+
+    if (!userClaim) {
+      statusLabel = 'Not Claimed';
+      statusColor = 'var(--gray-400)';
+      actionBtnHTML = `<button onclick="switchStudentTab('claims');" class="btn-primary" style="padding: 6px 12px; font-size: 11px; font-weight: 750; border-radius: 6px; width: 100%; justify-content: center; height: 32px; background: rgba(230,81,0,0.06); color: var(--orange-deep); border: 1.5px solid rgba(230,81,0,0.2); box-shadow: none;">Claim & Start</button>`;
+    } else if (userClaim.status === 'verified') {
+      statusLabel = '🏆 Verified Expert';
+      statusColor = '#2E7D32';
+      actionBtnHTML = `<span style="font-size: 11.5px; font-weight: 700; color: #2E7D32; display: flex; align-items: center; gap: 4px; justify-content: center; height: 32px;">✓ Pathway Complete</span>`;
+    } else if (userClaim.status === 'pending_review') {
+      statusLabel = '⏳ Under Review';
+      statusColor = '#E65100';
+      actionBtnHTML = `<span style="font-size: 11.5px; font-weight: 700; color: #E65100; display: flex; align-items: center; gap: 4px; justify-content: center; height: 32px;">⏳ Awaiting Review</span>`;
+    } else if (userClaim.status === 'failed') {
+      statusLabel = '❌ Action Needed';
+      statusColor = '#C62828';
+      actionBtnHTML = `<button onclick="switchStudentTab('arena');" class="btn-primary" style="padding: 6px 12px; font-size: 11px; font-weight: 700; border-radius: 6px; width: 100%; justify-content: center; height: 32px; background: #C62828; color: #FFF; border: none;">Retry Assessment</button>`;
+    } else {
+      statusLabel = '⚡ Verification Unlocked';
+      statusColor = 'var(--orange-deep)';
+      actionBtnHTML = `<button onclick="switchStudentTab('arena');" class="btn-primary" style="padding: 6px 12px; font-size: 11px; font-weight: 700; border-radius: 6px; width: 100%; justify-content: center; height: 32px; background: var(--orange); color: #FFF; border: none;">Take Exam Now</button>`;
+    }
+
+    const card = document.createElement('div');
+    card.style.cssText = 'background: var(--white); border: 1.5px solid var(--border-color); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.01); transition: all 0.2s ease;';
+    card.onmouseover = () => { card.style.borderColor = 'rgba(230,81,0,0.3)'; card.style.boxShadow = '0 4px 12px rgba(230,81,0,0.04)'; };
+    card.onmouseout = () => { card.style.borderColor = 'var(--border-color)'; card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.01)'; };
+
+    const BASE = 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons';
+    const langIcons = {
+      'Python Programming':  `${BASE}/python/python-original.svg`,
+      'C Systems Programming': `${BASE}/c/c-original.svg`,
+      'SQL Database Design':  `${BASE}/mysql/mysql-original.svg`,
+      'JavaScript':           `${BASE}/javascript/javascript-original.svg`,
+      'TypeScript':           `${BASE}/typescript/typescript-original.svg`,
+      'Go':                   `${BASE}/go/go-original.svg`,
+      'Rust':                 `${BASE}/rust/rust-original.svg`,
+      'C++':                  `${BASE}/cplusplus/cplusplus-original.svg`,
+      'Docker':               `${BASE}/docker/docker-original.svg`,
+      'Kubernetes':           `${BASE}/kubernetes/kubernetes-plain.svg`,
+      'AWS':                  `${BASE}/amazonwebservices/amazonwebservices-original.svg`,
+      'React':                `${BASE}/react/react-original.svg`,
+      'Node.js':              `${BASE}/nodejs/nodejs-original.svg`,
+      'HTML5 & CSS3':         `${BASE}/html5/html5-original.svg`,
+      'Java Programming':     `${BASE}/java/java-original.svg`
+    };
+    const iconSrc = langIcons[skillName] || `${BASE}/devicon/devicon-original.svg`;
+
+    card.innerHTML = `
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <div style="background: var(--gray-50); width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-color); flex-shrink: 0;">
+          <img src="${iconSrc}" alt="${skillName}" width="20" height="20" style="object-fit:contain;" onerror="this.style.display='none';this.parentElement.textContent='💻'" />
+        </div>
+        <div style="text-align: left;">
+          <h5 style="font-size: 13px; font-weight: 750; color: var(--gray-900); margin: 0; line-height: 1.2;">${escapeHTML(skillName)}</h5>
+          <span style="font-size: 10.5px; font-weight: 700; color: ${statusColor};">${escapeHTML(statusLabel)}</span>
+        </div>
+      </div>
+      <div>
+        ${actionBtnHTML}
+      </div>
+    `;
+    suggestionsGrid.appendChild(card);
+  });
 }
 
 // Render progressive multi-level assessment list based on claimed skills
