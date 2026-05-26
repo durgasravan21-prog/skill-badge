@@ -1293,6 +1293,168 @@ body.dark-theme .progress-container {
 .admin-card input[type="text"], .admin-card input[type="number"], .admin-card select, .admin-card textarea {
   transition: border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   💎 PREMIUM PORTAL DASHBOARD OVERHAUL & ADVANCED VISUAL LAYERS
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Root HSL brand-rgb variable fallback for interactive shadow glows */
+:root {
+  --orange-rgb: 230, 81, 0;
+}
+
+/* 3D Perspective Card Tilt Class */
+.tilt-3d {
+  transform-style: preserve-3d;
+  perspective: 1000px;
+  transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease !important;
+}
+.tilt-3d > * {
+  transform: translateZ(24px);
+}
+
+/* Premium Sidebar Overhaul */
+.student-profile-card {
+  background: var(--white) !important;
+  border: 1.5px solid var(--gray-100) !important;
+  border-radius: var(--radius-lg) !important;
+  padding: 32px 24px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02) !important;
+}
+body.dark-theme .student-profile-card {
+  background: #1C1A17 !important;
+  border-color: #2D2926 !important;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Glassmorphic Welcome Card Layout */
+.premium-welcome-card {
+  background: linear-gradient(135deg, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.45) 100%) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1.5px solid rgba(255,255,255,0.6) !important;
+  border-radius: var(--radius-lg) !important;
+  padding: 36px 32px !important;
+  box-shadow: 0 8px 32px 0 rgba(var(--orange-rgb), 0.04) !important;
+  position: relative;
+  overflow: hidden;
+}
+body.dark-theme .premium-welcome-card {
+  background: linear-gradient(135deg, rgba(30, 27, 26, 0.75) 0%, rgba(20, 18, 17, 0.45) 100%) !important;
+  border: 1.5px solid rgba(255,255,255,0.06) !important;
+  box-shadow: 0 8px 36px 0 rgba(0,0,0,0.3) !important;
+}
+.premium-welcome-card::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 180px; height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--orange-mid) 0%, transparent 70%);
+  opacity: 0.25;
+  filter: blur(25px);
+  pointer-events: none;
+}
+body.dark-theme .premium-welcome-card::before {
+  background: radial-gradient(circle, var(--orange-dark) 0%, transparent 75%);
+  opacity: 0.4;
+}
+
+/* Premium Sidebar Navigation Menu Overhaul */
+.student-nav-menu {
+  background: var(--white) !important;
+  border: 1.5px solid var(--gray-100) !important;
+  border-radius: var(--radius-lg) !important;
+  padding: 10px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02) !important;
+}
+body.dark-theme .student-nav-menu {
+  background: #1C1A17 !important;
+  border-color: #2D2926 !important;
+}
+
+/* Tactile Left-Border Indicator Nav Item Overrides */
+.student-nav-item {
+  position: relative !important;
+  overflow: hidden !important;
+  border-left: 3.5px solid transparent !important;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0 !important;
+  padding: 12px 20px !important;
+  color: var(--gray-600) !important;
+}
+body.dark-theme .student-nav-item {
+  color: #B0AFA8 !important;
+}
+.student-nav-item.active {
+  background: var(--orange-light) !important;
+  color: var(--orange-deep) !important;
+  border-left-color: var(--orange) !important;
+  font-weight: 800 !important;
+}
+body.dark-theme .student-nav-item.active {
+  background: var(--orange-mid) !important;
+  color: #FFF !important;
+}
+.student-nav-item:hover:not(.active) {
+  background: var(--gray-50) !important;
+  color: var(--gray-900) !important;
+  padding-left: 24px !important;
+}
+body.dark-theme .student-nav-item:hover:not(.active) {
+  background: #252220 !important;
+  color: #FFF !important;
+}
+
+/* Dynamic Responsive Dashboard Metrics Grids */
+.premium-metrics-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+  gap: 24px !important;
+  margin-bottom: 28px !important;
+}
+
+/* Premium HSL Animated Glow Metric Cards */
+.premium-metric-card {
+  background: var(--white) !important;
+  border: 1.5px solid var(--gray-100) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 24px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  position: relative !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+body.dark-theme .premium-metric-card {
+  background: #1C1A17 !important;
+  border-color: #2D2926 !important;
+}
+.premium-metric-card:hover {
+  border-color: var(--orange-mid) !important;
+  transform: translateY(-3px) !important;
+  box-shadow: 0 12px 28px rgba(var(--orange-rgb), 0.08) !important;
+}
+body.dark-theme .premium-metric-card:hover {
+  border-color: var(--orange) !important;
+  box-shadow: 0 12px 32px rgba(var(--orange-rgb), 0.16) !important;
+}
+
+/* High-Tech Grid Overflows Safety Limits */
+.student-content-panel {
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+.history-table-container {
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  border-radius: var(--radius-md) !important;
+}
+.history-table {
+  width: 100% !important;
+  min-width: 860px !important;
+  table-layout: fixed !important;
+}
 </style>
 
 <!-- TensorFlow.js + COCO-SSD for real-time phone detection -->
@@ -1782,7 +1944,7 @@ body.dark-theme .progress-container {
     <!-- Left Sidebar: Profile viewing, rating, and navigation -->
     <div class="student-sidebar">
       <!-- Profile Card -->
-      <div class="student-profile-card">
+      <div class="student-profile-card tilt-3d">
         <div class="student-avatar" id="student-avatar-letter">C</div>
         <div class="student-name" id="student-profile-name">Student Name</div>
         <div class="student-email-tag" id="student-profile-email">email@domain.com</div>
@@ -2236,7 +2398,7 @@ body.dark-theme .progress-container {
     <!-- Left Sidebar: Profile viewing, rating, and navigation -->
     <div class="student-sidebar">
       <!-- Profile Card -->
-      <div class="student-profile-card">
+      <div class="student-profile-card tilt-3d">
         <div class="student-avatar" id="recruiter-avatar-letter">🏢</div>
         <div class="student-name" id="recruiter-profile-company">Google HR</div>
         <div class="student-email-tag" id="recruiter-profile-name">Recruiter Contact</div>
@@ -3133,6 +3295,12 @@ window.addEventListener('DOMContentLoaded', () => {
       const isDark = document.body.classList.contains('dark-theme');
       safeLocalStorage.setItem('theme', isDark ? 'dark' : 'light');
       
+      // Recalculate brand color variables for soft light / deep neon dark adaptability
+      try {
+        const savedTheme = safeLocalStorage.getItem('skillproof_theme') || 'orange';
+        applyColorTheme(savedTheme, false);
+      } catch(e) {}
+      
       if (isDark) {
         if (sunIcon) sunIcon.style.display = 'none';
         if (moonIcon) moonIcon.style.display = 'block';
@@ -3495,6 +3663,35 @@ window.addEventListener('DOMContentLoaded', () => {
       updateNotificationBadge();
     }
   }, 6000);
+
+  // 💎 3D Mouse-Tracking Perspective Tilt Effect for Profile Cards
+  document.addEventListener('mousemove', (e) => {
+    const cards = document.querySelectorAll('.tilt-3d');
+    cards.forEach(card => {
+      if (card.offsetWidth === 0 || card.offsetHeight === 0) return;
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      // Calculate cursor displacement from center of card
+      const xc = rect.width / 2;
+      const yc = rect.height / 2;
+      const dx = x - xc;
+      const dy = y - yc;
+      
+      // Smooth 3D tilt perspective with responsive shadow glow
+      card.style.transform = `perspective(1000px) rotateY(${dx / 12}deg) rotateX(${-dy / 12}deg) translateY(-2px)`;
+      card.style.boxShadow = `0 16px 36px rgba(var(--orange-rgb, 230, 81, 0), ${Math.min(0.12, Math.max(0.04, Math.abs(dx) / rect.width))})`;
+    });
+  });
+
+  document.addEventListener('mouseleave', () => {
+    const cards = document.querySelectorAll('.tilt-3d');
+    cards.forEach(card => {
+      card.style.transform = 'perspective(1000px) rotateY(0deg) rotateX(0deg) translateY(0px)';
+      card.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.02)';
+    });
+  }, true);
 });
 
 // Quick-fill helper function
@@ -7851,41 +8048,48 @@ function copyStudentToken() {
 
 // ── ROOT VARIABLE HSL COLOR THEME SWITCHER ──
 function applyColorTheme(themeColor, showToastNotify = true) {
+  const isDark = document.body.classList.contains('dark-theme');
+  
   const themes = {
     orange: {
       orange: '#E65100',
-      light: '#FFF8F5',
-      mid: '#FFD7C9',
-      deep: '#BF360C',
-      dark: '#5C1C0A'
+      light: isDark ? '#221509' : '#FFF8F5',
+      mid: isDark ? '#40241A' : '#FFD7C9',
+      deep: isDark ? '#FF6B00' : '#BF360C',
+      dark: isDark ? '#6B250F' : '#5C1C0A',
+      rgb: '230, 81, 0'
     },
     emerald: {
-      orange: '#059669',
-      light: '#F0FDF4',
-      mid: '#BBF7D0',
-      deep: '#15803D',
-      dark: '#14532D'
+      orange: isDark ? '#10B981' : '#059669',
+      light: isDark ? '#082512' : '#F0FDF4',
+      mid: isDark ? '#104B24' : '#BBF7D0',
+      deep: isDark ? '#34D399' : '#15803D',
+      dark: isDark ? '#0E3B1C' : '#14532D',
+      rgb: '16, 185, 129'
     },
     sapphire: {
-      orange: '#2563EB',
-      light: '#EFF6FF',
-      mid: '#BFDBFE',
-      deep: '#1D4ED8',
-      dark: '#1E3A8A'
+      orange: isDark ? '#3B82F6' : '#2563EB',
+      light: isDark ? '#0A182F' : '#EFF6FF',
+      mid: isDark ? '#1E3A5F' : '#BFDBFE',
+      deep: isDark ? '#60A5FA' : '#1D4ED8',
+      dark: isDark ? '#0D274A' : '#1E3A8A',
+      rgb: '37, 99, 235'
     },
     purple: {
-      orange: '#7C3AED',
-      light: '#F5F3FF',
-      mid: '#DDD6FE',
-      deep: '#6D28D9',
-      dark: '#4C1D95'
+      orange: isDark ? '#8B5CF6' : '#7C3AED',
+      light: isDark ? '#1A0B2E' : '#F5F3FF',
+      mid: isDark ? '#2D1B4E' : '#DDD6FE',
+      deep: isDark ? '#A78BFA' : '#6D28D9',
+      dark: isDark ? '#200F3A' : '#4C1D95',
+      rgb: '124, 58, 237'
     },
     gold: {
-      orange: '#D97706',
-      light: '#FEF3C7',
-      mid: '#FDE68A',
-      deep: '#B45309',
-      dark: '#78350F'
+      orange: isDark ? '#F59E0B' : '#D97706',
+      light: isDark ? '#2B1E05' : '#FEF3C7',
+      mid: isDark ? '#4F3508' : '#FDE68A',
+      deep: isDark ? '#FBBF24' : '#B45309',
+      dark: isDark ? '#3B2303' : '#78350F',
+      rgb: '217, 119, 6'
     }
   };
 
@@ -7896,6 +8100,7 @@ function applyColorTheme(themeColor, showToastNotify = true) {
   document.documentElement.style.setProperty('--orange-mid', selected.mid);
   document.documentElement.style.setProperty('--orange-deep', selected.deep);
   document.documentElement.style.setProperty('--orange-dark', selected.dark);
+  document.documentElement.style.setProperty('--orange-rgb', selected.rgb);
   
   safeLocalStorage.setItem('skillproof_theme', themeColor);
   if (showToastNotify) {
