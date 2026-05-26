@@ -5383,6 +5383,17 @@ function detectLangFromSkill(skillName) {
   return null;
 }
 
+function updateDesignMockupVisibility() {
+  const mockupPanel = document.getElementById('design-mockup-panel');
+  if (mockupPanel && currentExam) {
+    const sName = currentExam.skillName || '';
+    const isDesignQuest = (sName.includes('HTML') || sName.includes('CSS') || sName.includes('Web Development') || sName.includes('Frontend'));
+    mockupPanel.style.display = isDesignQuest ? 'block' : 'none';
+  } else if (mockupPanel) {
+    mockupPanel.style.display = 'none';
+  }
+}
+
 function renderDreamRoleSuggestions(dreamRole, masterSkills, claimedSkills) {
   const container = document.getElementById('dream-role-suggestions-container');
   const titleSpan = document.getElementById('dream-role-title');
@@ -6571,6 +6582,7 @@ async function startExam(questionId) {
     document.getElementById('disqualify-alert').style.display = 'none';
     document.getElementById('active-question-title').innerText = currentExam.questionTitle || 'Timed Coding Challenge';
     document.getElementById('code-editor').value = currentExam.codeTemplate;
+    if (typeof updateDesignMockupVisibility === 'function') updateDesignMockupVisibility();
 
     // ── Language-aware editor badge ──
     const langBadge = document.getElementById('editor-lang-badge');
@@ -7685,6 +7697,7 @@ async function submitExam(isAutoSubmit = false) {
 
         document.getElementById('active-question-title').innerText = currentExam.questionTitle || 'Scheduled Coding Challenge';
         document.getElementById('code-editor').value = currentExam.codeTemplate;
+        if (typeof updateDesignMockupVisibility === 'function') updateDesignMockupVisibility();
         renderTestCases(nextData.testCases);
 
         // Start auto-save for new examId
@@ -8486,6 +8499,8 @@ function switchStudentTab(tabName) {
   // Show target student workspace panel
   const target = document.getElementById('tab-' + tabName);
   if (target) target.classList.add('active');
+
+  if (typeof updateDesignMockupVisibility === 'function') updateDesignMockupVisibility();
 
   // Deactivate all navigation buttons
   document.querySelectorAll('.student-nav-item').forEach(item => {
@@ -9709,6 +9724,7 @@ async function startScheduledExam(scheduleId) {
     document.getElementById('disqualify-alert').style.display = 'none';
     document.getElementById('active-question-title').innerText = currentExam.questionTitle || 'Scheduled Coding Challenge';
     document.getElementById('code-editor').value = currentExam.codeTemplate;
+    if (typeof updateDesignMockupVisibility === 'function') updateDesignMockupVisibility();
 
     // Reset Simulators
     document.getElementById('sim-bluetooth-check').checked = false;

@@ -17,6 +17,7 @@ const _nft_img5 = path.resolve(__dirname, '../images/hero-bg.png');
 const _nft_img6 = path.resolve(__dirname, '../images/dashboard-illustration.png');
 const _nft_img7 = path.resolve(__dirname, '../images/login-illustration.png');
 const _nft_img8 = path.resolve(__dirname, '../images/proctoring-illustration.png');
+const _nft_img9 = path.resolve(__dirname, '../images/web_design_challenge.png');
 
 const app = require('../server.js');
 module.exports = app;
