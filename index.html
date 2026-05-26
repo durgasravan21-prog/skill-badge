@@ -4915,7 +4915,10 @@ function stopDevToolsDetection() {
 // ── Interactive Student Onboarding Helper Functions ──
 function openStudentOnboardingModal() {
   const modal = document.getElementById('student-onboarding-modal');
-  if (modal) modal.style.display = 'flex';
+  if (modal) {
+    if (modal.style.display === 'flex') return;
+    modal.style.display = 'flex';
+  }
   
   // Set existing values if available
   const phoneInput = document.getElementById('student-onboard-phone');
