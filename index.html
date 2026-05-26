@@ -949,40 +949,89 @@ body.dark-theme .oauth-divider::after {
 .oauth-demo-accounts {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 .oauth-demo-btn {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   width: 100%;
-  padding: 10px 14px;
-  border: 1.5px solid var(--gray-200);
-  border-radius: var(--radius-sm);
-  background: var(--white);
+  padding: 14px 18px;
+  border: 1px solid var(--gray-200);
+  border-radius: 16px;
+  background: rgba(255,255,255,0.7);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
   text-align: left;
+  backdrop-filter: blur(8px);
+}
+body.dark-theme .oauth-demo-btn {
+  background: rgba(255, 255, 255, 0.01);
+  border-color: rgba(255, 255, 255, 0.05);
+  color: #FFF;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 .oauth-demo-btn:hover {
   border-color: var(--orange-mid);
-  background: var(--orange-light);
-  transform: translateY(-1px);
-}
-body.dark-theme .oauth-demo-btn {
-  background: #171412;
-  border-color: #3A3935;
-  color: #FFF;
+  background: rgba(230, 81, 0, 0.03);
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 10px 25px rgba(230, 81, 0, 0.08);
 }
 body.dark-theme .oauth-demo-btn:hover {
-  background: rgba(230, 81, 0, 0.1);
+  background: rgba(230, 81, 0, 0.05);
   border-color: var(--orange);
+  box-shadow: 0 12px 30px rgba(230, 81, 0, 0.2);
+}
+.keycard-indicator {
+  position: absolute;
+  top: 14px; left: 14px;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+}
+.keycard-indicator.student-pulse {
+  background: #4CAF50;
+  box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
+  animation: keycardPulseStudent 2s infinite;
+}
+.keycard-indicator.recruiter-pulse {
+  background: #9C27B0;
+  box-shadow: 0 0 0 0 rgba(156, 39, 176, 0.7);
+  animation: keycardPulseRecruiter 2s infinite;
+}
+@keyframes keycardPulseStudent {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(76, 175, 80, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+}
+@keyframes keycardPulseRecruiter {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(156, 39, 176, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(156, 39, 176, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(156, 39, 176, 0); }
+}
+.keycard-chip-glow {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(135deg, rgba(230, 81, 0, 0.05) 0%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+.oauth-demo-btn:hover .keycard-chip-glow {
+  opacity: 1;
 }
 .demo-icon {
   font-size: 20px;
+  position: relative;
+  z-index: 2;
 }
 .demo-details {
   display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 2;
   flex-direction: column;
 }
 .demo-details strong {
@@ -1208,20 +1257,28 @@ body.dark-theme .smooth-modal-btn.ghost:hover { background: #171412; }
   max-width: 1000px;
   margin: 0 auto;
   background: var(--white);
-  border: 1.5px solid var(--gray-100);
+  border: 1px solid rgba(230, 81, 0, 0.15);
   border-radius: 24px;
   overflow: hidden;
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 32px 80px rgba(230, 81, 0, 0.05), 0 0 0 1px rgba(230, 81, 0, 0.05) inset;
   min-height: 580px;
   position: relative;
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.auth-split-container:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 40px 100px rgba(230, 81, 0, 0.1), 0 0 0 2px var(--orange) inset;
 }
 body.dark-theme .auth-split-container {
-  background: #171412;
-  border-color: #2A2624;
-  box-shadow: 0 24px 64px rgba(0,0,0,0.4);
+  background: #0f0d0c;
+  border-color: rgba(230, 81, 0, 0.25);
+  box-shadow: 0 40px 120px rgba(0,0,0,0.65), 0 0 0 1px rgba(230, 81, 0, 0.15) inset;
+}
+body.dark-theme .auth-split-container:hover {
+  box-shadow: 0 48px 140px rgba(230, 81, 0, 0.25), 0 0 0 2px var(--orange) inset;
 }
 .auth-visual-panel {
-  background: linear-gradient(135deg, var(--orange-dark) 0%, var(--gray-900) 100%);
+  background: radial-gradient(circle at center, #1b1614 0%, #0a0807 100%);
   padding: 48px;
   display: flex;
   flex-direction: column;
@@ -1231,21 +1288,48 @@ body.dark-theme .auth-split-container {
   overflow: hidden;
   color: #FFF;
   text-align: center;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
 }
 .auth-visual-overlay {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px);
-  background-size: 20px 20px;
-  opacity: 0.6;
+  background-image: 
+    linear-gradient(rgba(230, 81, 0, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(230, 81, 0, 0.08) 1px, transparent 1px);
+  background-size: 30px 30px;
+  background-position: center;
+  animation: gridMove 20s linear infinite;
+  opacity: 0.5;
+}
+@keyframes gridMove {
+  0% { background-position: 0 0; }
+  100% { background-position: 30px 30px; }
 }
 .auth-visual-orb {
   position: absolute;
-  top: -100px; left: -100px;
-  width: 300px; height: 300px;
-  background: radial-gradient(circle, rgba(var(--orange-rgb, 230, 81, 0), 0.15) 0%, transparent 70%);
-  filter: blur(40px);
+  top: -50px; left: -50px;
+  width: 250px; height: 250px;
+  background: radial-gradient(circle, rgba(230, 81, 0, 0.25) 0%, transparent 70%);
+  filter: blur(50px);
   pointer-events: none;
+  animation: floatOrb1 10s ease-in-out infinite alternate;
+}
+.auth-visual-orb-2 {
+  position: absolute;
+  bottom: -50px; right: -50px;
+  width: 250px; height: 250px;
+  background: radial-gradient(circle, rgba(0, 168, 204, 0.18) 0%, transparent 70%);
+  filter: blur(50px);
+  pointer-events: none;
+  animation: floatOrb2 12s ease-in-out infinite alternate;
+}
+@keyframes floatOrb1 {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(30px, 20px) scale(1.1); }
+}
+@keyframes floatOrb2 {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(-30px, -20px) scale(1.15); }
 }
 .auth-visual-content {
   position: relative;
@@ -1255,21 +1339,28 @@ body.dark-theme .auth-split-container {
   align-items: center;
 }
 .auth-shield-glow {
-  width: 100px;
-  height: 100px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1.5px solid rgba(255, 255, 255, 0.15);
-  border-radius: 20px;
+  width: 110px;
+  height: 110px;
+  background: rgba(230, 81, 0, 0.08);
+  border: 1.5px solid rgba(230, 81, 0, 0.3);
+  border-radius: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 28px;
   position: relative;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  box-shadow: 0 0 30px rgba(230, 81, 0, 0.15), inset 0 0 15px rgba(230, 81, 0, 0.1);
+  backdrop-filter: blur(6px);
+  transition: all 0.4s ease;
+}
+.auth-shield-glow:hover {
+  border-color: var(--orange);
+  box-shadow: 0 0 40px rgba(230, 81, 0, 0.3), inset 0 0 20px rgba(230, 81, 0, 0.2);
+  transform: scale(1.05);
 }
 .auth-shield-svg {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   color: var(--orange);
   filter: drop-shadow(0 0 8px var(--orange));
   animation: floatShield 6s ease-in-out infinite alternate;
@@ -1280,16 +1371,16 @@ body.dark-theme .auth-split-container {
 }
 .auth-laser-scanner {
   position: absolute;
-  left: 10%; right: 10%; top: 20%;
+  left: 0; right: 0; top: 0;
   height: 2px;
   background: linear-gradient(90deg, transparent, var(--orange), transparent);
-  box-shadow: 0 0 12px var(--orange);
-  animation: laserScan 4s ease-in-out infinite;
+  box-shadow: 0 0 15px var(--orange), 0 0 5px var(--orange);
+  animation: laserScan 3.5s ease-in-out infinite;
 }
 @keyframes laserScan {
-  0%, 100% { top: 20%; opacity: 0; }
-  10%, 90% { opacity: 1; }
-  50% { top: 80%; }
+  0%, 100% { top: 0%; opacity: 0; }
+  5%, 95% { opacity: 1; }
+  50% { top: 100%; }
 }
 .auth-visual-panel h3 {
   font-family: var(--font-display);
@@ -1310,22 +1401,30 @@ body.dark-theme .auth-split-container {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.12);
-  color: #FFF;
+  background: rgba(230, 81, 0, 0.1);
+  border: 1px solid rgba(230, 81, 0, 0.25);
+  color: var(--orange);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  padding: 6px 14px;
+  letter-spacing: 1.5px;
+  padding: 8px 18px;
   border-radius: 100px;
   font-family: var(--font-display);
+  box-shadow: 0 4px 15px rgba(230,81,0,0.05);
+  backdrop-filter: blur(4px);
+  transition: all 0.3s ease;
+}
+.auth-visual-badge:hover {
+  background: rgba(230, 81, 0, 0.15);
+  border-color: var(--orange);
+  box-shadow: 0 4px 20px rgba(230,81,0,0.15);
 }
 .auth-badge-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #FFF;
+  background: var(--orange);
   animation: pulse 2s infinite;
 }
 .auth-form-panel {
@@ -1333,10 +1432,11 @@ body.dark-theme .auth-split-container {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--white);
+  background: radial-gradient(circle at 70% 30%, rgba(255,255,255,1) 0%, rgba(250,248,247,1) 100%);
+  position: relative;
 }
 body.dark-theme .auth-form-panel {
-  background: #171412;
+  background: radial-gradient(circle at 70% 30%, #151210 0%, #0d0b0a 100%);
 }
 .auth-panel-inner {
   width: 100%;
@@ -2539,6 +2639,7 @@ body.dark-theme .premium-metric-card:hover {
     <div class="auth-visual-panel">
       <div class="auth-visual-overlay"></div>
       <div class="auth-visual-orb"></div>
+      <div class="auth-visual-orb-2"></div>
       <div class="auth-visual-content">
         <div class="auth-shield-glow">
           <svg viewBox="0 0 24 24" class="auth-shield-svg" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -2581,24 +2682,42 @@ body.dark-theme .premium-metric-card:hover {
             </svg>
             Sign in with Google
           </button>
-          <button onclick="triggerOAuthModal('GitHub')" class="auth-btn">
+          <button onclick="triggerOAuthModal('GitHub')" class="auth-btn" style="margin-top: 10px;">
             <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.11.82-.26.82-.577v-2.234c-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.43.372.82 1.102.82 2.222v3.293c0 .319.22.694.825.576C20.565 21.795 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
             Sign in with GitHub
           </button>
           <div class="oauth-divider"><span>OR DEMO ACCOUNTS</span></div>
           <div class="oauth-demo-accounts">
             <button class="oauth-demo-btn" onclick="quickDemoLogin('student')">
-              <span class="demo-icon">👤</span>
-              <div class="demo-details">
-                <strong>Demo Student</strong>
-                <span>student@gmail.com</span>
+              <div class="keycard-chip-glow"></div>
+              <div class="keycard-indicator student-pulse"></div>
+              <span class="demo-icon" style="background: rgba(76, 175, 80, 0.1); color: #4CAF50; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px;">👤</span>
+              <div class="demo-details" style="flex-grow: 1;">
+                <strong style="font-size: 13px; font-weight: 750;">Demo Student Profile</strong>
+                <span style="font-size: 11px; font-weight: 500; color: var(--gray-500);">student@gmail.com</span>
+              </div>
+              <div class="keycard-meta">
+                <svg class="keycard-svg-chip" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" style="color: rgba(230,81,0,0.3); flex-shrink: 0;">
+                  <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor"/>
+                  <path d="M7 9h3v3H7zm7 0h3v3h-3zm-7 5h3v2H7zm7 0h3v2h-3zm-4-5h2v7h-2z" fill="currentColor" fill-opacity="0.1"/>
+                </svg>
+                <div style="font-size: 8px; font-family: monospace; color: var(--gray-400); text-align: right; margin-top: 4px;">KEYID: #STUDENT</div>
               </div>
             </button>
             <button class="oauth-demo-btn" onclick="quickDemoLogin('recruiter')">
-              <span class="demo-icon">🏢</span>
-              <div class="demo-details">
-                <strong>Demo Recruiter (Google HR)</strong>
-                <span>hr@google.com</span>
+              <div class="keycard-chip-glow"></div>
+              <div class="keycard-indicator recruiter-pulse"></div>
+              <span class="demo-icon" style="background: rgba(156, 39, 176, 0.1); color: #9C27B0; width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px;">🏢</span>
+              <div class="demo-details" style="flex-grow: 1;">
+                <strong style="font-size: 13px; font-weight: 750;">Demo Recruiter Profile</strong>
+                <span style="font-size: 11px; font-weight: 500; color: var(--gray-500);">hr@google.com</span>
+              </div>
+              <div class="keycard-meta">
+                <svg class="keycard-svg-chip" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" style="color: rgba(0,168,204,0.3); flex-shrink: 0;">
+                  <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor"/>
+                  <path d="M7 9h3v3H7zm7 0h3v3h-3zm-7 5h3v2H7zm7 0h3v2h-3zm-4-5h2v7h-2z" fill="currentColor" fill-opacity="0.1"/>
+                </svg>
+                <div style="font-size: 8px; font-family: monospace; color: var(--gray-400); text-align: right; margin-top: 4px;">KEYID: #RECRUITER</div>
               </div>
             </button>
           </div>
