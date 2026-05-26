@@ -1710,10 +1710,46 @@ body.dark-theme .progress-container {
 .tilt-3d {
   transform-style: preserve-3d;
   perspective: 1000px;
-  transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease !important;
+  transition: transform 0.15s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s ease !important;
 }
 .tilt-3d > * {
   transform: translateZ(24px);
+  transform-style: preserve-3d;
+}
+
+/* 💎 Multi-layered 3D Pop-out Effects */
+.tilt-3d .student-avatar, 
+.tilt-3d .recruiter-avatar-letter {
+  transform: translateZ(60px) scale(1.05);
+  box-shadow: 0 12px 28px rgba(var(--orange-rgb, 230, 81, 0), 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.tilt-3d .student-name, 
+.tilt-3d #recruiter-profile-company {
+  transform: translateZ(40px);
+  text-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+.tilt-3d .student-email-tag, 
+.tilt-3d .student-slug {
+  transform: translateZ(30px);
+}
+.tilt-3d h2 {
+  transform: translateZ(45px);
+}
+.tilt-3d p {
+  transform: translateZ(30px);
+}
+.tilt-3d .btn-primary {
+  transform: translateZ(50px) scale(1.02);
+  box-shadow: 0 8px 24px rgba(var(--orange-rgb, 230, 81, 0), 0.3);
+}
+.tilt-3d h3 {
+  transform: translateZ(55px);
+  text-shadow: 0 6px 12px rgba(0,0,0,0.08);
+}
+.tilt-3d .home-score-bar, 
+.tilt-3d .student-score-bar {
+  transform: translateZ(35px);
 }
 
 /* Premium Sidebar Overhaul */
@@ -2430,7 +2466,7 @@ body.dark-theme .premium-metric-card:hover {
       <!-- Tab 0: Dashboard Home (Default active) -->
       <div id="tab-home" class="student-workspace-panel active">
         <!-- Glassmorphic Welcome Banner -->
-        <div class="premium-welcome-card" style="margin-bottom: 24px;">
+        <div class="premium-welcome-card tilt-3d" style="margin-bottom: 24px;">
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
             <div>
               <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(230,81,0,0.1); color: var(--orange-deep); font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 4px 10px; border-radius: 100px; margin-bottom: 12px; letter-spacing: 0.5px;">
@@ -2448,7 +2484,7 @@ body.dark-theme .premium-metric-card:hover {
         <!-- Premium Metrics Grid -->
         <div class="premium-metrics-grid">
           <!-- Card 1: SkillProof Index -->
-          <div class="premium-metric-card">
+          <div class="premium-metric-card tilt-3d">
             <div>
               <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--gray-400); letter-spacing: 1px;">SkillProof Rating</span>
               <h3 id="home-metric-rating" style="font-size: 28px; font-weight: 800; color: var(--orange-deep); margin: 8px 0 12px 0; font-family: var(--font-display);">0.00</h3>
@@ -2465,7 +2501,7 @@ body.dark-theme .premium-metric-card:hover {
           </div>
 
           <!-- Card 2: Certified Badges -->
-          <div class="premium-metric-card">
+          <div class="premium-metric-card tilt-3d">
             <div>
               <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--gray-400); letter-spacing: 1px;">Portfolio Badges</span>
               <h3 id="home-metric-badges" style="font-size: 28px; font-weight: 800; color: var(--orange-deep); margin: 8px 0 12px 0; font-family: var(--font-display);">0</h3>
@@ -2476,7 +2512,7 @@ body.dark-theme .premium-metric-card:hover {
           </div>
 
           <!-- Card 3: Integrity Trust Index -->
-          <div class="premium-metric-card">
+          <div class="premium-metric-card tilt-3d">
             <div>
               <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--gray-400); letter-spacing: 1px;">Integrity Trust Index</span>
               <h3 id="home-metric-integrity" style="font-size: 28px; font-weight: 800; color: #2E7D32; margin: 8px 0 12px 0; font-family: var(--font-display);">100%</h3>
@@ -2487,7 +2523,7 @@ body.dark-theme .premium-metric-card:hover {
           </div>
 
           <!-- Card 4: Exams Completed -->
-          <div class="premium-metric-card">
+          <div class="premium-metric-card tilt-3d">
             <div>
               <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--gray-400); letter-spacing: 1px;">Exams Completed</span>
               <h3 id="home-metric-completed" style="font-size: 28px; font-weight: 800; color: var(--orange-deep); margin: 8px 0 12px 0; font-family: var(--font-display);">0</h3>
@@ -2500,7 +2536,7 @@ body.dark-theme .premium-metric-card:hover {
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px;">
           <!-- Left Col: Live Skill Progress Tracks -->
-          <div class="admin-card" style="margin-bottom: 0;">
+          <div class="admin-card tilt-3d" style="margin-bottom: 0;">
             <h3 style="font-family: var(--font-display); font-size: 18px; font-weight: 800; margin-bottom: 12px;">Active Competency Progress</h3>
             <p style="font-size: 13px; color: var(--gray-500); margin-bottom: 20px;">Your claimed skill profiles and their currently evaluated progression tiers.</p>
             <div id="home-skills-progress-list" style="display: flex; flex-direction: column; gap: 16px;">
@@ -2510,7 +2546,7 @@ body.dark-theme .premium-metric-card:hover {
           </div>
 
           <!-- Right Col: Audit Logs / Feed -->
-          <div class="admin-card" style="margin-bottom: 0;">
+          <div class="admin-card tilt-3d" style="margin-bottom: 0;">
             <h3 style="font-family: var(--font-display); font-size: 18px; font-weight: 800; margin-bottom: 12px;">Activity Audit Feed</h3>
             <p style="font-size: 13px; color: var(--gray-500); margin-bottom: 20px;">Secure real-time transaction and session tracking logs.</p>
             <div id="home-audit-logs" style="display: flex; flex-direction: column; gap: 12px; max-height: 280px; overflow-y: auto;">
@@ -2864,7 +2900,7 @@ body.dark-theme .premium-metric-card:hover {
       <!-- Tab 0: Console Overview -->
       <div id="tab-recruiter-home" class="student-workspace-panel active">
         <!-- Glassmorphic Welcome Banner -->
-        <div class="premium-welcome-card" style="margin-bottom: 24px;">
+        <div class="premium-welcome-card tilt-3d" style="margin-bottom: 24px;">
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
             <div>
               <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(230,81,0,0.1); color: var(--orange-deep); font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 4px 10px; border-radius: 100px; margin-bottom: 12px; letter-spacing: 0.5px;">
@@ -2882,7 +2918,7 @@ body.dark-theme .premium-metric-card:hover {
         <!-- Premium Metrics Grid -->
         <div class="premium-metrics-grid">
           <!-- Card 1: Candidates Onboarded -->
-          <div class="premium-metric-card">
+          <div class="premium-metric-card tilt-3d">
             <div>
               <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--gray-400); letter-spacing: 1px;">Candidates Onboarded</span>
               <h3 id="recruiter-stat-total" style="font-size: 28px; font-weight: 800; color: var(--orange-deep); margin: 8px 0 12px 0; font-family: var(--font-display);">0</h3>
@@ -2893,7 +2929,7 @@ body.dark-theme .premium-metric-card:hover {
           </div>
 
           <!-- Card 2: Average Code Score -->
-          <div class="premium-metric-card">
+          <div class="premium-metric-card tilt-3d">
             <div>
               <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--gray-400); letter-spacing: 1px;">Average Code Score</span>
               <h3 id="recruiter-stat-avgscore" style="font-size: 28px; font-weight: 800; color: var(--orange-deep); margin: 8px 0 12px 0; font-family: var(--font-display);">0.0%</h3>
@@ -2904,7 +2940,7 @@ body.dark-theme .premium-metric-card:hover {
           </div>
 
           <!-- Card 3: Proctor Security Flags -->
-          <div class="premium-metric-card">
+          <div class="premium-metric-card tilt-3d">
             <div>
               <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--gray-400); letter-spacing: 1px;">Proctor Security Flags</span>
               <h3 id="recruiter-stat-infractions" style="font-size: 28px; font-weight: 800; color: #C62828; margin: 8px 0 12px 0; font-family: var(--font-display);">0</h3>
@@ -2915,7 +2951,7 @@ body.dark-theme .premium-metric-card:hover {
           </div>
 
           <!-- Card 4: Active Sequences -->
-          <div class="premium-metric-card">
+          <div class="premium-metric-card tilt-3d">
             <div>
               <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--gray-400); letter-spacing: 1px;">Active Sequences</span>
               <h3 id="recruiter-stat-sequences" style="font-size: 28px; font-weight: 800; color: var(--orange-deep); margin: 8px 0 12px 0; font-family: var(--font-display);">0</h3>
@@ -2928,7 +2964,7 @@ body.dark-theme .premium-metric-card:hover {
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px;">
           <!-- Left Col: Top Verified Talents -->
-          <div class="admin-card" style="margin-bottom: 0;">
+          <div class="admin-card tilt-3d" style="margin-bottom: 0;">
             <h3 style="font-family: var(--font-display); font-size: 18px; font-weight: 800; margin-bottom: 12px;">Top Verified Talents</h3>
             <p style="font-size: 13px; color: var(--gray-500); margin-bottom: 20px;">Highest performing candidates vetted by high-security WebRTC proctoring.</p>
             <div id="recruiter-top-talents-list" style="display: flex; flex-direction: column; gap: 16px;">
@@ -2938,7 +2974,7 @@ body.dark-theme .premium-metric-card:hover {
           </div>
 
           <!-- Right Col: Recent HR Dispatch Feed -->
-          <div class="admin-card" style="margin-bottom: 0;">
+          <div class="admin-card tilt-3d" style="margin-bottom: 0;">
             <h3 style="font-family: var(--font-display); font-size: 18px; font-weight: 800; margin-bottom: 12px;">Recent HR Activity Feed</h3>
             <p style="font-size: 13px; color: var(--gray-500); margin-bottom: 20px;">Timeline of dispatched assessment invites and student actions.</p>
             <div id="recruiter-dispatch-feed" style="display: flex; flex-direction: column; gap: 12px; max-height: 280px; overflow-y: auto;">
@@ -2949,7 +2985,7 @@ body.dark-theme .premium-metric-card:hover {
         </div>
 
         <!-- Real-Time Credential Authenticator Section -->
-        <div class="admin-card" style="margin-top: 24px; border: 1.5px dashed var(--orange-deep);">
+        <div class="admin-card tilt-3d" style="margin-top: 24px; border: 1.5px dashed var(--orange-deep);">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:12px;">
             <div>
               <h3 style="font-family: var(--font-display); font-size: 18px; font-weight: 800; color: var(--gray-900); margin:0;">🛡️ Real-Time Credential Authenticator</h3>
