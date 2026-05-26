@@ -523,9 +523,9 @@ app.use((req, res, next) => {
 // bundle the HTML files into the serverless function zip.
 
 function readIndexHtml() {
-  try { return fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8'); } catch(e) {
-    try { return fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf8'); } catch(e2) {
-      console.error('[WARN] index.html not found');
+  try { return fs.readFileSync(path.join(__dirname, 'app-landing.html'), 'utf8'); } catch(e) {
+    try { return fs.readFileSync(path.resolve(process.cwd(), 'app-landing.html'), 'utf8'); } catch(e2) {
+      console.error('[WARN] app-landing.html not found');
       return null;
     }
   }
