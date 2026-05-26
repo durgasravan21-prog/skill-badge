@@ -4992,56 +4992,90 @@ function openStudentOnboardingModal() {
   // Set existing values if available
   const phoneInput = document.getElementById('student-onboard-phone');
   const collegeInput = document.getElementById('student-onboard-college');
+  const githubInput = document.getElementById('student-onboard-github');
+  const linkedinInput = document.getElementById('student-onboard-linkedin');
+  const dreamRoleSelect = document.getElementById('student-onboard-dream-role');
+
   if (phoneInput) phoneInput.value = currentUser.phone || '';
   if (collegeInput) collegeInput.value = (currentUser.college && currentUser.college !== 'Self-Taught / University') ? currentUser.college : '';
+  if (githubInput) githubInput.value = currentUser.github_profile || '';
+  if (linkedinInput) linkedinInput.value = currentUser.linkedin_profile || '';
+  if (dreamRoleSelect) dreamRoleSelect.value = currentUser.dream_role || '';
 
-  // Load skills list dynamically from database
-  fetch('/api/skills')
-    .then(res => res.json())
-    .then(skills => {
-      const container = document.getElementById('student-onboard-skills-container');
-      if (!container) return;
-      container.innerHTML = '';
-      if (!Array.isArray(skills) || skills.length === 0) {
-        container.innerHTML = '<p style="color:var(--gray-500); font-size:12px;">No skills available in the database.</p>';
-        return;
-      }
-      skills.forEach(skill => {
-        const row = document.createElement('div');
-        row.style.display = 'flex';
-        row.style.alignItems = 'center';
-        row.style.justifyContent = 'space-between';
-        row.style.marginBottom = '8px';
-        row.style.padding = '10px 14px';
-        row.style.background = 'var(--gray-50)';
-        row.style.border = '1.5px solid var(--gray-100)';
-        row.style.borderRadius = 'var(--radius-md)';
-        row.style.transition = 'border-color 0.2s';
-        
-        row.innerHTML = `
-          <div style="display:flex; align-items:center; gap:10px;">
-            <input type="checkbox" id="onboard-chk-${skill.id}" class="onboard-skill-checkbox" value="${skill.id}" style="accent-color:var(--orange); width:18px; height:18px; cursor:pointer;" />
-            <label for="onboard-chk-${skill.id}" style="font-weight:700; cursor:pointer; color:var(--gray-900); font-size:13.5px; font-family:var(--font-display);">${escapeHTML(skill.name)} <span style="font-size:10px; color:var(--gray-500); font-weight:normal; font-family:var(--font-body);">(${escapeHTML(skill.category)})</span></label>
-          </div>
-          <div style="display:flex; align-items:center; gap:6px;">
-            <span style="font-size:11px; color:var(--gray-500); font-weight:600;">Self-Rating:</span>
-            <select id="onboard-rate-${skill.id}" style="padding:4px 8px; border-radius:var(--radius-sm); background:var(--white); border:1.5px solid var(--gray-200); color:var(--gray-900); font-size:12.5px; font-weight:700; cursor:pointer;">
-              <option value="1">1 - Novice</option>
-              <option value="2">2 - Intermediate</option>
-              <option value="3" selected>3 - Competent</option>
-              <option value="4">4 - Advanced</option>
-              <option value="5">5 - Expert</option>
-            </select>
-          </div>
-        `;
-        container.appendChild(row);
-      });
-    })
-    .catch(err => {
-      console.error('Failed to load onboarding skills list', err);
-      const container = document.getElementById('student-onboard-skills-container');
-      if (container) container.innerHTML = '<p style="color:var(--gray-500); font-size:12px;">Failed to load skills.</p>';
+  const container = document.getElementById('student-onboard-skills-container');
+  if (container) {
+    container.innerHTML = '<p style="color:var(--gray-500); font-size:12px;">Loading master skills list...</p>';
+  }
+
+  // Load skills list dynamically from database along with student's current status
+  Promise.all([
+    fetch('/api/skills').then(res => res.json()),
+    fetch('/api/skills/status?student_email=' + encodeURIComponent(currentUser.email))
+      .then(res => res.json())
+      .catch(() => ({ skills: [] }))
+  ])
+  .then(([skills, statusData]) => {
+    if (!container) return;
+    container.innerHTML = '';
+    
+    const claimedSkillIds = new Set((statusData.skills || []).map(s => s.skill_id));
+    const claimedSkillRatings = {};
+    (statusData.skills || []).forEach(s => {
+      claimedSkillRatings[s.skill_id] = s.self_rating;
     });
+
+    // Save claimed IDs on container for the submission function to reference
+    container.dataset.claimedIds = JSON.stringify(Array.from(claimedSkillIds));
+
+    if (!Array.isArray(skills) || skills.length === 0) {
+      container.innerHTML = '<p style="color:var(--gray-500); font-size:12px;">No skills available in the database.</p>';
+      return;
+    }
+
+    skills.forEach(skill => {
+      const isAlreadyClaimed = claimedSkillIds.has(skill.id);
+      const currentRating = claimedSkillRatings[skill.id] || 3;
+      
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.alignItems = 'center';
+      row.style.justifyContent = 'space-between';
+      row.style.marginBottom = '8px';
+      row.style.padding = '10px 14px';
+      row.style.background = isAlreadyClaimed ? 'rgba(76, 175, 80, 0.04)' : 'var(--gray-50)';
+      row.style.border = isAlreadyClaimed ? '1.5px solid rgba(76, 175, 80, 0.25)' : '1.5px solid var(--gray-100)';
+      row.style.borderRadius = 'var(--radius-md)';
+      row.style.transition = 'border-color 0.2s';
+      
+      row.innerHTML = `
+        <div style="display:flex; align-items:center; gap:10px;">
+          <input type="checkbox" id="onboard-chk-${skill.id}" class="onboard-skill-checkbox" value="${skill.id}" 
+            ${isAlreadyClaimed ? 'checked' : ''} style="accent-color:var(--orange); width:18px; height:18px; cursor:pointer;" />
+          <label for="onboard-chk-${skill.id}" style="font-weight:700; cursor:pointer; color:var(--gray-900); font-size:13.5px; font-family:var(--font-display);">
+            ${escapeHTML(skill.name)} 
+            <span style="font-size:10px; color:var(--gray-500); font-weight:normal; font-family:var(--font-body);">(${escapeHTML(skill.category)})</span>
+            ${isAlreadyClaimed ? '<span style="font-size:10.5px; color:#2E7D32; font-weight:800; margin-left:6px; background:rgba(76,175,80,0.1); padding:2px 6px; border-radius:4px;">✓ Claimed</span>' : ''}
+          </label>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="font-size:11px; color:var(--gray-500); font-weight:600;">Self-Rating:</span>
+          <select id="onboard-rate-${skill.id}" style="padding:4px 8px; border-radius:var(--radius-sm); background:var(--white); border:1.5px solid var(--gray-200); color:var(--gray-900); font-size:12.5px; font-weight:700; cursor:pointer;">
+            <option value="1" ${currentRating == 1 ? 'selected' : ''}>1 - Novice</option>
+            <option value="2" ${currentRating == 2 ? 'selected' : ''}>2 - Intermediate</option>
+            <option value="3" ${currentRating == 3 ? 'selected' : ''}>3 - Competent</option>
+            <option value="4" ${currentRating == 4 ? 'selected' : ''}>4 - Advanced</option>
+            <option value="5" ${currentRating == 5 ? 'selected' : ''}>5 - Expert</option>
+          </select>
+        </div>
+      `;
+      container.appendChild(row);
+    });
+  })
+  .catch(err => {
+    console.error('Failed to load onboarding skills list', err);
+    const container = document.getElementById('student-onboard-skills-container');
+    if (container) container.innerHTML = '<p style="color:var(--gray-500); font-size:12px;">Failed to load skills.</p>';
+  });
 }
 
 function closeStudentOnboardingModal() {
@@ -5086,6 +5120,13 @@ function submitStudentOnboarding() {
     return;
   }
 
+  // Get pre-claimed IDs
+  const container = document.getElementById('student-onboard-skills-container');
+  const claimedSkillIds = new Set(JSON.parse((container && container.dataset.claimedIds) || '[]'));
+
+  // Filter checkboxes to only submit NEW claims
+  const newClaimsCheckboxes = Array.from(checkboxes).filter(chk => !claimedSkillIds.has(chk.value));
+
   // Onboard details
   fetch('/api/student/onboard', {
     method: 'POST',
@@ -5110,8 +5151,15 @@ function submitStudentOnboarding() {
     currentUser = data.user;
     safeLocalStorage.setItem('skillproof_user', JSON.stringify(currentUser));
 
-    // Submit skill claims sequentially
-    const claims = Array.from(checkboxes).map(chk => {
+    if (newClaimsCheckboxes.length === 0) {
+      alert('🎉 Onboarding profile updated successfully!');
+      closeStudentOnboardingModal();
+      loadStudentDashboard();
+      return;
+    }
+
+    // Submit newly checked skill claims sequentially
+    const claims = newClaimsCheckboxes.map(chk => {
       const skillId = chk.value;
       const rating = document.getElementById(`onboard-rate-${skillId}`).value;
       return fetch('/api/skills/claim', {
@@ -5129,9 +5177,9 @@ function submitStudentOnboarding() {
       .then(claimResults => {
         const errorResult = claimResults.find(r => r.error);
         if (errorResult) {
-          alert('Profile saved, but some skill claims failed: ' + errorResult.error);
+          alert('Profile saved, but some new skill claims failed: ' + errorResult.error);
         } else {
-          alert('🎉 Awesome! Onboarding completed and skill claims registered successfully!');
+          alert('🎉 Awesome! Onboarding completed and new skill claims registered successfully!');
         }
         closeStudentOnboardingModal();
         loadStudentDashboard();

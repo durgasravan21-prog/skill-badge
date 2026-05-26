@@ -1027,7 +1027,7 @@ app.post('/api/skills/claim', authenticateSession, async (req, res) => {
     if (!student) return res.status(404).json({ error: 'Student not found' });
 
     const existing = await dbGet('SELECT id FROM student_skills WHERE student_id = ? AND skill_id = ?', [student.id, skillId]);
-    if (existing) return res.status(400).json({ error: 'This skill has already been claimed or verified.' });
+    if (existing) return res.json({ message: 'This skill was already claimed. Verification active!', alreadyClaimed: true });
 
     const claimId = crypto.randomUUID();
     await dbRun(
