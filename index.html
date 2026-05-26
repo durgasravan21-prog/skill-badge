@@ -1697,6 +1697,125 @@ body.dark-theme .progress-container {
   transition: border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* 💎 ADVANCED TWO-COLUMN HERO & ALTERNATING 3D GRAPHICS LAYOUT */
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 48px;
+  align-items: center;
+  width: 100%;
+}
+@media (max-width: 991px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  .hero-3d-card {
+    transform: none !important;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+}
+.hero-image-pane {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transform-style: preserve-3d;
+}
+.hero-image-pane::before {
+  content: '';
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(var(--orange-rgb, 230, 81, 0), 0.18) 0%, transparent 70%);
+  filter: blur(40px);
+  z-index: 0;
+  pointer-events: none;
+}
+.hero-3d-card {
+  position: relative;
+  z-index: 1;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 1.5px solid var(--gray-100);
+  box-shadow: var(--shadow-lg);
+  background: var(--white);
+  transform: perspective(1000px) rotateY(-12deg) rotateX(6deg) translateZ(10px);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 100%;
+}
+body.dark-theme .hero-3d-card {
+  background: #171412;
+  border-color: #2D2926;
+  box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+}
+.hero-3d-card:hover {
+  transform: perspective(1000px) rotateY(-4deg) rotateX(2deg) translateY(-4px) translateZ(15px);
+  box-shadow: 0 40px 80px rgba(var(--orange-rgb), 0.18);
+}
+.hero-3d-card img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Alternating Feature Grid */
+.features-container {
+  display: flex;
+  flex-direction: column;
+  gap: 88px;
+  margin-top: 56px;
+}
+.feature-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: center;
+}
+.feature-row.reverse {
+  grid-template-columns: 1fr 1fr;
+}
+@media (max-width: 768px) {
+  .feature-row, .feature-row.reverse {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+}
+.feature-text-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.feature-image-col {
+  position: relative;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  border: 1.5px solid var(--gray-100);
+  background: var(--white);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-style: preserve-3d;
+}
+body.dark-theme .feature-image-col {
+  border-color: #2A2624;
+  background: #171412;
+  box-shadow: 0 20px 48px rgba(0,0,0,0.4);
+}
+.feature-image-col:hover {
+  transform: translateY(-4px) scale(1.005);
+  box-shadow: var(--shadow-xl);
+  border-color: var(--orange-mid);
+}
+.feature-image-col img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────────
    💎 PREMIUM PORTAL DASHBOARD OVERHAUL & ADVANCED VISUAL LAYERS
    ───────────────────────────────────────────────────────────────────────────── */
@@ -2207,107 +2326,125 @@ body.dark-theme .premium-metric-card:hover {
     <div class="hero-dots"></div>
     <div class="hero-bg"></div>
     <div class="hero-inner">
-      <div class="hero-badge">
-        <span class="hero-badge-dot"></span>
-        AI-Powered Skill Verification
-      </div>
-      <h1>Skills recruiters can<br/><em>actually trust.</em></h1>
-      <p class="hero-sub">SkillProof replaces self-reported resumes with live, timed coding challenges evaluated by advanced AI — issuing verifiable skill badges that recruiters trust, in real time.</p>
-      <div class="hero-actions">
-        <a href="#" onclick="showView('auth')" class="btn-primary">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-          See how it works
-        </a>
-        <a href="#" onclick="showView('auth')" class="btn-ghost">AI Evaluation</a>
-      </div>
-      <div class="hero-stats">
-        <div class="hero-stat">
-          <div class="hero-stat-num">4<sup>+</sup></div>
-          <div class="hero-stat-label">AI scoring dimensions</div>
+      <div class="hero-grid">
+        <!-- Left Column: High Impact copy -->
+        <div>
+          <div class="hero-badge">
+            <span class="hero-badge-dot"></span>
+            AI-Powered Skill Verification
+          </div>
+          <h1>Skills recruiters can<br/><em>actually trust.</em></h1>
+          <p class="hero-sub" style="margin: 20px 0 32px 0;">SkillProof replaces self-reported resumes with live, timed coding challenges evaluated by advanced AI — issuing verifiable 3D skill badges that recruiters trust, in real time.</p>
+          <div class="hero-actions" style="margin-bottom: 40px;">
+            <a href="#" onclick="showView('auth')" class="btn-primary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              Get Started Now
+            </a>
+            <a href="#how" class="btn-ghost">How It Works</a>
+          </div>
+          <div class="hero-stats">
+            <div class="hero-stat">
+              <div class="hero-stat-num">4<sup>+</sup></div>
+              <div class="hero-stat-label">Evaluation Rubrics</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-num">3<sup>×</sup></div>
+              <div class="hero-stat-label">Progressive Tiers</div>
+            </div>
+            <div class="hero-stat">
+              <div class="hero-stat-num">100<sup>%</sup></div>
+              <div class="hero-stat-label">Verifiable Badges</div>
+            </div>
+          </div>
         </div>
-        <div class="hero-stat">
-          <div class="hero-stat-num">3<sup>×</sup></div>
-          <div class="hero-stat-label">Challenge types</div>
-        </div>
-        <div class="hero-stat">
-          <div class="hero-stat-num">100<sup>%</sup></div>
-          <div class="hero-stat-label">Verifiable skill badges</div>
-        </div>
-        <div class="hero-stat">
-          <div class="hero-stat-num">~500</div>
-          <div class="hero-stat-label">AI evals on $5 credits</div>
+        
+        <!-- Right Column: Interactive 3D Mockup Card -->
+        <div class="hero-image-pane">
+          <div class="hero-3d-card">
+            <img src="/images/verified_badges_mockup.png" alt="Verifiable Skill Badges Mockup" />
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- HOW IT WORKS -->
+  <!-- WHAT IS SKILLPROOF & HOW IT WORKS -->
   <section class="how" id="how">
     <div class="section-inner">
-      <div class="fade-up">
-        <div class="section-label">How it works</div>
-        <h2 class="section-title">Challenge → Submit → Badge.</h2>
-        <p class="section-sub">A student claims a competency. To verify it, they take a 3-tier shuffled coding test (Easy ➡️ Medium ➡️ Hard). Advanced AI evaluates it, issuing a certified badge tag on their public portfolio.</p>
+      <div class="fade-up" style="text-align: center; max-width: 800px; margin: 0 auto 56px auto;">
+        <div class="section-label">THE PLATFORM</div>
+        <h2 class="section-title">Vetted. Proctor-Protected. Verified.</h2>
+        <p class="section-sub" style="margin-top: 12px; font-size: 15px;">Whether you are an engineer looking to prove your expertise or a recruiter looking for authentic technical talent, SkillProof eliminates resume inflation by verifying coding credentials through active evaluation.</p>
       </div>
-      <div class="steps-grid fade-up">
-        <div class="step">
-          <div class="step-num">Step 01</div>
-          <div class="step-icon">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+
+      <!-- Alternating Features Showcasing Generated Images -->
+      <div class="features-container">
+        <!-- Feature 1: The Timed Proctoring Session -->
+        <div class="feature-row">
+          <div class="feature-text-col">
+            <div style="display:inline-flex; align-items:center; gap:6px; color:var(--orange-deep); font-weight:800; font-size:11px; text-transform:uppercase; margin-bottom:12px; letter-spacing:0.5px;">
+              🛡️ STEP 1: PROCTOR-PROTECTED CHALLENGES
+            </div>
+            <h3 style="font-family:var(--font-display); font-size:26px; font-weight:800; color:var(--gray-900); margin:0 0 12px 0; line-height:1.25;">High-Security Timed Evaluation</h3>
+            <p style="font-size:14px; color:var(--gray-600); line-height:1.6; margin:0 0 20px 0;">To earn a badge, candidates undergo progressive timed algorithm challenges. Full screen locking, active anti-copy prevention layers, and WebRTC proctor metrics hand recruiters a solid guarantee of developer integrity.</p>
+            <div style="display:flex; gap:12px; align-items:center; font-size:13px; font-weight:700; color:var(--gray-800);">
+              <span>🔒 Screen Lock Sensors</span>
+              <span>•</span>
+              <span>🎙️ Sound DB Logging</span>
+              <span>•</span>
+              <span>👁️ AI Bounding Box</span>
+            </div>
           </div>
-          <h3>Claim a competency</h3>
-          <p>Select master programming skills like Python, C, or SQL. Rating is self-claimed until tested.</p>
+          <div class="feature-image-col">
+            <img src="/images/proctor_session_mockup.png" alt="Futuristic AI Proctoring Dashboard" />
+          </div>
         </div>
-        <div class="step">
-          <div class="step-num">Step 02</div>
-          <div class="step-icon">
-            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+
+        <!-- Feature 2: Dynamic AI Code Synthesis Evaluation -->
+        <div class="feature-row reverse">
+          <div class="feature-image-col">
+            <img src="/images/ai_evaluation_mockup.png" alt="AI Evaluation Analytics Summary" />
           </div>
-          <h3>Auto Shuffled Verifier</h3>
-          <p>Our verification engine shuffles 3 progressive coding questions (Basics ➡️ Concurrency ➡️ Complex Slab Allocations).</p>
+          <div class="feature-text-col">
+            <div style="display:inline-flex; align-items:center; gap:6px; color:#7C3AED; font-weight:800; font-size:11px; text-transform:uppercase; margin-bottom:12px; letter-spacing:0.5px;">
+              🧠 STEP 2: MULTI-DIMENSIONAL AI GRADING
+            </div>
+            <h3 style="font-family:var(--font-display); font-size:26px; font-weight:800; color:var(--gray-900); margin:0 0 12px 0; line-height:1.25;">Senior Engineer Rubric Synthesis</h3>
+            <p style="font-size:14px; color:var(--gray-600); line-height:1.6; margin:0 0 20px 0;">Advanced models analyze submissions across four core operational criteria: Big-O time complexity, space allocations, memory leakage safety, and semantic robustness. Recruiters get a detailed dashboard review of real engineering capabilities.</p>
+            <div style="display:flex; gap:12px; align-items:center; font-size:13px; font-weight:700; color:var(--gray-800);">
+              <span>📊 Big-O Complexity</span>
+              <span>•</span>
+              <span>💡 Leak Detection</span>
+              <span>•</span>
+              <span>✍️ Synthesis Logs</span>
+            </div>
+          </div>
         </div>
-        <div class="step">
-          <div class="step-num">Step 03</div>
-          <div class="step-icon">
-            <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+
+        <!-- Feature 3: Verified Badge Tag Issuance -->
+        <div class="feature-row">
+          <div class="feature-text-col">
+            <div style="display:inline-flex; align-items:center; gap:6px; color:#2E7D32; font-weight:800; font-size:11px; text-transform:uppercase; margin-bottom:12px; letter-spacing:0.5px;">
+              💎 STEP 3: CERTIFIED PORTFOLIO BADGES
+            </div>
+            <h3 style="font-family:var(--font-display); font-size:26px; font-weight:800; color:var(--gray-900); margin:0 0 12px 0; line-height:1.25;">Trust Tags for Public Share</h3>
+            <p style="font-size:14px; color:var(--gray-600); line-height:1.6; margin:0 0 20px 0;">Successful candidates are awarded cryptographic badges mapped directly to their public profiles. These badges are secured on decentralized ledger databases and can be validated instantly by enterprise employers using our public authenticator.</p>
+            <button onclick="showView('auth')" class="btn-primary" style="align-self:flex-start; padding:12px 24px; font-size:13px; font-weight:700; border-radius:var(--radius-sm);">Earn Your Badge Now →</button>
           </div>
-          <h3>Secure Live Proctoring</h3>
-          <p>Full screen locking, microphone noise tracks, WebRTC cameras, and anti-copy layers protect integrity.</p>
-        </div>
-        <div class="step">
-          <div class="step-num">Step 04</div>
-          <div class="step-icon">
-            <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          <div class="feature-image-col">
+            <img src="/images/verified_badges_mockup.png" alt="Verified Portfolio Badges Mockup" />
           </div>
-          <h3>AI Evaluator & Summarizer</h3>
-          <p>Generates senior engineer score rubrics alongside full proctor reports for recruiter portfolios.</p>
-        </div>
-        <div class="step">
-          <div class="step-num">Step 05</div>
-          <div class="step-icon">
-            <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          </div>
-          <h3>Tag and Badge Issued</h3>
-          <p>Pass all 3 levels to earn custom tags (e.g. "SkillProof Python Expert") that recruiters trust.</p>
-        </div>
-        <div class="step">
-          <div class="step-num">Step 06</div>
-          <div class="step-icon">
-            <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-          </div>
-          <h3>SkillProof Score Syncs</h3>
-          <p>Dynamic talent aggregate score index recalculates on the user's secure server record.</p>
         </div>
       </div>
 
       <!-- Public Digital Credential Ledger Authenticator -->
-      <div style="margin-top: 50px; background: var(--gray-50); border: 1.5px solid var(--gray-200); border-radius: 12px; padding: 32px; box-shadow: var(--shadow-sm); max-width: 900px; margin-left: auto; margin-right: auto;">
+      <div style="margin-top: 88px; background: var(--gray-50); border: 1.5px solid var(--gray-200); border-radius: 16px; padding: 36px; box-shadow: var(--shadow-sm); max-width: 900px; margin-left: auto; margin-right: auto; position:relative; overflow:hidden;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:20px; text-align:left;">
           <div style="max-width: 450px;">
             <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(0,119,181,0.1); color: #0077B5; font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 4px 10px; border-radius: 100px; margin-bottom: 8px;">
               🛡️ Decentralized Trust Ledger
             </div>
-            <h3 style="font-family: var(--font-display); font-size: 20px; font-weight: 800; color: var(--gray-900); margin:0;">Public Badge Authenticator</h3>
+            <h3 style="font-family: var(--font-display); font-size: 22px; font-weight: 800; color: var(--gray-900); margin:0;">Public Badge Authenticator</h3>
             <p style="font-size: 13px; color: var(--gray-600); margin: 6px 0 0 0; line-height:1.5;">Employers and recruiters can instantly check the cryptographic validity of any SkillProof verified badge. Simply copy and paste the candidate's Credential ID below.</p>
           </div>
           <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; flex:1; justify-content:flex-end; min-width:320px;">
