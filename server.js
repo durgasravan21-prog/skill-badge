@@ -3312,15 +3312,17 @@ app.get('/api/badge/verify', async (req, res) => {
 // Student Profile & Settings Update Endpoint
 app.post('/api/student/update_profile', async (req, res) => {
   try {
-        const studentEmail = sanitizeString(req.body.student_email || '', 254).toLowerCase();
-    const name = sanitizeString(req.body.name || '', 100);
-    const phone = sanitizeString(req.body.phone || '', 30);
-    const college = sanitizeString(req.body.college || '', 150);
-    const rawSlug = sanitizeString(req.body.profile_slug || '', 100);
-    const profileSlug = rawSlug.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-    const github = sanitizeString(req.body.github_profile || '', 200).trim();
-    const linkedin = sanitizeString(req.body.linkedin_profile || '', 200).trim();
-    const dreamRole = sanitizeString(req.body.dream_role || '', 100);
+    const studentEmail = sanitizeString(req.body.student_email || '', 254).toLowerCase();
+    
+    // Explicitly check for undefined to allow partial updates without wiping other fields
+    const name = req.body.name !== undefined ? sanitizeString(req.body.name, 100) : undefined;
+    const phone = req.body.phone !== undefined ? sanitizeString(req.body.phone, 30) : undefined;
+    const college = req.body.college !== undefined ? sanitizeString(req.body.college, 150) : undefined;
+    const rawSlug = req.body.profile_slug !== undefined ? sanitizeString(req.body.profile_slug, 100) : undefined;
+    const profileSlug = rawSlug !== undefined ? rawSlug.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') : undefined;
+    const github = req.body.github_profile !== undefined ? sanitizeString(req.body.github_profile, 200).trim() : undefined;
+    const linkedin = req.body.linkedin_profile !== undefined ? sanitizeString(req.body.linkedin_profile, 200).trim() : undefined;
+    const dreamRole = req.body.dream_role !== undefined ? sanitizeString(req.body.dream_role, 100) : undefined;
 
     if (!studentEmail) {
       return res.status(400).json({ error: 'Missing student email' });
@@ -3344,7 +3346,7 @@ app.post('/api/student/update_profile', async (req, res) => {
     if (!student) return res.status(404).json({ error: 'Student not found' });
 
     // Validate slug uniqueness if it has changed
-    if (profileSlug && profileSlug !== student.profile_slug) {
+    if (profileSlug !== undefined && profileSlug && profileSlug !== student.profile_slug) {
       const existing = await dbGet('SELECT id FROM users WHERE profile_slug = ? AND id != ?', [profileSlug, student.id]);
       if (existing) {
         return res.status(400).json({ error: 'Profile URL slug is already taken by another user' });
@@ -3354,13 +3356,13 @@ app.post('/api/student/update_profile', async (req, res) => {
     await dbRun(
       'UPDATE users SET name = ?, phone = ?, college = ?, profile_slug = ?, github_profile = ?, linkedin_profile = ?, dream_role = ? WHERE id = ?',
       [
-        name || student.name,
+        name !== undefined ? (name || student.name) : student.name,
         phone !== undefined ? phone : student.phone,
         college !== undefined ? college : student.college,
-        profileSlug || student.profile_slug,
-        github !== undefined ? github : student.github_profile,
-        linkedin !== undefined ? linkedin : student.linkedin_profile,
-        dreamRole !== undefined ? dreamRole : student.dream_role,
+        profileSlug !== undefined ? (profileSlug || student.profile_slug) : student.profile_slug,
+        github !== undefined ? (github || null) : student.github_profile,
+        linkedin !== undefined ? (linkedin || null) : student.linkedin_profile,
+        dreamRole !== undefined ? (dreamRole || null) : student.dream_role,
         student.id
       ]
     );

@@ -3097,11 +3097,20 @@ body.dark-theme .premium-metric-card:hover {
                 <option value="Fullstack Developer">Fullstack Developer</option>
                 <option value="Backend Engineer">Backend Engineer</option>
                 <option value="Frontend Engineer">Frontend Engineer</option>
+                <option value="Frontend Specialist">Frontend Specialist</option>
                 <option value="Data Scientist">Data Scientist</option>
                 <option value="DevOps Engineer">DevOps Engineer</option>
                 <option value="Cybersecurity Specialist">Cybersecurity Specialist</option>
                 <option value="Android Developer">Android Developer</option>
                 <option value="Java Enterprise Developer">Java Enterprise Developer</option>
+                <option value="AI / Machine Learning Engineer">AI / Machine Learning Engineer</option>
+                <option value="Cloud Solutions Architect">Cloud Solutions Architect</option>
+                <option value="Database Administrator">Database Administrator</option>
+                <option value="Systems Programmer">Systems Programmer</option>
+                <option value="Blockchain Developer">Blockchain Developer</option>
+                <option value="Software QA Automation Engineer">Software QA Automation Engineer</option>
+                <option value="Data Engineer">Data Engineer</option>
+                <option value="Embedded Systems Engineer">Embedded Systems Engineer</option>
               </select>
             </div>
             <div class="admin-form-group">
@@ -9157,6 +9166,7 @@ async function saveStudentProfileSettings() {
   const college = document.getElementById('settings-student-college').value.trim();
   const github = document.getElementById('settings-student-github').value.trim();
   const linkedin = document.getElementById('settings-student-linkedin').value.trim();
+  const dreamRole = document.getElementById('settings-student-dream-role').value;
   const slugInput = document.getElementById('settings-student-slug').value.trim();
 
   if (!name) {
@@ -9198,6 +9208,7 @@ async function saveStudentProfileSettings() {
         college,
         github_profile: github,
         linkedin_profile: linkedin,
+        dream_role: dreamRole,
         profile_slug: slugInput
       })
     });
