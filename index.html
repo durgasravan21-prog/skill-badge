@@ -5935,7 +5935,8 @@ function renderProgressiveVerifier(claimed) {
   const progWrapper = document.getElementById('active-verification-wrapper');
   
   // Define a fresh render cycle ID to guard against stale async resolves from previous tab transitions
-  const renderCycleId = ++(window._verifierRenderCycleId || (window._verifierRenderCycleId = 0));
+  window._verifierRenderCycleId = (window._verifierRenderCycleId || 0) + 1;
+  const renderCycleId = window._verifierRenderCycleId;
 
   if (!Array.isArray(claimed)) claimed = [];
   
@@ -10080,7 +10081,8 @@ function loadStudentSchedules() {
   if (!container) return;
 
   // Track rendering cycle to prevent race conditions and duplicate renders
-  const renderCycleId = ++(window._schedulesRenderCycleId || (window._schedulesRenderCycleId = 0));
+  window._schedulesRenderCycleId = (window._schedulesRenderCycleId || 0) + 1;
+  const renderCycleId = window._schedulesRenderCycleId;
 
   // Show a premium pulsing skeleton loading indicator in the list immediately to avoid a blank "buffering" feel
   container.innerHTML = `
