@@ -5937,17 +5937,8 @@ function renderProgressiveVerifier(claimed) {
   // Define a fresh render cycle ID to guard against stale async resolves from previous tab transitions
   const renderCycleId = ++(window._verifierRenderCycleId || (window._verifierRenderCycleId = 0));
 
-  questionsList.innerHTML = '';
-  badgesList.innerHTML = '';
-  progWrapper.style.display = 'none';
-
   if (!Array.isArray(claimed)) claimed = [];
-  if (claimed.length === 0) {
-    questionsList.innerHTML = '<div style="color:var(--gray-500)">Claim a skill above to unlock proctored shuffled assessments.</div>';
-    badgesList.innerHTML = '<div style="color:var(--gray-500)">No tags earned. Verification milestone pending.</div>';
-    return;
-  }
-
+  
   // ── Deduplicate by both skill_id AND skill_name — one card per unique skill ──
   const seenSkills = new Set();
   const seenNames = new Set();
@@ -5958,92 +5949,30 @@ function renderProgressiveVerifier(claimed) {
     return true;
   });
 
-  // Pre-render loading/buffering skeletons for each unique skill card to give a premium feedback loop
-  const placeholderMap = new Map();
-  uniqueClaimed.forEach(c => {
-    // 1. Render Portfolio tags earned (synchronous status renders)
-    if (c.status === 'verified' && c.badge_tag) {
-      const badge = document.createElement('div');
-      badge.className = 'verified-skill-row';
-      
-      let verifiers = [];
-      if (c.badge_tag.includes('Verified by ')) {
-        const parts = c.badge_tag.split('Verified by ')[1];
-        verifiers = parts.split(', ').map(v => v.trim()).filter(Boolean);
-      } else {
-        verifiers = [c.verified_by || 'SkillProof AI'];
-      }
-      
-      let goldBadgesHTML = '';
-      verifiers.forEach(v => {
-        const label = v === 'SkillProof Head Admin' ? 'SkillProof' : v;
-        goldBadgesHTML += ` <span class="certified-gold-badge" style="margin-left: 8px; display: inline-flex; align-items: center; gap: 4px;">🏆 ${escapeHTML(label)} Verified</span>`;
-      });
+  const activeClaimed = uniqueClaimed.filter(c => c.status === 'claimed');
 
-      const scoreLabel = c.verified_score ? ` · Score: ${escapeHTML(String(c.verified_score))}/100` : '';
-      badge.innerHTML = `
-        <div style="display:flex; flex-direction:column; gap:10px; width:100%;">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px; width:100%;">
-            <div>
-              <strong style="font-size:16px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
-                ${escapeHTML(c.skill_name)}
-                ${goldBadgesHTML}
-              </strong>
-              <div style="font-size:12px; color:var(--gray-500); margin-top:2px;">Verified by ${escapeHTML(verifiers.join(', '))}${scoreLabel}</div>
-            </div>
-            <span class="verified-tag">${escapeHTML(c.badge_tag)}</span>
-          </div>
-          
-          <!-- Share options & Badge Credential Actions -->
-          <div style="display: flex; gap: 8px; align-items: center; margin-top: 6px; flex-wrap: wrap; border-top: 1px solid var(--gray-100); padding-top: 10px;">
-            <button onclick="shareBadgeOnLinkedIn('${escapeHTML(c.skill_name)}', '${escapeHTML(verifiers.join(', '))}', '${escapeHTML(c.id)}')" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 11px; font-weight: 700; border-radius: 6px; cursor: pointer; background: #0077B5; color: #FFF; border: none; transition: transform 0.2s ease;">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="display:block;"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
-              Share on LinkedIn
-            </button>
-            <button onclick="shareBadgeOnX('${escapeHTML(c.skill_name)}', '${escapeHTML(verifiers.join(', '))}', '${escapeHTML(c.id)}')" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 11px; font-weight: 700; border-radius: 6px; cursor: pointer; background: #1C1A17; color: #FFF; border: 1px solid #333; transition: transform 0.2s ease;">
-              <span style="font-size: 10px; font-weight:800;">𝕏</span> Share on X
-            </button>
-            <button onclick="copyCredentialLink('${escapeHTML(c.id)}')" class="btn-ghost" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 11px; font-weight: 700; border-radius: 6px; cursor: pointer; background: var(--gray-50); border: 1px solid var(--gray-200); color: var(--gray-700); transition: transform 0.2s ease;">
-              🔗 Copy Credential Link
-            </button>
-          </div>
-        </div>
-      `;
-      badgesList.appendChild(badge);
-    } else if (c.status === 'pending_review') {
-      const badge = document.createElement('div');
-      badge.className = 'verified-skill-row';
-      badge.style.border = '2px solid #FF9800'; // Golden orange
-      badge.style.background = 'var(--bg-pending)';
-      badge.innerHTML = `
-        <div>
-          <strong style="font-size:16px; color: var(--gray-900);">${escapeHTML(c.skill_name)}</strong>
-          <div style="font-size:12px; color:var(--gray-500); margin-top:2px;">Assessed and pending professional recruiter review.</div>
-        </div>
-        <span class="status-tag" style="background:#FFE0B2; color:#E65100; font-weight:700; border-radius:4px; padding:6px 14px;">UNDER REVIEW</span>
-      `;
-      badgesList.appendChild(badge);
-    } else if (c.status === 'failed') {
-      const badge = document.createElement('div');
-      badge.className = 'verified-skill-row';
-      badge.style.border = '2px solid #EF5350'; // Soft red
-      badge.style.background = 'var(--bg-failed)';
-      badge.innerHTML = `
-        <div>
-          <strong style="font-size:16px; color: var(--gray-900);">${escapeHTML(c.skill_name)}</strong>
-          <div style="font-size:12px; color:var(--gray-500); margin-top:2px;">Verification declined during professional recruiter review.</div>
-        </div>
-        <span class="status-tag" style="background:#FFCDD2; color:#C62828; font-weight:700; border-radius:4px; padding:6px 14px;">VERIFICATION DENIED</span>
-      `;
-      badgesList.appendChild(badge);
+  // If this is the initial cold load, show pulsing skeletons immediately
+  if (!window._hasLoadedDashboardData) {
+    questionsList.innerHTML = '';
+    badgesList.innerHTML = '';
+    progWrapper.style.display = 'none';
+
+    if (claimed.length === 0) {
+      questionsList.innerHTML = '<div style="color:var(--gray-500)">Claim a skill above to unlock proctored shuffled assessments.</div>';
+      badgesList.innerHTML = '<div style="color:var(--gray-500)">No tags earned. Verification milestone pending.</div>';
+      return;
     }
 
-    // 2. Pre-render a beautiful loading skeleton card ONLY for active claimed skills
-    if (c.status === 'claimed') {
-      const skeletonId = `skeleton-${renderCycleId}-${c.skill_id}`;
+    // Render static tags synchronously for visual feedback
+    uniqueClaimed.forEach(c => {
+      renderStaticBadgeSync(c, badgesList);
+    });
+
+    // Render loading skeletons for active claimed skills
+    activeClaimed.forEach(c => {
       const skeletonCard = document.createElement('div');
-      skeletonCard.id = skeletonId;
-      skeletonCard.className = 'exam-card';
+      skeletonCard.id = `skeleton-${renderCycleId}-${c.skill_id}`;
+      skeletonCard.className = 'exam-card skeleton-pulse-card';
       skeletonCard.style.animation = 'pulse 1.8s ease-in-out infinite';
       skeletonCard.style.background = 'rgba(230,81,0,0.02)';
       skeletonCard.style.borderColor = 'rgba(230,81,0,0.1)';
@@ -6067,155 +5996,237 @@ function renderProgressiveVerifier(claimed) {
         </button>
       `;
       questionsList.appendChild(skeletonCard);
-      placeholderMap.set(c.skill_id, skeletonCard);
-    }
-  });
+    });
+  }
 
-  const activeClaimed = uniqueClaimed.filter(c => c.status === 'claimed');
-  if (activeClaimed.length === 0) {
-    questionsList.innerHTML = '<div style="color:var(--gray-500)">All claimed skills are verified or under recruiter review. Claim more skills above to unlock new assessments!</div>';
+  if (claimed.length === 0) {
+    questionsList.innerHTML = '<div style="color:var(--gray-500)">Claim a skill above to unlock proctored shuffled assessments.</div>';
+    badgesList.innerHTML = '<div style="color:var(--gray-500)">No tags earned. Verification milestone pending.</div>';
     return;
   }
 
-  // 3. Query next verification question (Dynamic Shuffling) with strict renderCycleId check
-  activeClaimed.forEach(c => {
-    fetch(`/api/skills/verification-next?student_email=${encodeURIComponent(currentUser.email)}&skill_id=${c.skill_id}`)
+  // Fetch all progressive question statuses in parallel in the background
+  const fetchPromises = activeClaimed.map(c => {
+    return fetch(`/api/skills/verification-next?student_email=${encodeURIComponent(currentUser.email)}&skill_id=${c.skill_id}`)
       .then(res => {
         if (!res.ok) throw new Error(`HTTP error ${res.status}`);
         return res.json();
       })
       .then(data => {
-        // Discard stale fetches from previous rendering cycles to completely prevent duplication
-        if (renderCycleId !== window._verifierRenderCycleId) {
-          console.warn(`[ProgressiveVerifier] Discarded stale fetch response for ${c.skill_name} from renderCycleId ${renderCycleId}`);
-          return;
-        }
-
-        const skeletonCard = placeholderMap.get(c.skill_id);
-
-        if (!data || data.error || !data.status) {
-          console.warn('Failed to load next verifier question:', data ? data.error : 'Unknown status');
-          if (skeletonCard && skeletonCard.parentNode) {
-            skeletonCard.parentNode.removeChild(skeletonCard);
-          }
-          return;
-        }
-
-        if (data.status === 'locked_failed') {
-          const row = document.createElement('div');
-          row.className = 'verified-skill-row';
-          row.style.borderColor = '#C62828';
-          row.innerHTML = `
-            <div>
-              <strong>${c.skill_name}</strong>
-              <div style="color:#C62828; font-size:12px; margin-top:4px;">⚠️ Verification Locked: Disqualified due to telemetry cheating sensor flags.</div>
-            </div>
-            <span class="status-tag disqualified" style="padding: 6px 14px;">DISQUALIFIED</span>
-          `;
-          
-          if (skeletonCard && skeletonCard.parentNode) {
-            skeletonCard.parentNode.replaceChild(row, skeletonCard);
-          } else {
-            questionsList.appendChild(row);
-          }
-        } 
-        else if (data.status === 'completed') {
-          // Completed rendering handled by badge tag list; clean up skeleton
-          if (skeletonCard && skeletonCard.parentNode) {
-            skeletonCard.parentNode.removeChild(skeletonCard);
-          }
-        } 
-        else if (data.status === 'unlocked') {
-          progWrapper.style.display = 'block';
-          document.getElementById('active-progression-skill-name').innerText = `Active verification path: ${c.skill_name}`;
-
-          // Highlight progression milestones (1, 2, 3)
-          resetProgressSteps();
-          const stepEasy = document.getElementById('prog-step-easy');
-          const stepMedium = document.getElementById('prog-step-medium');
-          const stepHard = document.getElementById('prog-step-hard');
-
-          if (data.difficulty === 'easy') {
-            stepEasy.className = 'progress-step active';
-          } else if (data.difficulty === 'medium') {
-            stepEasy.className = 'progress-step passed';
-            stepEasy.innerText = '✓';
-            stepMedium.className = 'progress-step active';
-          } else if (data.difficulty === 'hard') {
-            stepEasy.className = 'progress-step passed';
-            stepEasy.innerText = '✓';
-            stepMedium.className = 'progress-step passed';
-            stepMedium.innerText = '✓';
-            stepHard.className = 'progress-step active';
-          }
-
-          // Build premium exam card
-          const q = data.question;
-          const qCard = document.createElement('div');
-          qCard.className = 'exam-card';
-
-          // Official language logo URLs (devicons CDN)
-          const BASE = 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons';
-          const langIcons = {
-            'Python Programming':  `${BASE}/python/python-original.svg`,
-            'C Systems Programming': `${BASE}/c/c-original.svg`,
-            'SQL Database Design':  `${BASE}/mysql/mysql-original.svg`,
-            'JavaScript':           `${BASE}/javascript/javascript-original.svg`,
-            'TypeScript':           `${BASE}/typescript/typescript-original.svg`,
-            'Go':                   `${BASE}/go/go-original.svg`,
-            'Rust':                 `${BASE}/rust/rust-original.svg`,
-            'C++':                  `${BASE}/cplusplus/cplusplus-original.svg`,
-            'Docker':               `${BASE}/docker/docker-original.svg`,
-            'Kubernetes':           `${BASE}/kubernetes/kubernetes-plain.svg`,
-            'AWS':                  `${BASE}/amazonwebservices/amazonwebservices-original.svg`,
-            'React':                `${BASE}/react/react-original.svg`,
-            'Node.js':              `${BASE}/nodejs/nodejs-original.svg`,
-            'HTML5 & CSS3':         `${BASE}/html5/html5-original.svg`
-          };
-          const iconSrc = langIcons[c.skill_name] || `${BASE}/devicon/devicon-original.svg`;
-          const langLabel = (typeof detectLangFromSkill === 'function') ? detectLangFromSkill(c.skill_name) : '';
-          const diffLabel = q.difficulty.charAt(0).toUpperCase() + q.difficulty.slice(1);
-
-          qCard.innerHTML = `
-            <div class="exam-card-top">
-              <div class="exam-card-icon"><img src="${iconSrc}" alt="${c.skill_name}" width="30" height="30" style="object-fit:contain;" onerror="this.style.display='none';this.parentElement.textContent='💻'" /></div>
-              <div class="exam-card-meta">
-                <div class="exam-card-skill">${c.skill_name}</div>
-                ${langLabel ? `<div class="exam-card-lang">⌨ ${langLabel}</div>` : ''}
-              </div>
-            </div>
-            <div class="exam-card-badges">
-              <span class="exam-pill ${q.difficulty}">${diffLabel} Tier</span>
-              <span class="exam-pill time">⏱ ${q.expiration_minutes} min</span>
-            </div>
-            <div class="exam-card-lock">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-              </svg>
-              Question revealed after entering the proctored arena
-            </div>
-            <button class="exam-card-btn" onclick="openExamRulesModal('${q.id}', null, '${c.skill_name.replace(/'/g, "\\'")}')">
-              Unlock Arena
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-            </button>
-          `;
-          
-          if (skeletonCard && skeletonCard.parentNode) {
-            skeletonCard.parentNode.replaceChild(qCard, skeletonCard);
-          } else {
-            questionsList.appendChild(qCard);
-          }
-        }
+        return { skill: c, data: data };
       })
       .catch(err => {
         console.error('Failed to load next verifier question:', err);
-        const skeletonCard = placeholderMap.get(c.skill_id);
-        if (skeletonCard && skeletonCard.parentNode) {
-          skeletonCard.parentNode.removeChild(skeletonCard);
-        }
+        return { skill: c, data: null };
       });
   });
+
+  Promise.all(fetchPromises).then(results => {
+    // Discard stale fetches from previous rendering cycles to completely prevent duplication
+    if (renderCycleId !== window._verifierRenderCycleId) return;
+
+    // Clear lists for final render swap
+    questionsList.innerHTML = '';
+    badgesList.innerHTML = '';
+    
+    // Render Portfolio tags earned
+    uniqueClaimed.forEach(c => {
+      renderStaticBadgeSync(c, badgesList);
+    });
+
+    let hasActiveVerificationPath = false;
+
+    results.forEach(res => {
+      const c = res.skill;
+      const data = res.data;
+
+      if (!data || data.error || !data.status) {
+        return; // Skip rendering card for failed fetch, clean swap ensures no skeleton is left
+      }
+
+      if (data.status === 'locked_failed') {
+        const row = document.createElement('div');
+        row.className = 'verified-skill-row';
+        row.style.borderColor = '#C62828';
+        row.innerHTML = `
+          <div>
+            <strong>${c.skill_name}</strong>
+            <div style="color:#C62828; font-size:12px; margin-top:4px;">⚠️ Verification Locked: Disqualified due to telemetry cheating sensor flags.</div>
+          </div>
+          <span class="status-tag disqualified" style="padding: 6px 14px;">DISQUALIFIED</span>
+        `;
+        questionsList.appendChild(row);
+      } 
+      else if (data.status === 'unlocked') {
+        hasActiveVerificationPath = true;
+        progWrapper.style.display = 'block';
+        document.getElementById('active-progression-skill-name').innerText = `Active verification path: ${c.skill_name}`;
+
+        // Highlight progression milestones (1, 2, 3)
+        resetProgressSteps();
+        const stepEasy = document.getElementById('prog-step-easy');
+        const stepMedium = document.getElementById('prog-step-medium');
+        const stepHard = document.getElementById('prog-step-hard');
+
+        if (data.difficulty === 'easy') {
+          stepEasy.className = 'progress-step active';
+        } else if (data.difficulty === 'medium') {
+          stepEasy.className = 'progress-step passed';
+          stepEasy.innerText = '✓';
+          stepMedium.className = 'progress-step active';
+        } else if (data.difficulty === 'hard') {
+          stepEasy.className = 'progress-step passed';
+          stepEasy.innerText = '✓';
+          stepMedium.className = 'progress-step passed';
+          stepMedium.innerText = '✓';
+          stepHard.className = 'progress-step active';
+        }
+
+        // Build premium exam card
+        const q = data.question;
+        const qCard = document.createElement('div');
+        qCard.className = 'exam-card';
+
+        // Official language logo URLs (devicons CDN)
+        const BASE = 'https://cdn.jsdelivr.net/gh/devicons/devicon/icons';
+        const langIcons = {
+          'Python Programming':  `${BASE}/python/python-original.svg`,
+          'C Systems Programming': `${BASE}/c/c-original.svg`,
+          'SQL Database Design':  `${BASE}/mysql/mysql-original.svg`,
+          'JavaScript':           `${BASE}/javascript/javascript-original.svg`,
+          'TypeScript':           `${BASE}/typescript/typescript-original.svg`,
+          'Go':                   `${BASE}/go/go-original.svg`,
+          'Rust':                 `${BASE}/rust/rust-original.svg`,
+          'C++':                  `${BASE}/cplusplus/cplusplus-original.svg`,
+          'Docker':               `${BASE}/docker/docker-original.svg`,
+          'Kubernetes':           `${BASE}/kubernetes/kubernetes-plain.svg`,
+          'AWS':                  `${BASE}/amazonwebservices/amazonwebservices-original.svg`,
+          'React':                `${BASE}/react/react-original.svg`,
+          'Node.js':              `${BASE}/nodejs/nodejs-original.svg`,
+          'HTML5 & CSS3':         `${BASE}/html5/html5-original.svg`
+        };
+        const iconSrc = langIcons[c.skill_name] || `${BASE}/devicon/devicon-original.svg`;
+        const langLabel = (typeof detectLangFromSkill === 'function') ? detectLangFromSkill(c.skill_name) : '';
+        const diffLabel = q.difficulty.charAt(0).toUpperCase() + q.difficulty.slice(1);
+
+        qCard.innerHTML = `
+          <div class="exam-card-top">
+            <div class="exam-card-icon"><img src="${iconSrc}" alt="${c.skill_name}" width="30" height="30" style="object-fit:contain;" onerror="this.style.display='none';this.parentElement.textContent='💻'" /></div>
+            <div class="exam-card-meta">
+              <div class="exam-card-skill">${c.skill_name}</div>
+              ${langLabel ? `<div class="exam-card-lang">⌨ ${langLabel}</div>` : ''}
+            </div>
+          </div>
+          <div class="exam-card-badges">
+            <span class="exam-pill ${q.difficulty}">${diffLabel} Tier</span>
+            <span class="exam-pill time">⏱ ${q.expiration_minutes} min</span>
+          </div>
+          <div class="exam-card-lock">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            Question revealed after entering the proctored arena
+          </div>
+          <button class="exam-card-btn" onclick="openExamRulesModal('${q.id}', null, '${c.skill_name.replace(/'/g, "\\'")}')">
+            Unlock Arena
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </button>
+        `;
+        questionsList.appendChild(qCard);
+      }
+    });
+
+    if (!hasActiveVerificationPath) {
+      progWrapper.style.display = 'none';
+    }
+
+    if (activeClaimed.length > 0 && questionsList.children.length === 0) {
+      questionsList.innerHTML = '<div style="color:var(--gray-500)">All claimed skills are verified or under recruiter review. Claim more skills above to unlock new assessments!</div>';
+    }
+
+    // Set the loaded state flag to true so subsequent switches/refetches do not flash loaders
+    window._hasLoadedDashboardData = true;
+  });
+}
+
+// Synchronous static tag rendering helper to avoid duplicated logic
+function renderStaticBadgeSync(c, container) {
+  if (c.status === 'verified' && c.badge_tag) {
+    const badge = document.createElement('div');
+    badge.className = 'verified-skill-row';
+    
+    let verifiers = [];
+    if (c.badge_tag.includes('Verified by ')) {
+      const parts = c.badge_tag.split('Verified by ')[1];
+      verifiers = parts.split(', ').map(v => v.trim()).filter(Boolean);
+    } else {
+      verifiers = [c.verified_by || 'SkillProof AI'];
+    }
+    
+    let goldBadgesHTML = '';
+    verifiers.forEach(v => {
+      const label = v === 'SkillProof Head Admin' ? 'SkillProof' : v;
+      goldBadgesHTML += ` <span class="certified-gold-badge" style="margin-left: 8px; display: inline-flex; align-items: center; gap: 4px;">🏆 ${escapeHTML(label)} Verified</span>`;
+    });
+
+    const scoreLabel = c.verified_score ? ` · Score: ${escapeHTML(String(c.verified_score))}/100` : '';
+    badge.innerHTML = `
+      <div style="display:flex; flex-direction:column; gap:10px; width:100%;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px; width:100%;">
+          <div>
+            <strong style="font-size:16px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+              ${escapeHTML(c.skill_name)}
+              ${goldBadgesHTML}
+            </strong>
+            <div style="font-size:12px; color:var(--gray-500); margin-top:2px;">Verified by ${escapeHTML(verifiers.join(', '))}${scoreLabel}</div>
+          </div>
+          <span class="verified-tag">${escapeHTML(c.badge_tag)}</span>
+        </div>
+        
+        <!-- Share options & Badge Credential Actions -->
+        <div style="display: flex; gap: 8px; align-items: center; margin-top: 6px; flex-wrap: wrap; border-top: 1px solid var(--gray-100); padding-top: 10px;">
+          <button onclick="shareBadgeOnLinkedIn('${escapeHTML(c.skill_name)}', '${escapeHTML(verifiers.join(', '))}', '${escapeHTML(c.id)}')" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 11px; font-weight: 700; border-radius: 6px; cursor: pointer; background: #0077B5; color: #FFF; border: none; transition: transform 0.2s ease;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="display:block;"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+            Share on LinkedIn
+          </button>
+          <button onclick="shareBadgeOnX('${escapeHTML(c.skill_name)}', '${escapeHTML(verifiers.join(', '))}', '${escapeHTML(c.id)}')" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 11px; font-weight: 700; border-radius: 6px; cursor: pointer; background: #1C1A17; color: #FFF; border: 1px solid #333; transition: transform 0.2s ease;">
+            <span style="font-size: 10px; font-weight:800;">𝕏</span> Share on X
+          </button>
+          <button onclick="copyCredentialLink('${escapeHTML(c.id)}')" class="btn-ghost" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 11px; font-weight: 700; border-radius: 6px; cursor: pointer; background: var(--gray-50); border: 1px solid var(--gray-200); color: var(--gray-700); transition: transform 0.2s ease;">
+            🔗 Copy Credential Link
+          </button>
+        </div>
+      </div>
+    `;
+    container.appendChild(badge);
+  } else if (c.status === 'pending_review') {
+    const badge = document.createElement('div');
+    badge.className = 'verified-skill-row';
+    badge.style.border = '2px solid #FF9800'; // Golden orange
+    badge.style.background = 'var(--bg-pending)';
+    badge.innerHTML = `
+      <div>
+        <strong style="font-size:16px; color: var(--gray-900);">${escapeHTML(c.skill_name)}</strong>
+        <div style="font-size:12px; color:var(--gray-500); margin-top:2px;">Assessed and pending professional recruiter review.</div>
+      </div>
+      <span class="status-tag" style="background:#FFE0B2; color:#E65100; font-weight:700; border-radius:4px; padding:6px 14px;">UNDER REVIEW</span>
+    `;
+    container.appendChild(badge);
+  } else if (c.status === 'failed') {
+    const badge = document.createElement('div');
+    badge.className = 'verified-skill-row';
+    badge.style.border = '2px solid #EF5350'; // Soft red
+    badge.style.background = 'var(--bg-failed)';
+    badge.innerHTML = `
+      <div>
+        <strong style="font-size:16px; color: var(--gray-900);">${escapeHTML(c.skill_name)}</strong>
+        <div style="font-size:12px; color:var(--gray-500); margin-top:2px;">Verification declined during professional recruiter review.</div>
+      </div>
+      <span class="status-tag" style="background:#FFCDD2; color:#C62828; font-weight:700; border-radius:4px; padding:6px 14px;">VERIFICATION DENIED</span>
+    `;
+    container.appendChild(badge);
+  }
 }
 
 function shareBadgeOnLinkedIn(skillName, verifiers, badgeId) {
