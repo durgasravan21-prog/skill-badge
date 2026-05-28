@@ -213,7 +213,7 @@ async function runTests() {
     const skillsRes = await makeRequest('GET', '/api/skills');
     logTest('Skills endpoint returns 200', skillsRes.statusCode === 200);
     const skills = JSON.parse(skillsRes.body);
-    logTest('14 skills seeded', skills.length === 14);
+    logTest('15 skills seeded', skills.length === 15);
 
     const questionsCount = await makeRequest('GET', '/api/questions/count');
     logTest('Questions count endpoint returns 200', questionsCount.statusCode === 200);

@@ -405,6 +405,8 @@ async function createSchema() {
 
   // Indexes for multi-tenant isolation performance
   await runAsync('CREATE INDEX IF NOT EXISTS idx_challenges_company ON challenges(company_id);');
+  await runAsync('CREATE INDEX IF NOT EXISTS idx_challenges_student ON challenges(student_id);');
+  await runAsync('CREATE INDEX IF NOT EXISTS idx_exam_schedules_invited ON exam_schedules(invited_student_id);');
   await runAsync('CREATE INDEX IF NOT EXISTS idx_users_email        ON users(email);');
   await runAsync('CREATE INDEX IF NOT EXISTS idx_questions_skill    ON questions(skill_id, difficulty);');
   await runAsync('CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications(recipient_id, is_read);');

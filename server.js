@@ -695,7 +695,45 @@ async function authenticateSession(req, res, next) {
       return res.status(401).json({ error: 'Unauthorized: Session expired.' });
     }
     
-    const user = await dbGet('SELECT * FROM users WHERE id = ?', [session.user_id]);
+    let user = await dbGet('SELECT * FROM users WHERE id = ?', [session.user_id]);
+    if (!user) {
+      // Self-healing: if session is valid but user record is missing (ephemeral DB cold-start),
+      // try to find user by email or recreate the user record from session payload data
+      user = await dbGet('SELECT * FROM users WHERE email = ? COLLATE NOCASE', [session.email]);
+      if (!user && session.email) {
+        // Recreate the user record from session data
+        try {
+          const createdAt = new Date().toISOString();
+          let namePart = session.email.split('@')[0];
+          namePart = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+          const name = namePart.replace(/[^a-zA-Z0-9]/g, ' ');
+          const profileSlug = name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + crypto.randomBytes(4).toString('hex');
+          const role = session.role || 'student';
+
+          // For recruiters, resolve company from email domain
+          let companyId = null;
+          let companyName = null;
+          if (role === 'recruiter') {
+            const company = await getOrCreateCompany(session.email);
+            if (company) {
+              companyId = company.id;
+              companyName = company.name;
+            }
+          }
+
+          await dbRun(
+            `INSERT INTO users (id, name, email, role, college, company, company_id, profile_slug, skillproof_score, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0.00, ?)`,
+            [session.user_id, name, session.email, role, role === 'student' ? 'Self-Taught / University' : null, companyName, companyId, profileSlug, createdAt]
+          );
+          user = await dbGet('SELECT * FROM users WHERE id = ?', [session.user_id]);
+          console.log(`[DB Self-Healing] Auto-recreated missing ${role} record for ${session.email} from valid session token`);
+        } catch (recreateErr) {
+          console.error('[DB Self-Healing] Failed to recreate user:', recreateErr.message);
+        }
+      }
+    }
+
     if (!user) {
       return res.status(401).json({ error: 'Unauthorized: User not found.' });
     }
@@ -982,6 +1020,26 @@ app.post('/api/student/onboard', async (req, res) => {
       [phone, college, githubProfile || null, linkedinProfile || null, dreamRole || null, student.id]
     );
 
+    // Batch process any skill claims passed alongside the onboarding payload
+    const claims = req.body.claims || [];
+    if (Array.isArray(claims) && claims.length > 0) {
+      for (const claim of claims) {
+        const skillId = sanitizeString(claim.skill_id, 50);
+        const selfRating = parseInt(claim.self_rating, 10);
+        if (skillId && !isNaN(selfRating) && selfRating >= 1 && selfRating <= 5) {
+          const existing = await dbGet('SELECT id FROM student_skills WHERE student_id = ? AND skill_id = ?', [student.id, skillId]);
+          if (!existing) {
+            const claimId = crypto.randomUUID();
+            await dbRun(
+              `INSERT INTO student_skills (id, student_id, skill_id, self_rating, status, badge_tag)
+               VALUES (?, ?, ?, ?, 'claimed', NULL)`,
+              [claimId, student.id, skillId, selfRating]
+            );
+          }
+        }
+      }
+    }
+
     const updatedUser = await dbGet('SELECT * FROM users WHERE id = ?', [student.id]);
     res.json({ message: 'Onboarding completed successfully', user: updatedUser });
   } catch (err) {
@@ -1088,7 +1146,7 @@ app.get('/api/skills/verification-next', async (req, res) => {
       [student.id, skillId]
     );
 
-    const hasPassed = (diff) => challenges.some(c => c.difficulty === diff && c.status === 'evaluated');
+    const hasPassed = (diff) => challenges.some(c => c.difficulty === diff && ['evaluated', 'badge_awarded', 'badge_denied', 'submitted'].includes(c.status));
     const hasDisqualified = challenges.some(c => c.status === 'disqualified');
 
     if (hasDisqualified) {
@@ -2123,54 +2181,35 @@ app.get('/api/student/schedules', async (req, res) => {
     const student = await ensureStudentExists(studentEmail);
     if (!student) return res.status(404).json({ error: 'Student not found' });
 
-    // Get schedules matching claimed skills OR any company-dispatched schedules (recruiter tests)
+    // Get student's claimed skills
     const claimedSkills = await dbAll('SELECT skill_id FROM student_skills WHERE student_id = ?', [student.id]);
     const skillIds = claimedSkills.map(cs => cs.skill_id);
+
+    // Fetch student's challenges ordered by started_at DESC (so we naturally check the latest attempt first)
+    const studentChallenges = await dbAll(
+      `SELECT id, status, skill_id, company_id, schedule_id 
+       FROM challenges 
+       WHERE student_id = ? 
+       ORDER BY started_at DESC`,
+      [student.id]
+    );
 
     let schedules;
     if (skillIds.length === 0) {
       // Show only private/corporate schedules explicitly dispatched to this student
       schedules = await dbAll(
-        `SELECT es.*, s.name as skill_name, c.name as company_name, c.domain as company_domain,
-                (SELECT status FROM challenges 
-                 WHERE student_id = ? 
-                   AND (
-                     schedule_id = es.id 
-                     OR (es.company_id IS NULL AND schedule_id IS NULL AND skill_id = es.skill_id)
-                     OR (es.company_id IS NOT NULL AND schedule_id IS NULL AND (company_id = es.company_id OR company_id IS NULL) AND skill_id = es.skill_id)
-                   ) ORDER BY started_at DESC LIMIT 1) as attempt_status,
-                (SELECT id FROM challenges 
-                 WHERE student_id = ? 
-                   AND (
-                     schedule_id = es.id 
-                     OR (es.company_id IS NULL AND schedule_id IS NULL AND skill_id = es.skill_id)
-                     OR (es.company_id IS NOT NULL AND schedule_id IS NULL AND (company_id = es.company_id OR company_id IS NULL) AND skill_id = es.skill_id)
-                   ) ORDER BY started_at DESC LIMIT 1) as attempt_id
+        `SELECT es.*, s.name as skill_name, c.name as company_name, c.domain as company_domain
          FROM exam_schedules es
          JOIN skills s ON es.skill_id = s.id
          LEFT JOIN companies c ON es.company_id = c.id
          WHERE es.invited_student_id = ?
          ORDER BY es.start_time DESC`,
-        [student.id, student.id, student.id]
+        [student.id]
       );
     } else {
       const placeholders = skillIds.map(() => '?').join(',');
       schedules = await dbAll(
-        `SELECT es.*, s.name as skill_name, c.name as company_name, c.domain as company_domain,
-                (SELECT status FROM challenges 
-                 WHERE student_id = ? 
-                   AND (
-                     schedule_id = es.id 
-                     OR (es.company_id IS NULL AND schedule_id IS NULL AND skill_id = es.skill_id)
-                     OR (es.company_id IS NOT NULL AND schedule_id IS NULL AND (company_id = es.company_id OR company_id IS NULL) AND skill_id = es.skill_id)
-                   ) ORDER BY started_at DESC LIMIT 1) as attempt_status,
-                (SELECT id FROM challenges 
-                 WHERE student_id = ? 
-                   AND (
-                     schedule_id = es.id 
-                     OR (es.company_id IS NULL AND schedule_id IS NULL AND skill_id = es.skill_id)
-                     OR (es.company_id IS NOT NULL AND schedule_id IS NULL AND (company_id = es.company_id OR company_id IS NULL) AND skill_id = es.skill_id)
-                   ) ORDER BY started_at DESC LIMIT 1) as attempt_id
+        `SELECT es.*, s.name as skill_name, c.name as company_name, c.domain as company_domain
          FROM exam_schedules es
          JOIN skills s ON es.skill_id = s.id
          LEFT JOIN companies c ON es.company_id = c.id
@@ -2182,10 +2221,41 @@ app.get('/api/student/schedules', async (req, res) => {
            (es.invited_student_id = ?)
          )
          ORDER BY es.start_time DESC`,
-        [student.id, student.id, ...skillIds, student.id]
+        [...skillIds, student.id]
       );
     }
-    res.json(schedules);
+
+    // Map challenges in-memory instead of doing slow nested SQLite subquery joins
+    const mappedSchedules = schedules.map(es => {
+      const match = studentChallenges.find(ch => {
+        if (ch.schedule_id === es.id) return true;
+        if (es.company_id === null && ch.schedule_id === null && ch.skill_id === es.skill_id) return true;
+        if (es.company_id !== null && ch.schedule_id === null && (ch.company_id === es.company_id || ch.company_id === null) && ch.skill_id === es.skill_id) return true;
+        return false;
+      });
+
+      return {
+        ...es,
+        attempt_status: match ? match.status : null,
+        attempt_id: match ? match.id : null
+      };
+    });
+
+    // Deduplicate: If there is a student-specific clone and a master public schedule for the same skill & password, exclude the master schedule
+    const finalSchedules = [];
+    for (const es of mappedSchedules) {
+      if (es.invited_student_id === null) {
+        const hasClone = mappedSchedules.some(other => 
+          other.invited_student_id !== null && 
+          other.skill_id === es.skill_id && 
+          other.exam_password === es.exam_password
+        );
+        if (hasClone) continue;
+      }
+      finalSchedules.push(es);
+    }
+
+    res.json(finalSchedules);
   } catch (err) {
     console.error('Fetch student schedules error:', err.message);
     res.status(500).json({ error: 'Failed to retrieve scheduled tests' });

@@ -4069,36 +4069,49 @@ window.fetch = function(resource, init) {
   }
 
   return originalFetch.call(this, resource, init).then(response => {
-    const isLogoutRequest = typeof resource === 'string' && resource.includes('/api/auth/logout');
-    if (response.status === 401 && !isLogoutRequest) {
-      // Session expired or unauthorized — force client logout!
-      currentUser = null;
-      currentCompany = null;
-      safeLocalStorage.removeItem('skillproof_user');
-      safeLocalStorage.removeItem('skillproof_company');
-      safeLocalStorage.removeItem('skillproof_session_token');
-      safeLocalStorage.removeItem('skillproof_login_time');
-      
-      // Update main navbar profile buttons back to guest
-      const loginBtn = document.getElementById('nav-login-btn');
-      if (loginBtn) loginBtn.style.display = 'inline-block';
-      const logoutBtn = document.getElementById('nav-logout-btn');
-      if (logoutBtn) logoutBtn.style.display = 'none';
-      const ctaBtn = document.getElementById('nav-cta-btn');
-      if (ctaBtn) {
-        ctaBtn.innerText = 'Get started →';
-        ctaBtn.onclick = () => showView('auth');
+    const resourceStr = typeof resource === 'string' ? resource : (resource && resource.url ? resource.url : '');
+    const isLogoutRequest = resourceStr.includes('/api/auth/logout');
+    // Skip 401 handling for auth/OTP endpoints that don't need a session token
+    const isAuthEndpoint = resourceStr.includes('/api/auth/login') || resourceStr.includes('/api/auth/recruiter-otp');
+    
+    if (response.status === 401 && !isLogoutRequest && !isAuthEndpoint && currentUser) {
+      // Debounce: only fire the forced logout ONCE even if multiple parallel requests return 401
+      if (!window._isForceLoggingOut) {
+        window._isForceLoggingOut = true;
+        
+        currentUser = null;
+        currentCompany = null;
+        safeLocalStorage.removeItem('skillproof_user');
+        safeLocalStorage.removeItem('skillproof_company');
+        safeLocalStorage.removeItem('skillproof_session_token');
+        safeLocalStorage.removeItem('skillproof_login_time');
+        
+        // Update main navbar profile buttons back to guest
+        const loginBtn = document.getElementById('nav-login-btn');
+        if (loginBtn) loginBtn.style.display = 'inline-block';
+        const logoutBtn = document.getElementById('nav-logout-btn');
+        if (logoutBtn) logoutBtn.style.display = 'none';
+        const ctaBtn = document.getElementById('nav-cta-btn');
+        if (ctaBtn) {
+          ctaBtn.innerText = 'Get started →';
+          ctaBtn.onclick = () => showView('auth');
+        }
+        
+        // Route back to auth view and show non-blocking notification
+        showView('auth');
+        // Use setTimeout to show alert AFTER the current call stack clears, preventing double alerts
+        setTimeout(() => {
+          alert('Your session has expired. Please log in again to continue.');
+          window._isForceLoggingOut = false;
+        }, 100);
       }
-      
-      // Route back to landing or auth view and show clear alert
-      showView('auth');
-      alert('Your session has expired. Please log in again to continue.');
     } else if (currentUser && response.ok) {
       safeLocalStorage.setItem('skillproof_login_time', Date.now());
     }
     return response;
   });
 };
+window._isForceLoggingOut = false;
 
 // State Management
 let currentUser = null;
@@ -5152,6 +5165,16 @@ function submitStudentOnboarding() {
   const newClaimsCheckboxes = Array.from(checkboxes).filter(chk => !claimedSkillIds.has(chk.value));
 
   // Onboard details
+  const claimsData = newClaimsCheckboxes.map(chk => {
+    const skillId = chk.value;
+    const rating = document.getElementById(`onboard-rate-${skillId}`).value;
+    return {
+      skill_id: skillId,
+      self_rating: parseInt(rating, 10)
+    };
+  });
+
+  // Onboard details and claims in one single batched request to prevent OCC conflicts!
   fetch('/api/student/onboard', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -5161,7 +5184,8 @@ function submitStudentOnboarding() {
       college: college,
       github_profile: github,
       linkedin_profile: linkedin,
-      dream_role: dreamRole
+      dream_role: dreamRole,
+      claims: claimsData
     })
   })
   .then(res => res.json())
@@ -5175,45 +5199,9 @@ function submitStudentOnboarding() {
     currentUser = data.user;
     safeLocalStorage.setItem('skillproof_user', JSON.stringify(currentUser));
 
-    if (newClaimsCheckboxes.length === 0) {
-      alert('🎉 Onboarding profile updated successfully!');
-      closeStudentOnboardingModal();
-      loadStudentDashboard();
-      return;
-    }
-
-    // Submit newly checked skill claims sequentially
-    const claims = newClaimsCheckboxes.map(chk => {
-      const skillId = chk.value;
-      const rating = document.getElementById(`onboard-rate-${skillId}`).value;
-      return fetch('/api/skills/claim', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          student_email: currentUser.email,
-          skill_id: skillId,
-          self_rating: parseInt(rating, 10)
-        })
-      }).then(r => r.json());
-    });
-
-    Promise.all(claims)
-      .then(claimResults => {
-        const errorResult = claimResults.find(r => r.error);
-        if (errorResult) {
-          alert('Profile saved, but some new skill claims failed: ' + errorResult.error);
-        } else {
-          alert('🎉 Awesome! Onboarding completed and new skill claims registered successfully!');
-        }
-        closeStudentOnboardingModal();
-        loadStudentDashboard();
-      })
-      .catch(err => {
-        console.error('Failed to register claimed skills', err);
-        alert('Profile saved, but error occurred claiming some skills.');
-        closeStudentOnboardingModal();
-        loadStudentDashboard();
-      });
+    alert('🎉 Awesome! Onboarding completed and profile details registered successfully!');
+    closeStudentOnboardingModal();
+    loadStudentDashboard();
   })
   .catch(err => {
     console.error('Onboarding request failed', err);
@@ -5493,6 +5481,10 @@ function loadStudentDashboard() {
   }
 
   // Fetch claimed skills — re-authenticate if student not found (Vercel ephemeral DB)
+  // Capture the fetch-start timestamp so we can detect if dream_role was updated
+  // locally while this async chain was in-flight (prevents overwrite race condition)
+  const _fetchStartedAt = Date.now();
+
   fetch(`/api/skills/status?student_email=${encodeURIComponent(currentUser.email)}`)
     .then(res => {
       if (res.status === 404) {
@@ -5511,11 +5503,21 @@ function loadStudentDashboard() {
       if (data && data.skills) {
         claimedSkills = data.skills;
         if (data.user) {
+          // Preserve dream_role if user updated it locally while this fetch was in-flight
+          const localDreamRole = currentUser.dream_role;
+          const dreamRoleWasSetLocally = (window._dreamRoleLastUpdatedAt || 0) > _fetchStartedAt;
+
           currentUser = data.user;
           // Normalize score to fallback default of 0
           if (typeof currentUser.skillproof_score !== 'number') {
             currentUser.skillproof_score = 0;
           }
+
+          // If user picked a dream_role while this fetch was in-flight, keep it
+          if (dreamRoleWasSetLocally && localDreamRole) {
+            currentUser.dream_role = localDreamRole;
+          }
+
           safeLocalStorage.setItem('skillproof_user', JSON.stringify(currentUser));
           
           // Sync sidebar UI immediately with potentially self-healed database values
@@ -5696,6 +5698,7 @@ function renderDreamRoleSuggestions(dreamRole, masterSkills, claimedSkills) {
             <option value="Fullstack Developer">Fullstack Developer</option>
             <option value="Backend Engineer">Backend Engineer</option>
             <option value="Frontend Engineer">Frontend Engineer</option>
+            <option value="Frontend Specialist">Frontend Specialist</option>
             <option value="Data Scientist">Data Scientist</option>
             <option value="DevOps Engineer">DevOps Engineer</option>
             <option value="Cybersecurity Specialist">Cybersecurity Specialist</option>
@@ -5745,7 +5748,7 @@ function renderDreamRoleSuggestions(dreamRole, masterSkills, claimedSkills) {
 
   // Render the recommendations card outline
   const roles = [
-    'Fullstack Developer', 'Backend Engineer', 'Frontend Engineer', 'Data Scientist',
+    'Fullstack Developer', 'Backend Engineer', 'Frontend Engineer', 'Frontend Specialist', 'Data Scientist',
     'DevOps Engineer', 'Cybersecurity Specialist', 'Android Developer', 'Java Enterprise Developer',
     'AI / Machine Learning Engineer', 'Cloud Solutions Architect', 'Database Administrator',
     'Systems Programmer', 'Blockchain Developer', 'Software QA Automation Engineer',
@@ -5862,11 +5865,28 @@ function renderDreamRoleSuggestions(dreamRole, masterSkills, claimedSkills) {
 function updateDreamRoleFromDashboard(value) {
   if (!value) return;
 
+  // Immediately update local state so any in-flight async fetches cannot overwrite it
+  currentUser.dream_role = value;
+  window._dreamRoleLastUpdatedAt = Date.now();
+  safeLocalStorage.setItem('skillproof_user', JSON.stringify(currentUser));
+
   const container = document.getElementById('dream-role-suggestions-container');
   if (container) {
     container.style.opacity = '0.6';
     container.style.pointerEvents = 'none';
   }
+
+  // Update sidebar badge immediately (optimistic UI)
+  const sidebarBadge = document.getElementById('student-profile-dream-role');
+  if (sidebarBadge) {
+    sidebarBadge.innerText = 'Dream Role: ' + value;
+    sidebarBadge.style.display = 'inline-block';
+  }
+  const settingsSelect = document.getElementById('settings-student-dream-role');
+  if (settingsSelect) settingsSelect.value = value;
+
+  // Render the dream role suggestions immediately (optimistic) so user sees instant feedback
+  renderDreamRoleSuggestions(value, window.dashboardMasterSkills || [], window.dashboardClaimedSkills || []);
 
   fetch('/api/student/update_profile', {
     method: 'POST',
@@ -5880,31 +5900,24 @@ function updateDreamRoleFromDashboard(value) {
   .then(data => {
     if (data.error) {
       alert('Error updating dream role: ' + data.error);
-      if (container) {
-        container.style.opacity = '1';
-        container.style.pointerEvents = 'auto';
+      // Revert optimistic update on error
+      currentUser.dream_role = null;
+      window._dreamRoleLastUpdatedAt = 0;
+      safeLocalStorage.setItem('skillproof_user', JSON.stringify(currentUser));
+      renderDreamRoleSuggestions(null, window.dashboardMasterSkills || [], window.dashboardClaimedSkills || []);
+    } else {
+      // Server confirmed — update with authoritative server response
+      if (data.user) {
+        data.user.dream_role = value; // ensure the value we just set is preserved
+        currentUser = data.user;
       }
-      return;
-    }
-
-    currentUser.dream_role = value;
-    safeLocalStorage.setItem('skillproof_user', JSON.stringify(currentUser));
-
-    const settingsSelect = document.getElementById('settings-student-dream-role');
-    if (settingsSelect) settingsSelect.value = value;
-
-    const sidebarBadge = document.getElementById('student-profile-dream-role');
-    if (sidebarBadge) {
-      sidebarBadge.innerText = 'Dream Role: ' + value;
-      sidebarBadge.style.display = 'inline-block';
+      safeLocalStorage.setItem('skillproof_user', JSON.stringify(currentUser));
     }
 
     if (container) {
       container.style.opacity = '1';
       container.style.pointerEvents = 'auto';
     }
-
-    renderDreamRoleSuggestions(value, window.dashboardMasterSkills || [], window.dashboardClaimedSkills || []);
   })
   .catch(err => {
     console.error('Failed to update dream role from dashboard:', err);
@@ -5921,6 +5934,9 @@ function renderProgressiveVerifier(claimed) {
   const badgesList = document.getElementById('earned-badges-list');
   const progWrapper = document.getElementById('active-verification-wrapper');
   
+  // Define a fresh render cycle ID to guard against stale async resolves from previous tab transitions
+  const renderCycleId = ++(window._verifierRenderCycleId || (window._verifierRenderCycleId = 0));
+
   questionsList.innerHTML = '';
   badgesList.innerHTML = '';
   progWrapper.style.display = 'none';
@@ -5942,9 +5958,10 @@ function renderProgressiveVerifier(claimed) {
     return true;
   });
 
-  // Iterate over claimed skills and populate active verifiers
+  // Pre-render loading/buffering skeletons for each unique skill card to give a premium feedback loop
+  const placeholderMap = new Map();
   uniqueClaimed.forEach(c => {
-    // 1. Render Portfolio tags earned
+    // 1. Render Portfolio tags earned (synchronous status renders)
     if (c.status === 'verified' && c.badge_tag) {
       const badge = document.createElement('div');
       badge.className = 'verified-skill-row';
@@ -6021,10 +6038,69 @@ function renderProgressiveVerifier(claimed) {
       badgesList.appendChild(badge);
     }
 
-    // 2. Query next verification question (Dynamic Shuffling)
+    // 2. Pre-render a beautiful loading skeleton card ONLY for active claimed skills
+    if (c.status === 'claimed') {
+      const skeletonId = `skeleton-${renderCycleId}-${c.skill_id}`;
+      const skeletonCard = document.createElement('div');
+      skeletonCard.id = skeletonId;
+      skeletonCard.className = 'exam-card';
+      skeletonCard.style.animation = 'pulse 1.8s ease-in-out infinite';
+      skeletonCard.style.background = 'rgba(230,81,0,0.02)';
+      skeletonCard.style.borderColor = 'rgba(230,81,0,0.1)';
+      skeletonCard.innerHTML = `
+        <div class="exam-card-top" style="opacity: 0.6;">
+          <div class="exam-card-icon" style="background:var(--gray-200); border-radius:50%; width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center;">⏳</div>
+          <div class="exam-card-meta">
+            <div class="exam-card-skill" style="color:var(--gray-400); font-style:italic;">Loading ${escapeHTML(c.skill_name)}...</div>
+            <div class="exam-card-lang" style="color:var(--gray-300);">Preparing secure sandboxed environment...</div>
+          </div>
+        </div>
+        <div class="exam-card-badges" style="opacity: 0.5; display:flex; gap:6px;">
+          <span class="exam-pill time" style="width:60px; height:20px; background:var(--gray-100); display:inline-block; border:none;"></span>
+          <span class="exam-pill time" style="width:70px; height:20px; background:var(--gray-100); display:inline-block; border:none;"></span>
+        </div>
+        <div class="exam-card-lock" style="color:var(--gray-400); font-size:11px; opacity:0.6;">
+          ⚙️ Generating proctoring questions...
+        </div>
+        <button class="exam-card-btn" style="background:var(--gray-200); border-color:var(--gray-200); color:var(--gray-400); cursor:not-allowed; opacity:0.6; pointer-events:none;">
+          Buffering Secure Arena...
+        </button>
+      `;
+      questionsList.appendChild(skeletonCard);
+      placeholderMap.set(c.skill_id, skeletonCard);
+    }
+  });
+
+  const activeClaimed = uniqueClaimed.filter(c => c.status === 'claimed');
+  if (activeClaimed.length === 0) {
+    questionsList.innerHTML = '<div style="color:var(--gray-500)">All claimed skills are verified or under recruiter review. Claim more skills above to unlock new assessments!</div>';
+    return;
+  }
+
+  // 3. Query next verification question (Dynamic Shuffling) with strict renderCycleId check
+  activeClaimed.forEach(c => {
     fetch(`/api/skills/verification-next?student_email=${encodeURIComponent(currentUser.email)}&skill_id=${c.skill_id}`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        return res.json();
+      })
       .then(data => {
+        // Discard stale fetches from previous rendering cycles to completely prevent duplication
+        if (renderCycleId !== window._verifierRenderCycleId) {
+          console.warn(`[ProgressiveVerifier] Discarded stale fetch response for ${c.skill_name} from renderCycleId ${renderCycleId}`);
+          return;
+        }
+
+        const skeletonCard = placeholderMap.get(c.skill_id);
+
+        if (!data || data.error || !data.status) {
+          console.warn('Failed to load next verifier question:', data ? data.error : 'Unknown status');
+          if (skeletonCard && skeletonCard.parentNode) {
+            skeletonCard.parentNode.removeChild(skeletonCard);
+          }
+          return;
+        }
+
         if (data.status === 'locked_failed') {
           const row = document.createElement('div');
           row.className = 'verified-skill-row';
@@ -6036,10 +6112,18 @@ function renderProgressiveVerifier(claimed) {
             </div>
             <span class="status-tag disqualified" style="padding: 6px 14px;">DISQUALIFIED</span>
           `;
-          questionsList.appendChild(row);
+          
+          if (skeletonCard && skeletonCard.parentNode) {
+            skeletonCard.parentNode.replaceChild(row, skeletonCard);
+          } else {
+            questionsList.appendChild(row);
+          }
         } 
         else if (data.status === 'completed') {
-          // Completed rendering handled by badge tag list
+          // Completed rendering handled by badge tag list; clean up skeleton
+          if (skeletonCard && skeletonCard.parentNode) {
+            skeletonCard.parentNode.removeChild(skeletonCard);
+          }
         } 
         else if (data.status === 'unlocked') {
           progWrapper.style.display = 'block';
@@ -6116,7 +6200,19 @@ function renderProgressiveVerifier(claimed) {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
             </button>
           `;
-          questionsList.appendChild(qCard);
+          
+          if (skeletonCard && skeletonCard.parentNode) {
+            skeletonCard.parentNode.replaceChild(qCard, skeletonCard);
+          } else {
+            questionsList.appendChild(qCard);
+          }
+        }
+      })
+      .catch(err => {
+        console.error('Failed to load next verifier question:', err);
+        const skeletonCard = placeholderMap.get(c.skill_id);
+        if (skeletonCard && skeletonCard.parentNode) {
+          skeletonCard.parentNode.removeChild(skeletonCard);
         }
       });
   });
@@ -9972,16 +10068,38 @@ function loadStudentSchedules() {
   const container = document.getElementById('student-schedules-list');
   if (!container) return;
 
+  // Track rendering cycle to prevent race conditions and duplicate renders
+  const renderCycleId = ++(window._schedulesRenderCycleId || (window._schedulesRenderCycleId = 0));
+
+  // Show a premium pulsing skeleton loading indicator in the list immediately to avoid a blank "buffering" feel
+  container.innerHTML = `
+    <div style="animation: pulse 1.8s ease-in-out infinite; background: var(--white); border: 1.5px dashed rgba(230,81,0,0.15); border-radius: var(--radius-md); padding: 24px; text-align: center; color: var(--gray-400); font-size:13px; font-weight:700;">
+      ⏳ Buffering secure assessment invites...
+    </div>
+  `;
+
   fetch(`/api/student/schedules?student_email=${encodeURIComponent(currentUser.email)}`)
     .then(res => res.json())
     .then(schedules => {
+      // Discard stale fetches from previous rendering cycles to completely prevent layout flashing and duplicates
+      if (renderCycleId !== window._schedulesRenderCycleId) return;
+
       container.innerHTML = '';
+      if (!Array.isArray(schedules)) schedules = [];
       if (schedules.length === 0) {
         container.innerHTML = '<div style="color:var(--gray-500)">No active invitations found matching your claimed skills.</div>';
         return;
       }
 
-      schedules.forEach(s => {
+      // Deduplicate schedules by unique schedule ID to ensure perfect rendering stability
+      const seenIds = new Set();
+      const uniqueSchedules = schedules.filter(s => {
+        if (seenIds.has(s.id)) return false;
+        seenIds.add(s.id);
+        return true;
+      });
+
+      uniqueSchedules.forEach(s => {
         const card = document.createElement('div');
         card.className = 'verified-skill-row';
         card.style.display = 'flex';
@@ -10041,7 +10159,10 @@ function loadStudentSchedules() {
       });
     })
     .catch(err => {
+      // Discard stale fetches
+      if (renderCycleId !== window._schedulesRenderCycleId) return;
       console.error('Failed to fetch student schedules:', err);
+      container.innerHTML = '<div style="color:var(--gray-500)">Failed to load scheduled exams. Please try refreshing.</div>';
     });
 }
 
