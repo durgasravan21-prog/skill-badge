@@ -2530,7 +2530,7 @@ app.get('/api/student/schedules', async (req, res) => {
         match = studentChallenges.find(ch => {
           if (ch.schedule_id) return false; // Already linked to a different schedule
           if (ch.skill_id !== es.skill_id) return false;
-          if (es.company_id && ch.company_id && ch.company_id !== es.company_id) return false;
+          if (ch.company_id !== es.company_id) return false; // Must strictly match corporate vs self-assessment
           return true;
         });
       }

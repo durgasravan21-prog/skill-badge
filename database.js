@@ -374,6 +374,11 @@ async function createSchema() {
     // Ignore if column already exists
   }
   try {
+    await runAsync('ALTER TABLE challenges ADD COLUMN company_id TEXT;');
+  } catch (err) {
+    // Ignore if column already exists
+  }
+  try {
     await runAsync('ALTER TABLE challenges ADD COLUMN ip_address TEXT;');
   } catch (err) {
     // Ignore if column already exists
