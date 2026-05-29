@@ -2175,6 +2175,9 @@ body.dark-theme .premium-metric-card:hover {
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
 
+<!-- face-api.js for real face detection & verification during ID check -->
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
 <!-- Monaco Editor (VS Code engine) -->
 <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.46.0/min/vs/loader.js"></script>
 
@@ -2978,6 +2981,15 @@ body.dark-theme .premium-metric-card:hover {
         <div class="mobile-exam-warning">
           <h4>💻 Desktop / Laptop Required for Exams</h4>
           <p>You can browse your dashboard on mobile, but proctored exams require a desktop or laptop with camera, microphone, and screen sharing capabilities. Please switch to a PC to take exams.</p>
+        </div>
+
+        <!-- Active Scheduled Assessments Wrapper -->
+        <div id="scheduled-arena-wrapper" class="student-skills-dashboard" style="margin-top: 0; margin-bottom: 32px; display: none; background: rgba(230,81,0,0.03); border: 1.5px solid rgba(230,81,0,0.15); padding: 20px; border-radius: var(--radius-md);">
+          <h3 style="font-family:var(--font-display); font-size:18px; font-weight:800; margin-bottom:4px; color: var(--orange-deep);">📅 Active Scheduled Assessments</h3>
+          <p style="font-size:13px; color:var(--gray-500); margin-bottom:16px;">Assessments scheduled for you by companies. High-security proctoring is active.</p>
+          <div id="scheduled-arena-list" class="verified-skills-grid">
+            <!-- Dynamically populated from loadStudentSchedules -->
+          </div>
         </div>
         <!-- Active progress progression -->
         <div id="active-verification-wrapper" class="progress-container" style="display: none; margin-bottom: 24px;">
@@ -4073,8 +4085,13 @@ window.fetch = function(resource, init) {
     const isLogoutRequest = resourceStr.includes('/api/auth/logout');
     // Skip 401 handling for auth/OTP endpoints that don't need a session token
     const isAuthEndpoint = resourceStr.includes('/api/auth/login') || resourceStr.includes('/api/auth/recruiter-otp');
+    // Skip 401 handling for background proctoring endpoints — these fire continuously
+    // during exams and a transient 401 on them should NEVER destroy the session
+    const isProctorBackground = resourceStr.includes('/api/exams/photo') || resourceStr.includes('/api/exams/violation');
+    // NEVER force-logout while the student is in an active exam session — it would be catastrophic
+    const isInActiveExam = !!currentExam;
     
-    if (response.status === 401 && !isLogoutRequest && !isAuthEndpoint && currentUser) {
+    if (response.status === 401 && !isLogoutRequest && !isAuthEndpoint && !isProctorBackground && !isInActiveExam && currentUser) {
       // Debounce: only fire the forced logout ONCE even if multiple parallel requests return 401
       if (!window._isForceLoggingOut) {
         window._isForceLoggingOut = true;
@@ -4085,6 +4102,7 @@ window.fetch = function(resource, init) {
         safeLocalStorage.removeItem('skillproof_company');
         safeLocalStorage.removeItem('skillproof_session_token');
         safeLocalStorage.removeItem('skillproof_login_time');
+        safeLocalStorage.removeItem('skillproof_auth_provider');
         
         // Update main navbar profile buttons back to guest
         const loginBtn = document.getElementById('nav-login-btn');
@@ -4104,6 +4122,24 @@ window.fetch = function(resource, init) {
           alert('Your session has expired. Please log in again to continue.');
           window._isForceLoggingOut = false;
         }, 100);
+      }
+    } else if (response.status === 401 && (isProctorBackground || isInActiveExam) && currentUser) {
+      // During an active exam, silently attempt to self-heal the session token instead of logging out
+      console.warn('[Session Guard] 401 on proctoring endpoint during active exam — attempting silent token refresh');
+      const activeProv = selectProvider || safeLocalStorage.getItem('skillproof_auth_provider') || 'Google';
+      if (currentUser && currentUser.email && !window._isRefreshingToken) {
+        window._isRefreshingToken = true;
+        originalFetch.call(this, '/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: currentUser.email, name: currentUser.name, provider: activeProv })
+        }).then(r => r.json()).then(d => {
+          if (d.sessionToken) {
+            safeLocalStorage.setItem('skillproof_session_token', d.sessionToken);
+            console.log('[Session Guard] Token silently refreshed during active exam');
+          }
+          window._isRefreshingToken = false;
+        }).catch(() => { window._isRefreshingToken = false; });
       }
     } else if (currentUser && response.ok) {
       safeLocalStorage.setItem('skillproof_login_time', Date.now());
@@ -4544,6 +4580,10 @@ window.addEventListener('DOMContentLoaded', () => {
       const elapsed = Date.now() - parseInt(savedLoginTime, 10);
       if (elapsed < 24 * 60 * 60 * 1000) { // 24 hours
         currentUser = JSON.parse(savedUser);
+        const savedProvider = safeLocalStorage.getItem('skillproof_auth_provider');
+        if (savedProvider) {
+          selectProvider = savedProvider;
+        }
         if (currentUser && typeof currentUser.skillproof_score !== 'number') {
           currentUser.skillproof_score = 0;
         }
@@ -4592,6 +4632,7 @@ window.addEventListener('DOMContentLoaded', () => {
         safeLocalStorage.removeItem('skillproof_company');
         safeLocalStorage.removeItem('skillproof_login_time');
         safeLocalStorage.removeItem('skillproof_session_token');
+        safeLocalStorage.removeItem('skillproof_auth_provider');
       }
     }
   } catch (err) {
@@ -4601,6 +4642,7 @@ window.addEventListener('DOMContentLoaded', () => {
       safeLocalStorage.removeItem('skillproof_company');
       safeLocalStorage.removeItem('skillproof_login_time');
       safeLocalStorage.removeItem('skillproof_session_token');
+      safeLocalStorage.removeItem('skillproof_auth_provider');
     } catch(e) {}
   }
 
@@ -4748,6 +4790,9 @@ function submitOAuthHandshake(nameInput, emailInput) {
     if (data.sessionToken) {
       safeLocalStorage.setItem('skillproof_session_token', data.sessionToken);
     }
+    if (selectProvider) {
+      safeLocalStorage.setItem('skillproof_auth_provider', selectProvider);
+    }
     safeLocalStorage.setItem('skillproof_login_time', Date.now());
     
     // Update main navbar profile buttons
@@ -4782,6 +4827,11 @@ function logoutUser() {
   safeLocalStorage.removeItem('skillproof_company');
   safeLocalStorage.removeItem('skillproof_login_time');
   safeLocalStorage.removeItem('skillproof_session_token');
+  safeLocalStorage.removeItem('skillproof_auth_provider');
+
+  // Clear dashboard & schedules loaded states
+  window._hasLoadedDashboardData = false;
+  window._hasLoadedSchedulesData = false;
   
   document.getElementById('nav-login-btn').style.display = 'inline-block';
   document.getElementById('nav-logout-btn').style.display = 'none';
@@ -5367,8 +5417,22 @@ setInterval(() => {
 }, 30000);
 
 // ── STUDENT DASHBOARD & CLAIMS SYSTEM ──
+// Debounce wrapper to prevent redundant re-renders from multiple rapid callers
+let _studentDashboardDebounceTimer = null;
+// Global dashboard render cycle — used to discard stale async chains from previous loadStudentDashboard calls
+window._dashboardRenderCycleId = 0;
 function loadStudentDashboard() {
   if (!currentUser) return;
+  // Coalesce rapid successive calls (e.g. from login + tab switch + auto-join) into one render
+  clearTimeout(_studentDashboardDebounceTimer);
+  _studentDashboardDebounceTimer = setTimeout(_loadStudentDashboardCore, 150);
+}
+function _loadStudentDashboardCore() {
+  if (!currentUser) return;
+
+  // Track the dashboard render cycle at the very start of core rendering to abort stale executions
+  window._dashboardRenderCycleId = (window._dashboardRenderCycleId || 0) + 1;
+  const dashCycleId = window._dashboardRenderCycleId;
 
   // Normalize score to fallback default of 0
   if (typeof currentUser.skillproof_score !== 'number') {
@@ -5487,18 +5551,34 @@ function loadStudentDashboard() {
 
   fetch(`/api/skills/status?student_email=${encodeURIComponent(currentUser.email)}`)
     .then(res => {
+      if (dashCycleId !== window._dashboardRenderCycleId) throw new Error('stale_dashboard_cycle');
       if (res.status === 404) {
         // Student not in DB (cold start wiped it) — re-create via login
+        const activeProv = selectProvider || safeLocalStorage.getItem('skillproof_auth_provider') || 'Google';
         return fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: currentUser.email, name: currentUser.name, provider: (typeof selectProvider !== 'undefined' ? selectProvider : 'Google') })
-        }).then(() => fetch(`/api/skills/status?student_email=${encodeURIComponent(currentUser.email)}`));
+          body: JSON.stringify({ email: currentUser.email, name: currentUser.name, provider: activeProv })
+        })
+        .then(authRes => authRes.json())
+        .then(authData => {
+          if (authData.sessionToken) {
+            safeLocalStorage.setItem('skillproof_session_token', authData.sessionToken);
+            selectProvider = activeProv;
+            safeLocalStorage.setItem('skillproof_auth_provider', activeProv);
+          }
+          if (dashCycleId !== window._dashboardRenderCycleId) throw new Error('stale_dashboard_cycle');
+          return fetch(`/api/skills/status?student_email=${encodeURIComponent(currentUser.email)}`);
+        });
       }
       return res;
     })
-    .then(res => res.json())
+    .then(res => {
+      if (dashCycleId !== window._dashboardRenderCycleId) throw new Error('stale_dashboard_cycle');
+      return res.json();
+    })
     .then(data => {
+      if (dashCycleId !== window._dashboardRenderCycleId) throw new Error('stale_dashboard_cycle');
       let claimedSkills = [];
       if (data && data.skills) {
         claimedSkills = data.skills;
@@ -5541,18 +5621,30 @@ function loadStudentDashboard() {
       
       // Fetch master list of skills
       fetch('/api/skills')
-        .then(res => res.json())
+        .then(res => {
+          if (dashCycleId !== window._dashboardRenderCycleId) throw new Error('stale_dashboard_cycle');
+          return res.json();
+        })
         .then(masterSkills => {
+          // Discard stale dashboard cycle — a newer loadStudentDashboard has started
+          if (dashCycleId !== window._dashboardRenderCycleId) return;
+
           if (!Array.isArray(masterSkills)) masterSkills = [];
           renderClaimsSection(masterSkills, claimedSkills);
           
           renderDreamRoleSuggestions(currentUser.dream_role, masterSkills, claimedSkills);
 
-          renderProgressiveVerifier(claimedSkills);
-          loadStudentSchedules();
+          // CRITICAL: Load scheduled exams FIRST, then render verifier AFTER the dedup set is ready.
+          // This eliminates the race condition that caused duplicate arena cards.
+          loadStudentSchedules().then((scheduledSkillIds) => {
+            // Discard stale dashboard cycle AGAIN after async schedules fetch completes
+            if (dashCycleId !== window._dashboardRenderCycleId) return;
+            renderProgressiveVerifier(claimedSkills, scheduledSkillIds);
+          });
         });
     })
     .catch(err => {
+      if (err.message === 'stale_dashboard_cycle') return;
       console.error('Dashboard load error:', err);
     });
 }
@@ -5561,7 +5653,7 @@ function loadStudentDashboard() {
 function renderClaimsSection(master, claimed) {
   const wrapper = document.getElementById('claim-skills-wrapper');
   const listContainer = document.getElementById('claim-skills-list');
-  listContainer.innerHTML = '';
+  if (!listContainer) return;
 
   // Filter skills not claimed yet
   if (!Array.isArray(claimed)) claimed = [];
@@ -5570,10 +5662,14 @@ function renderClaimsSection(master, claimed) {
 
   if (unclaimed.length === 0) {
     wrapper.style.display = 'none';
+    listContainer.innerHTML = '';
     return;
   }
 
   wrapper.style.display = 'block';
+
+  // ── BUILD DOM IN-MEMORY (DocumentFragment) to eliminate flicker ──
+  const claimsFrag = document.createDocumentFragment();
   unclaimed.forEach(s => {
     const card = document.createElement('div');
     card.className = 'skill-claim-card';
@@ -5590,8 +5686,14 @@ function renderClaimsSection(master, claimed) {
       </select>
       <button onclick="claimSkill('${s.id}')" class="btn-primary" style="padding: 8px 16px; font-size:12px; width:100%; justify-content:center;">Claim Strength</button>
     `;
-    listContainer.appendChild(card);
+    claimsFrag.appendChild(card);
   });
+
+  const tempClaimsDiv = document.createElement('div');
+  tempClaimsDiv.appendChild(claimsFrag);
+  if (listContainer.innerHTML !== tempClaimsDiv.innerHTML) {
+    listContainer.innerHTML = tempClaimsDiv.innerHTML;
+  }
 }
 
 function claimSkill(skillId) {
@@ -5606,14 +5708,41 @@ function claimSkill(skillId) {
       self_rating: rating
     })
   })
-  .then(res => res.json())
+  .then(res => {
+    if (!res.ok && res.status === 401) {
+      // Token expired — silently re-authenticate and retry the claim
+      console.warn('[claimSkill] 401 — refreshing token and retrying');
+      const prov = selectProvider || safeLocalStorage.getItem('skillproof_auth_provider') || 'Google';
+      return originalFetch.call(window, '/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: currentUser.email, name: currentUser.name, provider: prov })
+      })
+      .then(ar => ar.json())
+      .then(ad => {
+        if (ad.sessionToken) safeLocalStorage.setItem('skillproof_session_token', ad.sessionToken);
+        return fetch('/api/skills/claim', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ student_email: currentUser.email, skill_id: skillId, self_rating: rating })
+        });
+      })
+      .then(rr => rr.json());
+    }
+    return res.json();
+  })
   .then(data => {
+    if (!data) return;
     if (data.error) {
       alert(data.error);
       return;
     }
     alert(data.message);
     loadStudentDashboard();
+  })
+  .catch(err => {
+    console.error('Claim skill error:', err);
+    alert('Failed to claim skill. Please try again.');
   });
 }
 
@@ -5929,7 +6058,7 @@ function updateDreamRoleFromDashboard(value) {
 }
 
 // Render progressive multi-level assessment list based on claimed skills
-function renderProgressiveVerifier(claimed) {
+function renderProgressiveVerifier(claimed, scheduledSkillIdsParam) {
   const questionsList = document.getElementById('questions-list');
   const badgesList = document.getElementById('earned-badges-list');
   const progWrapper = document.getElementById('active-verification-wrapper');
@@ -6026,16 +6155,19 @@ function renderProgressiveVerifier(claimed) {
     // Discard stale fetches from previous rendering cycles to completely prevent duplication
     if (renderCycleId !== window._verifierRenderCycleId) return;
 
-    // Clear lists for final render swap
-    questionsList.innerHTML = '';
-    badgesList.innerHTML = '';
+    // ── BUILD DOM IN-MEMORY (DocumentFragment) to eliminate flicker ──
+    const questionsFrag = document.createDocumentFragment();
+    const badgesFrag = document.createDocumentFragment();
     
     // Render Portfolio tags earned
     uniqueClaimed.forEach(c => {
-      renderStaticBadgeSync(c, badgesList);
+      renderStaticBadgeSync(c, badgesFrag);
     });
 
     let hasActiveVerificationPath = false;
+
+    // Get scheduled skill IDs populated by loadStudentSchedules to prevent duplicate arena cards
+    const scheduledSkillIds = scheduledSkillIdsParam || window._scheduledSkillIds || new Set();
 
     results.forEach(res => {
       const c = res.skill;
@@ -6043,6 +6175,11 @@ function renderProgressiveVerifier(claimed) {
 
       if (!data || data.error || !data.status) {
         return; // Skip rendering card for failed fetch, clean swap ensures no skeleton is left
+      }
+
+      // Skip this skill if it already has an active scheduled exam (prevents duplicate arena cards)
+      if (scheduledSkillIds.has(c.skill_id)) {
+        return;
       }
 
       if (data.status === 'locked_failed') {
@@ -6056,7 +6193,7 @@ function renderProgressiveVerifier(claimed) {
           </div>
           <span class="status-tag disqualified" style="padding: 6px 14px;">DISQUALIFIED</span>
         `;
-        questionsList.appendChild(row);
+        questionsFrag.appendChild(row);
       } 
       else if (data.status === 'unlocked') {
         hasActiveVerificationPath = true;
@@ -6134,7 +6271,7 @@ function renderProgressiveVerifier(claimed) {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
           </button>
         `;
-        questionsList.appendChild(qCard);
+        questionsFrag.appendChild(qCard);
       }
     });
 
@@ -6143,12 +6280,29 @@ function renderProgressiveVerifier(claimed) {
     }
 
     if (activeClaimed.length > 0 && questionsList.children.length === 0) {
-      questionsList.innerHTML = '<div style="color:var(--gray-500)">All claimed skills are verified or under recruiter review. Claim more skills above to unlock new assessments!</div>';
+      const infoDiv = document.createElement('div');
+      infoDiv.style.color = 'var(--gray-500)';
+      infoDiv.innerText = 'All claimed skills are verified or under recruiter review. Claim more skills above to unlock new assessments!';
+      questionsFrag.appendChild(infoDiv);
+    }
+
+    // ── ATOMIC SWAP WITH FLICKER PREVENTION ──
+    const tempQuestionsDiv = document.createElement('div');
+    tempQuestionsDiv.appendChild(questionsFrag);
+    if (questionsList.innerHTML !== tempQuestionsDiv.innerHTML) {
+      questionsList.innerHTML = tempQuestionsDiv.innerHTML;
+    }
+
+    const tempBadgesDiv = document.createElement('div');
+    tempBadgesDiv.appendChild(badgesFrag);
+    if (badgesList.innerHTML !== tempBadgesDiv.innerHTML) {
+      badgesList.innerHTML = tempBadgesDiv.innerHTML;
     }
 
     // Set the loaded state flag to true so subsequent switches/refetches do not flash loaders
     window._hasLoadedDashboardData = true;
   });
+}
 }
 
 // Synchronous static tag rendering helper to avoid duplicated logic
@@ -6404,6 +6558,11 @@ function openExamRulesModal(questionId, scheduleId = null, skillName = null) {
     return;
   }
 
+  // Automatically switch student tab to Shuffled Exam Arena to align contexts
+  if (typeof switchStudentTab === 'function') {
+    switchStudentTab('arena');
+  }
+
   pendingSkillName = skillName;
   if (scheduleId) {
     pendingScheduleId = scheduleId;
@@ -6610,56 +6769,168 @@ async function captureIdVerifyPhoto() {
 }
 
 async function _verifyPersonCount(video) {
-  // If COCO-SSD is not loaded yet, do a soft check (allow through with a warning)
+  // ── Try face-api.js first (real face detection) ──
+  const faceReady = await loadFaceApiModels();
+  if (faceReady) {
+    try {
+      const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.45 }));
+      if (detections.length === 0) {
+        await smoothAlert(
+          'No human face detected. Please ensure your face is well-lit, directly looking at the camera, and fully visible within the oval guide. Remove glasses or hats if needed.',
+          'Face Not Detected', '❌', 'warn'
+        );
+        return false;
+      }
+      if (detections.length > 1) {
+        await smoothAlert(
+          `Multiple faces (${detections.length}) detected in the frame. Only the exam candidate should be visible. Please ensure you are alone and retry.`,
+          'Multiple Faces Detected', '🚫', 'warn'
+        );
+        return false;
+      }
+      // Check face size — must be at least 12% of frame width (prevents photo-of-photo held far away)
+      const face = detections[0];
+      const faceWidthRatio = face.box.width / video.videoWidth;
+      if (faceWidthRatio < 0.12) {
+        await smoothAlert(
+          'Your face appears too small in the frame. Please move closer to the camera so your face fills the oval guide clearly.',
+          'Face Too Far Away', '⚠️', 'warn'
+        );
+        return false;
+      }
+      console.log(`[FaceAPI] ✓ Real face detected (confidence: ${(face.score * 100).toFixed(1)}%, size: ${(faceWidthRatio * 100).toFixed(1)}% of frame)`);
+      return true; // Exactly 1 real face — pass
+    } catch (err) {
+      console.warn('[FaceAPI] Face detection error, falling back to COCO-SSD:', err);
+    }
+  }
+
+  // ── Fallback: COCO-SSD person detection ──
   if (!phoneDetectionModel) {
-    console.warn('[ID Verify] COCO-SSD model not loaded — skipping person count check');
+    console.warn('[ID Verify] No detection models loaded — allowing through');
     return true;
   }
   try {
     const predictions = await phoneDetectionModel.detect(video);
     const persons = predictions.filter(p => p.class === 'person' && p.score >= 0.60);
     if (persons.length === 0) {
-      alert('❌ No face or person detected clearly. Please ensure your face is well-lit, directly looking at the camera, and fully visible, then try again.');
+      await smoothAlert(
+        'No face or person detected clearly. Please ensure your face is well-lit, directly looking at the camera, and fully visible, then try again.',
+        'Person Not Detected', '❌', 'warn'
+      );
       return false;
     }
     if (persons.length > 1) {
-      alert(`🚫 Multiple people (${persons.length}) detected in the frame. Only the exam candidate should be visible. Please ensure you are alone and retry.`);
+      await smoothAlert(
+        `Multiple people (${persons.length}) detected in the frame. Only the exam candidate should be visible. Please ensure you are alone and retry.`,
+        'Multiple People Detected', '🚫', 'warn'
+      );
       return false;
     }
-    return true; // Exactly 1 person — pass
+    return true;
   } catch (err) {
     console.warn('[ID Verify] Person detection error:', err);
-    return true; // Soft pass on error
+    return true;
   }
 }
 
 async function _verifyIdDocument(video) {
-  if (!phoneDetectionModel) {
-    console.warn('[ID Verify] COCO-SSD model not loaded — skipping ID document validation');
-    return true;
+  // ── 1. Check for forbidden electronic devices via COCO-SSD ──
+  if (phoneDetectionModel) {
+    try {
+      const predictions = await phoneDetectionModel.detect(video);
+      
+      const invalidItems = predictions.filter(p => ['cell phone', 'laptop', 'keyboard', 'mouse', 'remote'].includes(p.class) && p.score >= 0.4);
+      if (invalidItems.length > 0) {
+        await smoothAlert(
+          'An electronic device was detected (phone or laptop screen). Digital/screenshot IDs are NOT accepted.\n\nPlease present only your original physical Government ID card (Aadhaar, PAN Card, Passport, Driver\'s License) to the camera, and remove all electronic devices from the frame.',
+          'Invalid Document — Electronic Device Detected', '❌', 'danger'
+        );
+        return false;
+      }
+    } catch (err) {
+      console.warn('[ID Verify] COCO-SSD check error:', err);
+    }
   }
+
+  // ── 2. Check that a real person/face is present holding the ID ──
+  const faceReady = await loadFaceApiModels();
+  if (faceReady) {
+    try {
+      const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.35 }));
+      if (detections.length === 0) {
+        await smoothAlert(
+          'Your face was not detected in the frame. Please hold the original Government ID card next to your face so BOTH your face and the ID are clearly visible in the camera, then capture again.',
+          'Face Not Visible With ID', '❌', 'warn'
+        );
+        return false;
+      }
+    } catch (err) {
+      console.warn('[ID Verify] Face detection during ID check failed:', err);
+    }
+  } else if (phoneDetectionModel) {
+    try {
+      const predictions = await phoneDetectionModel.detect(video);
+      const persons = predictions.filter(p => p.class === 'person' && p.score >= 0.45);
+      if (persons.length === 0) {
+        await smoothAlert(
+          'Candidate face/person not detected in the frame. Please hold the ID card next to your face so both are visible, and try again.',
+          'Person Not Detected', '❌', 'warn'
+        );
+        return false;
+      }
+    } catch (err) {
+      console.warn('[ID Verify] Person detection fallback error:', err);
+    }
+  }
+
+  // ── 3. Canvas-based card/rectangle detection ──
   try {
-    const predictions = await phoneDetectionModel.detect(video);
+    const canvas = document.createElement('canvas');
+    const w = video.videoWidth || 640;
+    const h = video.videoHeight || 480;
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, w, h);
+    const imageData = ctx.getImageData(0, 0, w, h);
+    const data = imageData.data;
     
-    // Check for cell phone, laptop, keyboard, mouse, remote which are forbidden in ID scans
-    const invalidItems = predictions.filter(p => ['cell phone', 'laptop', 'keyboard', 'mouse', 'remote'].includes(p.class) && p.score >= 0.4);
-    if (invalidItems.length > 0) {
-      alert('❌ Invalid electronic device detected (e.g. phone or laptop screen). Please present only your physical Government ID card to the camera, and remove all other objects.');
+    // Convert to grayscale and compute simple edge magnitude
+    const gray = new Float32Array(w * h);
+    for (let i = 0; i < w * h; i++) {
+      const idx = i * 4;
+      gray[i] = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+    }
+    
+    // Count strong horizontal and vertical edges (Sobel-like)
+    let edgeCount = 0;
+    const edgeThreshold = 40;
+    for (let y = 1; y < h - 1; y++) {
+      for (let x = 1; x < w - 1; x++) {
+        const gx = Math.abs(gray[y * w + x + 1] - gray[y * w + x - 1]);
+        const gy = Math.abs(gray[(y + 1) * w + x] - gray[(y - 1) * w + x]);
+        if (gx > edgeThreshold || gy > edgeThreshold) edgeCount++;
+      }
+    }
+    
+    const edgeDensity = edgeCount / (w * h);
+    // A real ID card has clear text/borders → edge density typically > 5%
+    // A blank wall or empty frame → edge density < 3%
+    if (edgeDensity < 0.03) {
+      await smoothAlert(
+        'No document detected in the frame. The image appears blank or too dark.\n\nPlease hold your original physical Government ID card (Aadhaar, PAN Card, Passport, Driver\'s License) flat in front of the camera next to your face, ensuring the text on the card is readable.',
+        'No Document Detected — Submit Original ID', '📄', 'warn'
+      );
       return false;
     }
-
-    // Ensure candidate is present holding the ID card
-    const persons = predictions.filter(p => p.class === 'person' && p.score >= 0.45);
-    if (persons.length === 0) {
-      alert('❌ Candidate face/person not detected in the frame. Please hold the ID card next to your face so both are visible, and try again.');
-      return false;
-    }
-
-    return true;
+    console.log(`[ID Verify] ✓ Document edge density: ${(edgeDensity * 100).toFixed(1)}% — card-like content detected`);
   } catch (err) {
-    console.warn('[ID Verify] ID validation error:', err);
-    return true; // Soft pass on error
+    console.warn('[ID Verify] Canvas edge detection error:', err);
+    // Soft pass on canvas errors
   }
+
+  return true;
 }
 
 function retakeIdVerifyPhoto() {
@@ -6820,6 +7091,29 @@ let phoneDetectionInterval = null;
 let phoneDetected = false;
 let secondPersonInterval = null;       // Separate interval for person count monitoring
 let secondPersonViolationCount = 0;    // Track how many times second person was seen
+
+// ── FACE-API.JS MODEL STATE ──
+let faceApiLoaded = false;
+async function loadFaceApiModels() {
+  if (faceApiLoaded) return true;
+  if (typeof faceapi === 'undefined') {
+    console.warn('[FaceAPI] face-api.js not loaded from CDN');
+    return false;
+  }
+  try {
+    const MODEL_URL = 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights';
+    await Promise.all([
+      faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+      faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL)
+    ]);
+    faceApiLoaded = true;
+    console.log('[FaceAPI] TinyFaceDetector + landmarks loaded successfully');
+    return true;
+  } catch (err) {
+    console.error('[FaceAPI] Failed to load models:', err);
+    return false;
+  }
+}
 
 async function loadPhoneDetectionModel() {
   try {
@@ -7093,8 +7387,31 @@ async function startExam(questionId) {
       question_id: questionId
     })
   })
-  .then(res => res.json())
+  .then(res => {
+    if (!res.ok && res.status === 401) {
+      // Token expired right before exam — silently refresh and retry
+      console.warn('[startExam] 401 — refreshing token and retrying exam start');
+      const prov = selectProvider || safeLocalStorage.getItem('skillproof_auth_provider') || 'Google';
+      return originalFetch.call(window, '/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: currentUser.email, name: currentUser.name, provider: prov })
+      })
+      .then(ar => ar.json())
+      .then(ad => {
+        if (ad.sessionToken) safeLocalStorage.setItem('skillproof_session_token', ad.sessionToken);
+        return fetch('/api/exams/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ student_email: currentUser.email, question_id: questionId })
+        });
+      })
+      .then(rr => rr.json());
+    }
+    return res.json();
+  })
   .then(data => {
+    if (!data) { cleanupStreams(); if (document.fullscreenElement) document.exitFullscreen().catch(e=>{}); return; }
     if (data.error) {
       alert(data.error);
       cleanupStreams();
@@ -7705,8 +8022,17 @@ function logViolation(violationType) {
       type: violationType
     })
   })
-  .then(res => res.json())
+  .then(res => {
+    // If the proctoring endpoint returns 401 or any error, silently skip — 
+    // NEVER let a violation log destroy the exam session
+    if (!res.ok) {
+      console.warn(`[logViolation] ${violationType} endpoint returned ${res.status} — skipping`);
+      return null;
+    }
+    return res.json();
+  })
   .then(data => {
+    if (!data) return;
     // If a phone is detected, handle it completely silently on the student screen
     if (violationType === 'phone_detected') {
       return;
@@ -7774,7 +8100,8 @@ function logViolation(violationType) {
       ind.innerText = 'BREACH (RESTRICTED KEY)';
       ind.className = 'sec-indicator-status err';
     }
-  });
+  })
+  .catch(err => console.error('[logViolation] Network error:', err));
 }
 
 // Infraction simulator hooks (Hidden in debug drawer Ctrl + Shift + D)
@@ -8294,6 +8621,10 @@ function exitExamEnvironment(data) {
   stopPhoneDetection();
   stopBluetoothMonitoring();
   stopPhotoCaptures();
+
+  // Stop devtools detection timer (critical — this fires logViolation which needs auth)
+  if (devtoolsCheckInterval) { clearInterval(devtoolsCheckInterval); devtoolsCheckInterval = null; }
+
   examSubmittingOrExiting = false;
   _submitInProgress = false;
 
@@ -8321,6 +8652,10 @@ function exitExamEnvironment(data) {
   document.removeEventListener('mousedown', document._examMiddleClickBlock, true);
   document.removeEventListener('selectstart', document._examSelectBlock, true);
   document.removeEventListener('keydown', strictKeyboardProctor, true);
+
+  // Nullify currentExam AFTER all cleanup is done — the 401 interceptor uses this flag
+  // to decide whether to logout, so it must stay set until all proctoring fetches are stopped
+  currentExam = null;
 
   if (document.fullscreenElement) {
     document.exitFullscreen().catch(() => {});
@@ -8711,6 +9046,10 @@ function loadAdminHistory() {
             <td>
               <strong>${escapeHTML(exam.skill_name || 'Technical Test')}</strong><br/>
               <span style="font-size:10px; color:var(--gray-500);" title="${escapeHTML(exam.question_title)}">${escapeHTML(exam.question_title.substring(0,30))}...</span>
+              <div style="font-size:10px; color:var(--gray-400); margin-top:4px;">
+                Started: ${exam.started_at ? new Date(exam.started_at).toLocaleString() : 'N/A'}<br/>
+                Submitted: ${exam.submitted_at ? new Date(exam.submitted_at).toLocaleString() : 'N/A'}
+              </div>
               ${attemptsHTML}
             </td>
             <td style="text-align: center;">
@@ -9038,12 +9377,10 @@ function switchStudentTab(tabName) {
   const targetBtn = document.getElementById('nav-btn-' + tabName);
   if (targetBtn) targetBtn.classList.add('active');
 
-  // Refresh content dynamically
-  if (currentUser) {
-    loadStudentDashboard();
-    if (tabName === 'notifications') {
-      loadFullNotifications();
-    }
+  // Only refresh notifications on demand — dashboard data persists across tab switches
+  // to eliminate unnecessary re-fetches and visual "buffering" flicker
+  if (currentUser && tabName === 'notifications') {
+    loadFullNotifications();
   }
 }
 
@@ -9534,9 +9871,10 @@ function addCandidateRow() {
       <span style="font-size:11px; font-weight:700; color:var(--orange-deep); text-transform:uppercase;">Candidate Details</span>
       <button onclick="this.closest('.dispatch-row').remove()" style="background:none; border:none; color:#C62828; cursor:pointer; font-size:11px; font-weight:700;" title="Remove">Remove</button>
     </div>
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px;">
       <input type="text" placeholder="Candidate Name" class="dispatch-name" style="padding:8px 10px; border:1.5px solid var(--gray-200); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-body); width:100%; box-sizing:border-box;" />
       <input type="email" placeholder="Candidate Email" class="dispatch-email" style="padding:8px 10px; border:1.5px solid var(--gray-200); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-body); width:100%; box-sizing:border-box;" />
+      <input type="tel" placeholder="Phone Number (e.g. +919876543210)" class="dispatch-phone" style="padding:8px 10px; border:1.5px solid var(--gray-200); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-body); width:100%; box-sizing:border-box;" />
     </div>
     <select class="dispatch-skill" style="padding:8px 10px; border:1.5px solid var(--gray-200); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font-body); width:100%; box-sizing:border-box;">
       ${(masterSkillsList || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
@@ -9571,9 +9909,10 @@ async function runBulkDispatch() {
   rows.forEach(row => {
     const name = row.querySelector('.dispatch-name')?.value?.trim();
     const email = row.querySelector('.dispatch-email')?.value?.trim();
+    const phone = row.querySelector('.dispatch-phone')?.value?.trim() || null;
     const skillId = row.querySelector('.dispatch-skill')?.value;
     if (!name || !email || !skillId) { valid = false; return; }
-    candidates.push({ name, email, skillId, difficultyOrder: 'easy,medium,hard' });
+    candidates.push({ name, email, phone, skillId, difficultyOrder: 'easy,medium,hard' });
   });
 
   if (!valid || candidates.length === 0) {
@@ -9597,13 +9936,65 @@ async function runBulkDispatch() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Dispatch failed');
 
-    // Show results summary
-    let msg = `✅ ${data.results?.length || 0} exam invite(s) sent!\n\n`;
-    (data.results || []).forEach(r => {
-      msg += `• ${r.name} (${r.email}) → ${r.skillName}\n  Access Password: ${r.examPassword}\n`;
+    // Build rich results modal with WhatsApp + Email buttons
+    const results = data.results || [];
+    const appUrl = 'https://skill-badge-scanner.vercel.app/#';
+
+    let resultsHtml = `
+      <div style="background:#111;border-radius:14px;padding:20px;max-width:600px;margin:0 auto;color:#F5F4F0;font-family:'Segoe UI',sans-serif;">
+        <div style="text-align:center;margin-bottom:16px;">
+          <div style="font-size:32px;margin-bottom:6px;">✅</div>
+          <h3 style="margin:0;color:#4CAF50;font-size:18px;">${results.length} Exam Invite(s) Dispatched!</h3>
+          <p style="color:#999;font-size:12px;margin:6px 0 0;">Students will see exams in their "Corporate Assessment Invites" tab</p>
+        </div>`;
+
+    let allWhatsAppMessages = '';
+
+    results.forEach((r, i) => {
+      const waMsg = `*SkillProof Exam Invitation*%0A%0ADear *${encodeURIComponent(r.name)}*,%0A%0AYou have been invited to take a proctored technical challenge for *${encodeURIComponent(r.skillName)}*.%0A%0A🔑 *One-Time Passcode:* ${r.examPassword}%0A⏱ *Duration:* 60 minutes%0A🔗 *Access URL:* ${encodeURIComponent(appUrl)}%0A%0APlease use a laptop/desktop with a working webcam. Good luck!%0A%0A— SkillProof Assessment`;
+      const plainMsg = `*SkillProof Exam Invitation*\n\nDear *${r.name}*,\n\nYou have been invited to take a proctored technical challenge for *${r.skillName}*.\n\n🔑 *One-Time Passcode:* ${r.examPassword}\n⏱ *Duration:* 60 minutes\n🔗 *Access URL:* ${appUrl}\n\nPlease use a laptop/desktop with a working webcam. Good luck!\n\n— SkillProof Assessment`;
+      allWhatsAppMessages += `--- ${r.name} (${r.email}) ---\n${plainMsg}\n\n`;
+      
+      // Phone number for wa.me link (strip non-numeric, ensure country code)
+      const phone = r.phone ? r.phone.replace(/[^0-9+]/g, '').replace(/^\+/, '') : '';
+      const waLink = phone ? `https://wa.me/${phone}?text=${waMsg}` : '';
+      const emailLink = `mailto:${r.email}?subject=${encodeURIComponent(`Exam Invitation: ${r.skillName}`)}&body=${encodeURIComponent(plainMsg.replace(/\*/g, ''))}`;
+
+      resultsHtml += `
+        <div style="background:#1A1A1A;border:1px solid #333;border-radius:10px;padding:12px;margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div>
+              <strong style="font-size:14px;">${escapeHTML(r.name)}</strong>
+              <span style="color:#999;font-size:11px;margin-left:6px;">${escapeHTML(r.email)}</span>
+            </div>
+            <span style="background:#1B3D20;color:#4CAF50;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;">${r.status || 'invited'}</span>
+          </div>
+          <div style="display:flex;gap:6px;font-size:11px;margin-bottom:8px;">
+            <span style="background:#262626;padding:3px 8px;border-radius:4px;">📋 ${escapeHTML(r.skillName)}</span>
+            <span style="background:#262626;padding:3px 8px;border-radius:4px;">🔑 ${r.examPassword}</span>
+          </div>
+          <div style="display:flex;gap:6px;">
+            ${waLink ? `<a href="${waLink}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;background:#25D366;color:#fff;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;cursor:pointer;">📱 Send via WhatsApp</a>` : `<span style="color:#666;font-size:11px;padding:5px;">No phone number</span>`}
+            <a href="${emailLink}" style="display:inline-flex;align-items:center;gap:4px;background:#1976D2;color:#fff;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;cursor:pointer;">📧 Send via Email</a>
+          </div>
+        </div>`;
     });
-    msg += '\nStudents will see their exam in the "Corporate Assessment Invites" tab of their dashboard. After they complete it, results will appear here.';
-    alert(msg);
+
+    resultsHtml += `
+        <div style="display:flex;gap:8px;margin-top:14px;justify-content:center;">
+          <button onclick="navigator.clipboard.writeText(document.getElementById('_wa_bulk_msgs').value).then(()=>showToast('All WhatsApp messages copied!','success')).catch(()=>alert('Copy failed'))" style="background:#25D366;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;">📋 Copy All WhatsApp Messages</button>
+          <button onclick="this.closest('[data-modal-overlay]').remove()" style="background:#333;color:#F5F4F0;border:none;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">Close</button>
+        </div>
+        <textarea id="_wa_bulk_msgs" style="position:absolute;left:-9999px;">${escapeHTML(allWhatsAppMessages)}</textarea>
+      </div>`;
+
+    // Show as modal overlay
+    const overlay = document.createElement('div');
+    overlay.setAttribute('data-modal-overlay', '1');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto;';
+    overlay.innerHTML = resultsHtml;
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
 
     // Clear the rows
     document.getElementById('bulk-dispatch-rows').innerHTML = '';
@@ -10007,7 +10398,7 @@ function autoJoinPendingExam() {
         return;
       }
       alert(data.message || '✅ Exam joined successfully! Check your dashboard to start the assessment.');
-      loadStudentSchedules();
+      loadStudentDashboard();
     })
     .catch(err => {
       console.error('Auto Join Error:', err);
@@ -10033,7 +10424,7 @@ function autoJoinPendingExam() {
         return;
       }
       alert(data.message || 'Exam joined successfully!');
-      loadStudentSchedules();
+      loadStudentDashboard();
     })
     .catch(err => {
       console.error('Auto Join Error:', err);
@@ -10067,7 +10458,7 @@ function joinExamViaCode() {
     }
     alert(data.message || 'Exam joined successfully!');
     codeInput.value = '';
-    loadStudentSchedules();
+    loadStudentDashboard();
   })
   .catch(err => {
     console.error('Join Error:', err);
@@ -10075,42 +10466,106 @@ function joinExamViaCode() {
   });
 }
 
+// Mutex: If a loadStudentSchedules fetch is already in-flight, subsequent callers
+// await the same promise instead of firing a duplicate network request + DOM render.
+window._loadSchedulesInFlight = null;
+
 function loadStudentSchedules() {
-  if (!currentUser) return;
+  if (!currentUser) return Promise.resolve();
+
+  // MUTEX — if an identical fetch is already in-flight, coalesce by returning its promise
+  if (window._loadSchedulesInFlight) {
+    return window._loadSchedulesInFlight;
+  }
+
+  // Reset scheduled skill IDs for cross-function dedup with renderProgressiveVerifier
+  window._scheduledSkillIds = new Set();
   const container = document.getElementById('student-schedules-list');
-  if (!container) return;
+  if (!container) return Promise.resolve();
+
+  const arenaContainer = document.getElementById('scheduled-arena-list');
+  const arenaWrapper = document.getElementById('scheduled-arena-wrapper');
 
   // Track rendering cycle to prevent race conditions and duplicate renders
   window._schedulesRenderCycleId = (window._schedulesRenderCycleId || 0) + 1;
   const renderCycleId = window._schedulesRenderCycleId;
 
-  // Show a premium pulsing skeleton loading indicator in the list immediately to avoid a blank "buffering" feel
-  container.innerHTML = `
-    <div style="animation: pulse 1.8s ease-in-out infinite; background: var(--white); border: 1.5px dashed rgba(230,81,0,0.15); border-radius: var(--radius-md); padding: 24px; text-align: center; color: var(--gray-400); font-size:13px; font-weight:700;">
-      ⏳ Buffering secure assessment invites...
-    </div>
-  `;
+  // Only show pulsing skeleton loader on the very first load (prevents flicker on tab switches)
+  if (!window._hasLoadedSchedulesData) {
+    if (container.children.length === 0 || container.innerHTML.includes('No active invitations')) {
+      container.innerHTML = `
+        <div style="animation: pulse 1.8s ease-in-out infinite; background: var(--white); border: 1.5px dashed rgba(230,81,0,0.15); border-radius: var(--radius-md); padding: 24px; text-align: center; color: var(--gray-400); font-size:13px; font-weight:700;">
+          ⏳ Buffering secure assessment invites...
+        </div>
+      `;
+    }
 
-  fetch(`/api/student/schedules?student_email=${encodeURIComponent(currentUser.email)}`)
+    if (arenaContainer && (arenaContainer.children.length === 0)) {
+      arenaContainer.innerHTML = `
+        <div style="animation: pulse 1.8s ease-in-out infinite; background: var(--white); border: 1.5px dashed rgba(230,81,0,0.15); border-radius: var(--radius-md); padding: 24px; text-align: center; color: var(--gray-400); font-size:13px; font-weight:700;">
+          ⏳ Buffering scheduled assessments...
+        </div>
+      `;
+    }
+  }
+
+  const schedulePromise = fetch(`/api/student/schedules?student_email=${encodeURIComponent(currentUser.email)}`)
     .then(res => res.json())
     .then(schedules => {
-      // Discard stale fetches from previous rendering cycles to completely prevent layout flashing and duplicates
+      // Discard stale fetches from previous rendering cycles
       if (renderCycleId !== window._schedulesRenderCycleId) return;
 
-      container.innerHTML = '';
       if (!Array.isArray(schedules)) schedules = [];
+
       if (schedules.length === 0) {
         container.innerHTML = '<div style="color:var(--gray-500)">No active invitations found matching your claimed skills.</div>';
+        if (arenaContainer) arenaContainer.innerHTML = '';
+        if (arenaWrapper) arenaWrapper.style.display = 'none';
+        window._hasLoadedSchedulesData = true;
         return;
       }
 
-      // Deduplicate schedules by unique schedule ID to ensure perfect rendering stability
+      // ── TRIPLE-LAYER DEDUPLICATION ──
+      // Layer 1: Deduplicate by unique schedule ID
       const seenIds = new Set();
-      const uniqueSchedules = schedules.filter(s => {
+      let uniqueSchedules = schedules.filter(s => {
         if (seenIds.has(s.id)) return false;
         seenIds.add(s.id);
         return true;
       });
+
+      // Layer 2: Deduplicate by skill_id — one card per unique skill
+      // Prioritize active exams over completed ones, then newest
+      const skillMap = {};
+      uniqueSchedules.forEach(s => {
+        const isCompleted = ['submitted', 'evaluated', 'badge_awarded', 'badge_denied', 'disqualified', 'expired'].includes(s.attempt_status);
+        if (!skillMap[s.skill_id]) {
+          skillMap[s.skill_id] = s;
+        } else {
+          const existingCompleted = ['submitted', 'evaluated', 'badge_awarded', 'badge_denied', 'disqualified', 'expired'].includes(skillMap[s.skill_id].attempt_status);
+          // Prefer active over completed
+          if (existingCompleted && !isCompleted) {
+            skillMap[s.skill_id] = s;
+          } else if (existingCompleted === isCompleted && new Date(s.start_time) > new Date(skillMap[s.skill_id].start_time)) {
+            skillMap[s.skill_id] = s;
+          }
+        }
+      });
+      uniqueSchedules = Object.values(skillMap);
+
+      // Layer 3: Deduplicate by skill_name as final safety net
+      const seenSkillNames = new Set();
+      uniqueSchedules = uniqueSchedules.filter(s => {
+        const name = (s.skill_name || '').toLowerCase().trim();
+        if (seenSkillNames.has(name)) return false;
+        seenSkillNames.add(name);
+        return true;
+      });
+
+      // ── BUILD DOM IN-MEMORY (DocumentFragment) to eliminate flicker ──
+      const containerFrag = document.createDocumentFragment();
+      const arenaFrag = document.createDocumentFragment();
+      let hasActiveScheduled = false;
 
       uniqueSchedules.forEach(s => {
         const card = document.createElement('div');
@@ -10134,7 +10589,8 @@ function loadStudentSchedules() {
         ).join('');
 
         let btnHTML = '';
-        if (['submitted', 'evaluated', 'badge_awarded', 'badge_denied', 'disqualified', 'expired'].includes(s.attempt_status)) {
+        const isAttemptCompleted = ['submitted', 'evaluated', 'badge_awarded', 'badge_denied', 'disqualified', 'expired'].includes(s.attempt_status);
+        if (isAttemptCompleted) {
           let label = 'Completed';
           if (s.attempt_status === 'submitted' || s.attempt_status === 'evaluated') label = 'Attempted & Submitted';
           else if (s.attempt_status === 'badge_awarded') label = 'Badge Awarded 🏆';
@@ -10148,6 +10604,7 @@ function loadStudentSchedules() {
             </button>
           `;
         } else {
+          hasActiveScheduled = true;
           btnHTML = `
             <button onclick="openExamRulesModal(null, '${s.id}')" class="btn-primary" style="padding: 8px 16px; font-size:13px; font-weight:700; cursor:pointer;">
               🚀 Launch Sequence
@@ -10155,7 +10612,7 @@ function loadStudentSchedules() {
           `;
         }
 
-        card.innerHTML = `
+        const cardContent = `
           <div>
             <div style="display:flex; align-items:center;">
               <strong style="font-size:16px;">${s.skill_name}</strong>
@@ -10168,15 +10625,73 @@ function loadStudentSchedules() {
           </div>
           ${btnHTML}
         `;
-        container.appendChild(card);
+
+        card.innerHTML = cardContent;
+        containerFrag.appendChild(card);
+
+        // Track this skill as having an active scheduled exam
+        if (!isAttemptCompleted) {
+          window._scheduledSkillIds.add(s.skill_id);
+        }
+
+        // Also add active scheduled exams to the Exam Arena tab
+        if (arenaContainer && !isAttemptCompleted) {
+          const arenaCard = document.createElement('div');
+          arenaCard.className = 'verified-skill-row';
+          arenaCard.style.display = 'flex';
+          arenaCard.style.justifyContent = 'space-between';
+          arenaCard.style.alignItems = 'center';
+          arenaCard.style.padding = '16px';
+          arenaCard.style.background = 'var(--white)';
+          arenaCard.style.border = '1.5px solid var(--orange-deep)';
+          arenaCard.style.borderRadius = 'var(--radius-md)';
+          arenaCard.style.marginBottom = '12px';
+          arenaCard.style.boxShadow = '0 2px 4px rgba(230,81,0,0.05)';
+          arenaCard.innerHTML = cardContent;
+          arenaFrag.appendChild(arenaCard);
+        }
       });
+
+      // ── ATOMIC DOM SWAP WITH FLICKER PREVENTION — replace content only on diff ──
+      const tempSchedulesDiv = document.createElement('div');
+      tempSchedulesDiv.appendChild(containerFrag);
+      if (container.innerHTML !== tempSchedulesDiv.innerHTML) {
+        container.innerHTML = tempSchedulesDiv.innerHTML;
+      }
+
+      if (arenaContainer) {
+        const tempArenaDiv = document.createElement('div');
+        tempArenaDiv.appendChild(arenaFrag);
+        if (arenaContainer.innerHTML !== tempArenaDiv.innerHTML) {
+          arenaContainer.innerHTML = tempArenaDiv.innerHTML;
+        }
+      }
+
+      if (arenaWrapper) {
+        arenaWrapper.style.display = hasActiveScheduled ? 'block' : 'none';
+      }
+      window._hasLoadedSchedulesData = true;
+
+      return window._scheduledSkillIds;
     })
     .catch(err => {
       // Discard stale fetches
-      if (renderCycleId !== window._schedulesRenderCycleId) return;
+      if (renderCycleId !== window._schedulesRenderCycleId) return new Set();
       console.error('Failed to fetch student schedules:', err);
       container.innerHTML = '<div style="color:var(--gray-500)">Failed to load scheduled exams. Please try refreshing.</div>';
+      if (arenaContainer) {
+        arenaContainer.innerHTML = '<div style="color:var(--gray-500)">Failed to load scheduled exams. Please try refreshing.</div>';
+      }
+      return new Set();
+    })
+    .finally(() => {
+      // Release the mutex so the next call can proceed
+      window._loadSchedulesInFlight = null;
     });
+
+  // Store the in-flight promise for the mutex
+  window._loadSchedulesInFlight = schedulePromise;
+  return schedulePromise;
 }
 
 async function startScheduledExam(scheduleId) {

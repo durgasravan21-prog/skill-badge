@@ -651,6 +651,8 @@ async function authenticateSession(req, res, next) {
     const token = authHeader.substring(7);
     
     let session = _sessionCache.get(token);
+    let statelesslyVerified = false;
+
     if (!session) {
       // 1. Try stateless signature verification first
       const parts = token.split('.');
@@ -669,12 +671,29 @@ async function authenticateSession(req, res, next) {
                 expires_at: payload.expiresAt
               };
               _sessionCache.set(token, session);
+              statelesslyVerified = true;
+
+              // Ephemeral DB self-healing: Asynchronously restore the user session to the DB if missing
+              dbGet('SELECT token FROM user_sessions WHERE token = ?', [token])
+                .then(existingSess => {
+                  if (!existingSess) {
+                    console.log(`[DB Self-Healing] Restoring stateless session token to user_sessions database for ${payload.email}`);
+                    dbRun(
+                      `INSERT INTO user_sessions (token, user_id, email, role, expires_at, created_at)
+                       VALUES (?, ?, ?, ?, ?, ?)`,
+                      [token, payload.userId, payload.email, payload.role, payload.expiresAt, new Date().toISOString()]
+                    ).catch(err => console.error('[DB Self-Healing] Failed to restore user session:', err.message));
+                  }
+                })
+                .catch(() => {});
             }
           } catch (e) {
-            // Fallback to database lookup
+            // Silently fall back
           }
         }
       }
+    } else {
+      statelesslyVerified = true;
     }
     
     if (!session) {
@@ -853,43 +872,204 @@ Message: [SkillProof] Dear ${student.name}, you have a technical challenge for $
 ================================================================================
 `);
 
-  // Real Integration if env vars are set
+  // 1. Live Twilio SMS Integration
   if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && student.phone) {
     try {
       const twilio = require('twilio');
       const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+      
       await client.messages.create({
         body: `[SkillProof] Dear ${student.name}, you have a technical challenge for ${skillName} scheduled by ${companyName}. One-Time Code: ${password}. Access at ${url}`,
         from: process.env.TWILIO_FROM_NUMBER || '+1234567890',
         to: student.phone
       });
-      console.log(`[Twilio SMS] Live SMS sent to ${student.phone}`);
+      console.log(`[Twilio SMS] Live SMS successfully sent to ${student.phone}`);
     } catch (err) {
       console.error('[Twilio SMS Error] Failed to send SMS:', err.message);
     }
   }
 
-  if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+  // 2. Live Twilio WhatsApp Integration
+  if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && student.phone) {
+    try {
+      const twilio = require('twilio');
+      const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+      
+      const whatsappFrom = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+14155238886'; // Default Twilio Sandbox WhatsApp number
+      const cleanPhone = student.phone.startsWith('+') ? student.phone : `+${student.phone}`;
+      
+      await client.messages.create({
+        body: `*SkillProof Technical Challenge*\n\nDear *${student.name}*,\n\nYou have been scheduled to take a proctored technical challenge for *${skillName}* at *${companyName}*.\n\n*One-Time Code:* ${password}\n*Duration:* ${duration} mins\n*Access URL:* ${url}\n\nGood luck!`,
+        from: whatsappFrom,
+        to: `whatsapp:${cleanPhone}`
+      });
+      console.log(`[Twilio WhatsApp] Live WhatsApp message successfully sent to ${cleanPhone}`);
+    } catch (err) {
+      console.error('[Twilio WhatsApp Error] Failed to send WhatsApp message:', err.message);
+    }
+  }
+
+  // 3. Live SMTP / Gmail Nodemailer Email Integration
+  if ((process.env.SMTP_HOST || process.env.GMAIL_USER) && (process.env.SMTP_USER || process.env.GMAIL_PASS)) {
     try {
       const nodemailer = require('nodemailer');
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT) || 587,
-        secure: process.env.SMTP_SECURE === 'true',
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS
-        }
-      });
+      
+      let transporter;
+      
+      if (process.env.GMAIL_USER && process.env.GMAIL_PASS) {
+        // High-performance direct Gmail setup
+        transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: process.env.GMAIL_USER,
+            pass: process.env.GMAIL_PASS
+          }
+        });
+      } else {
+        // Custom SMTP config
+        transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: parseInt(process.env.SMTP_PORT) || 587,
+          secure: process.env.SMTP_SECURE === 'true',
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS
+          }
+        });
+      }
+
+      const senderEmail = process.env.GMAIL_USER || process.env.SMTP_USER;
+      
       await transporter.sendMail({
-        from: `"SkillProof Assessment" <${process.env.SMTP_USER}>`,
+        from: `"SkillProof Assessment" <${senderEmail}>`,
         to: student.email,
         subject: subject,
-        text: body
+        text: body,
+        html: `
+          <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #ffffff;">
+            <div style="text-align: center; padding-bottom: 20px; border-bottom: 2px solid #f4f6f8;">
+              <h2 style="color: #e65100; margin: 0;">SkillProof Assessment</h2>
+              <p style="color: #6c757d; font-size: 14px; margin: 5px 0 0 0;">Secure Skill Credentialing System</p>
+            </div>
+            
+            <div style="padding: 20px 0;">
+              <p style="font-size: 16px; color: #333333; line-height: 1.6;">Dear <strong>${student.name}</strong>,</p>
+              <p style="font-size: 15px; color: #555555; line-height: 1.6;">
+                You have been scheduled to take a proctored technical challenge for <strong>${skillName}</strong> by <strong>${companyName}</strong>.
+              </p>
+              
+              <div style="background-color: #fff8f5; border-left: 4px solid #e65100; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <h3 style="color: #e65100; margin-top: 0; margin-bottom: 10px; font-size: 16px;">🔑 Assessment Access Details:</h3>
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #444444;">
+                  <tr>
+                    <td style="padding: 6px 0; font-weight: bold; width: 140px;">Technology/Skill:</td>
+                    <td style="padding: 6px 0;">${skillName}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; font-weight: bold;">Scheduled Time:</td>
+                    <td style="padding: 6px 0;">${startTime}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; font-weight: bold;">Duration Limit:</td>
+                    <td style="padding: 6px 0;">${duration} minutes</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; font-weight: bold;">One-Time Passcode:</td>
+                    <td style="padding: 6px 0;"><code style="background-color: #ffe6d5; padding: 2px 6px; border-radius: 4px; font-weight: bold; color: #d84315;">${password}</code></td>
+                  </tr>
+                </table>
+              </div>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${url}" style="background-color: #e65100; color: #ffffff; text-decoration: none; padding: 12px 30px; font-size: 16px; font-weight: bold; border-radius: 6px; display: inline-block; box-shadow: 0 4px 6px rgba(230,81,0,0.15);">
+                  Launch Exam Arena
+                </a>
+              </div>
+              
+              <p style="font-size: 13px; color: #777777; line-height: 1.5; background-color: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px dashed #e9ecef;">
+                ⚠️ <strong>Important Proctoring Notice:</strong> Please ensure you write this test on a laptop or desktop computer with a functional webcam. Only one attempt is permitted.
+              </p>
+            </div>
+            
+            <div style="text-align: center; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #888888;">
+              <p style="margin: 0;">This is an automated notification from SkillProof on behalf of ${companyName}.</p>
+              <p style="margin: 5px 0 0 0;">&copy; 2026 SkillProof Professional Credentialing. All rights reserved.</p>
+            </div>
+          </div>
+        `
       });
-      console.log(`[SMTP Email] Live Email sent to ${student.email}`);
+      console.log(`[SMTP/Gmail Email] Live Email successfully sent to ${student.email}`);
     } catch (err) {
       console.error('[SMTP Email Error] Failed to send email:', err.message);
+    }
+  }
+
+  // 4. Free, Zero-Config Fallback Email Delivery via FormSubmit.co
+  if (!process.env.SMTP_HOST && !process.env.GMAIL_USER) {
+    try {
+      console.log(`[FormSubmit Email] Initiating zero-config free real email delivery for ${student.email}...`);
+      
+      const emailPayload = {
+        _subject: subject,
+        message: body,
+        _honey: "",
+        _captcha: "false"
+      };
+
+      const response = await fetch(`https://formsubmit.co/ajax/${student.email}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(emailPayload)
+      });
+      
+      const resText = await response.text();
+      if (response.ok) {
+        console.log(`[FormSubmit Email] Free real email successfully sent to ${student.email}! Response: ${resText}`);
+      } else {
+        console.warn(`[FormSubmit Email Warning] FormSubmit rejected the request: ${resText}`);
+      }
+    } catch (err) {
+      console.error('[FormSubmit Email Error] Failed to send free email:', err.message);
+    }
+  }
+
+  // 5. Free WhatsApp wa.me Link (logged to console for manual/automated use)
+  if (student.phone) {
+    const cleanPhone = student.phone.replace(/[^0-9]/g, '');
+    const waText = encodeURIComponent(`*SkillProof Technical Challenge*\n\nDear *${student.name}*,\n\nYou have been scheduled to take a proctored technical challenge for *${skillName}* at *${companyName}*.\n\n🔑 *One-Time Passcode:* ${password}\n⏱ *Duration:* ${duration} mins\n🔗 *Access URL:* ${url}\n\nPlease use a laptop/desktop with a working webcam. Good luck!`);
+    const waLink = `https://wa.me/${cleanPhone}?text=${waText}`;
+    console.log(`[WhatsApp Link] Free wa.me invite link for ${student.name}: ${waLink}`);
+  }
+
+  // 6. Setup Instructions (shown once when no email/SMS env vars are configured)
+  if (!process.env.SMTP_HOST && !process.env.GMAIL_USER && !process.env.TWILIO_ACCOUNT_SID) {
+    if (!global._emailSetupInstructionsShown) {
+      global._emailSetupInstructionsShown = true;
+      console.log(`
+┌───────────────────────────────────────────────────────────────────┐
+│  📧 EMAIL & 📱 WHATSAPP SETUP INSTRUCTIONS                     │
+├───────────────────────────────────────────────────────────────────┤
+│                                                                   │
+│  FREE EMAIL (Gmail — 500 emails/day):                            │
+│    1. Go to myaccount.google.com → Security → App Passwords     │
+│    2. Generate an app password for "Mail"                        │
+│    3. Set environment variables:                                  │
+│       GMAIL_USER=your@gmail.com                                   │
+│       GMAIL_PASS=your-16-char-app-password                       │
+│                                                                   │
+│  FREE WHATSAPP (wa.me Click-to-Chat):                            │
+│    WhatsApp invites are sent as clickable wa.me links            │
+│    in the recruiter dashboard — 100% free, no API needed!        │
+│                                                                   │
+│  PAID SMS/WHATSAPP (Twilio):                                      │
+│    TWILIO_ACCOUNT_SID=ACxxxxxxxxxx                                │
+│    TWILIO_AUTH_TOKEN=xxxxxxxxxx                                   │
+│    TWILIO_FROM_NUMBER=+1234567890                                 │
+│    TWILIO_WHATSAPP_FROM=whatsapp:+14155238886                    │
+│                                                                   │
+│  Currently using: FormSubmit.co (free) + wa.me links (free)       │
+└───────────────────────────────────────────────────────────────────┘
+`);
     }
   }
 }
@@ -1834,6 +2014,118 @@ app.post('/api/notifications/mark-read', authenticateSession, async (req, res) =
   }
 });
 
+// ═══════════════════════════════════════════════════════════════
+// 6C. FREE IN-APP MESSAGING / CHAT API
+// ═══════════════════════════════════════════════════════════════
+app.get('/api/messages/conversations', authenticateSession, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Retrieve users with active chat logs including last message details & unread count
+    const conversations = await dbAll(
+      `SELECT u.id, u.name, u.email, u.role, u.company,
+              (SELECT m.message FROM messages m 
+               WHERE (m.sender_id = u.id AND m.recipient_id = ?) 
+                  OR (m.sender_id = ? AND m.recipient_id = u.id) 
+               ORDER BY m.created_at DESC LIMIT 1) as last_message,
+              (SELECT m.created_at FROM messages m 
+               WHERE (m.sender_id = u.id AND m.recipient_id = ?) 
+                  OR (m.sender_id = ? AND m.recipient_id = u.id) 
+               ORDER BY m.created_at DESC LIMIT 1) as last_message_at,
+              (SELECT COUNT(*) FROM messages m 
+               WHERE m.sender_id = u.id AND m.recipient_id = ? AND m.is_read = 0) as unread_count
+       FROM users u
+       WHERE u.id IN (
+         SELECT DISTINCT sender_id FROM messages WHERE recipient_id = ?
+         UNION
+         SELECT DISTINCT recipient_id FROM messages WHERE sender_id = ?
+       )
+       ORDER BY last_message_at DESC`,
+      [userId, userId, userId, userId, userId, userId, userId]
+    );
+    res.json(conversations);
+  } catch (err) {
+    console.error('Fetch conversations error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch conversations' });
+  }
+});
+
+app.get('/api/messages/history', authenticateSession, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const contactId = req.query.contact_id;
+    if (!contactId) return res.status(400).json({ error: 'Missing contact_id parameter' });
+
+    // Fetch chat history between current user and the contact
+    const chatHistory = await dbAll(
+      `SELECT * FROM messages
+       WHERE (sender_id = ? AND recipient_id = ?)
+          OR (sender_id = ? AND recipient_id = ?)
+       ORDER BY created_at ASC`,
+      [userId, contactId, contactId, userId]
+    );
+
+    // Mark messages from contact as read
+    await dbRun(
+      `UPDATE messages SET is_read = 1 WHERE sender_id = ? AND recipient_id = ?`,
+      [contactId, userId]
+    );
+
+    res.json(chatHistory);
+  } catch (err) {
+    console.error('Fetch history error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch chat history' });
+  }
+});
+
+app.post('/api/messages/send', authenticateSession, async (req, res) => {
+  try {
+    const senderId = req.user.id;
+    const { recipient_id, message } = req.body;
+
+    if (!recipient_id || !message || !message.trim()) {
+      return res.status(400).json({ error: 'Missing recipient_id or message body' });
+    }
+
+    const cleanMessage = message.trim();
+    const now = new Date().toISOString();
+    const msgId = crypto.randomUUID();
+
+    // Verify recipient exists
+    const recipient = await dbGet('SELECT id, name, role FROM users WHERE id = ?', [recipient_id]);
+    if (!recipient) return res.status(404).json({ error: 'Recipient user not found' });
+
+    // Insert message
+    await dbRun(
+      `INSERT INTO messages (id, sender_id, recipient_id, message, is_read, created_at)
+       VALUES (?, ?, ?, ?, 0, ?)`,
+      [msgId, senderId, recipient_id, cleanMessage, now]
+    );
+
+    // Send in-app notification to alert the user
+    const sender = await dbGet('SELECT id, name, role, company FROM users WHERE id = ?', [senderId]);
+    const notifId = crypto.randomUUID();
+    const notifTitle = sender.role === 'recruiter' 
+      ? `✉️ New message from ${sender.company || sender.name}`
+      : `✉️ New message from candidate ${sender.name}`;
+
+    await dbRun(
+      `INSERT INTO notifications (id, recipient_id, sender_id, type, title, message, is_read, created_at)
+       VALUES (?, ?, ?, 'recruiter_message', ?, ?, 0, ?)`,
+      [notifId, recipient_id, senderId, notifTitle, cleanMessage, now]
+    );
+
+    res.json({
+      message: 'Message sent successfully',
+      msgId,
+      created_at: now
+    });
+  } catch (err) {
+    console.error('Send message error:', err.message);
+    res.status(500).json({ error: 'Failed to transmit message' });
+  }
+});
+
 // Helper to check if email matches E2E test candidate patterns
 const isE2ETestEmail = (email) => {
   const normalized = email.toLowerCase();
@@ -1904,15 +2196,19 @@ app.post('/api/recruiter/dispatch-and-evaluate', bulkLimiter, async (req, res) =
 
       // Ensure candidate user exists in DB
       let user = await dbGet('SELECT * FROM users WHERE email = ? COLLATE NOCASE', [email]);
+      const candPhone = cand.phone ? sanitizeString(cand.phone, 30).trim() : null;
       if (!user) {
         const userId = crypto.randomUUID();
         const profileSlug = name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + crypto.randomBytes(4).toString('hex');
         await dbRun(
-          `INSERT INTO users (id, name, email, role, college, company, company_id, profile_slug, skillproof_score, created_at)
-           VALUES (?, ?, ?, 'student', NULL, NULL, NULL, ?, 0.00, ?)`,
-          [userId, name, email, profileSlug, now]
+          `INSERT INTO users (id, name, email, phone, role, college, company, company_id, profile_slug, skillproof_score, created_at)
+           VALUES (?, ?, ?, ?, 'student', NULL, NULL, NULL, ?, 0.00, ?)`,
+          [userId, name, email, candPhone, profileSlug, now]
         );
         user = await dbGet('SELECT * FROM users WHERE id = ?', [userId]);
+      } else if (candPhone && !user.phone) {
+        await dbRun('UPDATE users SET phone = ? WHERE id = ?', [candPhone, user.id]);
+        user.phone = candPhone;
       }
 
       // Fetch skill
@@ -1985,11 +2281,13 @@ app.post('/api/recruiter/dispatch-and-evaluate', bulkLimiter, async (req, res) =
 
       results.push({
         name, email,
+        phone: user.phone || null,
         skillName: skill.name,
         scheduleId,
         examPassword,
         status: 'invited',
-        message: `Exam invite emailed successfully. Student will see it in their Corporate Assessment Invites tab.`
+        whatsapp_link: user.phone ? `https://wa.me/${user.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`*SkillProof Exam Invitation*\n\nDear *${name}*,\n\nYou have been invited to take a proctored technical challenge for *${skill.name}* by *${companyName}*.\n\n🔑 *One-Time Passcode:* ${examPassword}\n⏱ *Duration:* ${durationMinutes} minutes\n🔗 *Access URL:* https://skill-badge-scanner.vercel.app/#\n\nPlease use a laptop/desktop with a working webcam. Good luck!\n\n— SkillProof Assessment`)}` : null,
+        message: `Exam invite dispatched. Student will see it in their Corporate Assessment Invites tab.`
       });
     }
 
@@ -2073,7 +2371,7 @@ app.post('/api/exams/join', async (req, res) => {
         return res.status(404).json({ error: 'Invalid or expired Universal Access Link.' });
       }
       if (masterSchedule.exam_password.toUpperCase() !== password) {
-        return res.status(401).json({ error: 'Incorrect passcode. Please check the code provided by your faculty/recruiter.' });
+        return res.status(403).json({ error: 'Incorrect passcode. Please check the code provided by your faculty/recruiter.' });
       }
     } else {
       // Fallback: Find the master schedule by password directly
@@ -2194,45 +2492,30 @@ app.get('/api/student/schedules', async (req, res) => {
       [student.id]
     );
 
-    let schedules;
-    if (skillIds.length === 0) {
-      // Show only private/corporate schedules explicitly dispatched to this student
-      schedules = await dbAll(
-        `SELECT es.*, s.name as skill_name, c.name as company_name, c.domain as company_domain
-         FROM exam_schedules es
-         JOIN skills s ON es.skill_id = s.id
-         LEFT JOIN companies c ON es.company_id = c.id
-         WHERE es.invited_student_id = ?
-         ORDER BY es.start_time DESC`,
-        [student.id]
-      );
-    } else {
-      const placeholders = skillIds.map(() => '?').join(',');
-      schedules = await dbAll(
-        `SELECT es.*, s.name as skill_name, c.name as company_name, c.domain as company_domain
-         FROM exam_schedules es
-         JOIN skills s ON es.skill_id = s.id
-         LEFT JOIN companies c ON es.company_id = c.id
-         WHERE (
-           -- Public schedules for claimed skills
-           (es.company_id IS NULL AND es.invited_student_id IS NULL AND es.skill_id IN (${placeholders}))
-           OR
-           -- Private corporate/scheduled dispatches specifically for this student
-           (es.invited_student_id = ?)
-         )
-         ORDER BY es.start_time DESC`,
-        [...skillIds, student.id]
-      );
-    }
+    // Fetch student's private corporate/scheduled dispatches explicitly dispatched to this student
+    const schedules = await dbAll(
+      `SELECT es.*, s.name as skill_name, c.name as company_name, c.domain as company_domain
+       FROM exam_schedules es
+       JOIN skills s ON es.skill_id = s.id
+       LEFT JOIN companies c ON es.company_id = c.id
+       WHERE es.invited_student_id = ?
+       ORDER BY es.start_time DESC`,
+      [student.id]
+    );
 
-    // Map challenges in-memory instead of doing slow nested SQLite subquery joins
+    // Map challenges in-memory — use precise schedule_id matching first to avoid false positives
     const mappedSchedules = schedules.map(es => {
-      const match = studentChallenges.find(ch => {
-        if (ch.schedule_id === es.id) return true;
-        if (es.company_id === null && ch.schedule_id === null && ch.skill_id === es.skill_id) return true;
-        if (es.company_id !== null && ch.schedule_id === null && (ch.company_id === es.company_id || ch.company_id === null) && ch.skill_id === es.skill_id) return true;
-        return false;
-      });
+      // Priority 1: Exact schedule_id match (most reliable)
+      let match = studentChallenges.find(ch => ch.schedule_id && ch.schedule_id === es.id);
+      // Priority 2: Only fall back to skill_id matching if no schedule_id link exists
+      if (!match) {
+        match = studentChallenges.find(ch => {
+          if (ch.schedule_id) return false; // Already linked to a different schedule
+          if (ch.skill_id !== es.skill_id) return false;
+          if (es.company_id && ch.company_id && ch.company_id !== es.company_id) return false;
+          return true;
+        });
+      }
 
       return {
         ...es,
@@ -2241,19 +2524,51 @@ app.get('/api/student/schedules', async (req, res) => {
       };
     });
 
-    // Deduplicate: If there is a student-specific clone and a master public schedule for the same skill & password, exclude the master schedule
-    const finalSchedules = [];
+    // TWO-PASS DEDUPLICATION to guarantee exactly ONE card per skill
+    // Pass 1: Group by skill_id + company_id (preserves company context)
+    const grouped = {};
     for (const es of mappedSchedules) {
-      if (es.invited_student_id === null) {
-        const hasClone = mappedSchedules.some(other => 
-          other.invited_student_id !== null && 
-          other.skill_id === es.skill_id && 
-          other.exam_password === es.exam_password
-        );
-        if (hasClone) continue;
+      const key = `${es.skill_id}-${es.company_id || 'null'}`;
+      if (!grouped[key]) {
+        grouped[key] = [];
       }
-      finalSchedules.push(es);
+      grouped[key].push(es);
     }
+
+    const deduped1 = [];
+    for (const key in grouped) {
+      const group = grouped[key];
+      // Sort: active/incomplete attempts first, then by newest start_time DESC
+      group.sort((a, b) => {
+        const aCompleted = ['submitted', 'evaluated', 'badge_awarded', 'badge_denied', 'disqualified', 'expired'].includes(a.attempt_status);
+        const bCompleted = ['submitted', 'evaluated', 'badge_awarded', 'badge_denied', 'disqualified', 'expired'].includes(b.attempt_status);
+        if (aCompleted !== bCompleted) {
+          return aCompleted ? 1 : -1;
+        }
+        return new Date(b.start_time).getTime() - new Date(a.start_time).getTime();
+      });
+      deduped1.push(group[0]);
+    }
+
+    // Pass 2: Deduplicate across companies — only ONE entry per skill_id total
+    // Prioritize: active exams > completed exams, then newest first
+    const skillDedup = {};
+    for (const es of deduped1) {
+      if (!skillDedup[es.skill_id]) {
+        skillDedup[es.skill_id] = es;
+      } else {
+        const existing = skillDedup[es.skill_id];
+        const existingCompleted = ['submitted', 'evaluated', 'badge_awarded', 'badge_denied', 'disqualified', 'expired'].includes(existing.attempt_status);
+        const newCompleted = ['submitted', 'evaluated', 'badge_awarded', 'badge_denied', 'disqualified', 'expired'].includes(es.attempt_status);
+        // Prefer active over completed, then newest
+        if (existingCompleted && !newCompleted) {
+          skillDedup[es.skill_id] = es;
+        } else if (existingCompleted === newCompleted && new Date(es.start_time) > new Date(existing.start_time)) {
+          skillDedup[es.skill_id] = es;
+        }
+      }
+    }
+    const finalSchedules = Object.values(skillDedup);
 
     res.json(finalSchedules);
   } catch (err) {

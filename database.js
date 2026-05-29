@@ -314,6 +314,17 @@ async function createSchema() {
     FOREIGN KEY (recipient_id) REFERENCES users(id)
   );`);
 
+  await runAsync(`CREATE TABLE IF NOT EXISTS messages (
+    id TEXT PRIMARY KEY,
+    sender_id TEXT NOT NULL,
+    recipient_id TEXT NOT NULL,
+    message TEXT NOT NULL,
+    is_read INTEGER DEFAULT 0,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (sender_id) REFERENCES users(id),
+    FOREIGN KEY (recipient_id) REFERENCES users(id)
+  );`);
+
   // OTP sessions for recruiter 2FA email verification
   await runAsync(`CREATE TABLE IF NOT EXISTS otp_sessions (
     id          TEXT PRIMARY KEY,
