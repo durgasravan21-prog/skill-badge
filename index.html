@@ -3978,12 +3978,18 @@ if (typeof NProgress !== 'undefined') {
 
   const originalFetch = window.fetch;
   window.fetch = async function(...args) {
-    NProgress.start();
+    const url = typeof args[0] === 'string' ? args[0] : (args[0] instanceof Request ? args[0].url : '');
+    const isSilent = url.includes('/api/exams/photo') || 
+                     url.includes('/api/exams/violation') || 
+                     url.includes('/api/notifications') || 
+                     url.includes('autosave');
+
+    if (!isSilent) NProgress.start();
     try {
       const response = await originalFetch.apply(this, args);
       return response;
     } finally {
-      NProgress.done();
+      if (!isSilent) NProgress.done();
     }
   };
 }
