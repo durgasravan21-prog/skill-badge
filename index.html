@@ -8736,7 +8736,7 @@ function handleCSVUpload(event) {
   reader.readAsText(file);
 }
 
-function addCandidateRow(name = '', email = '', skillId = '') {
+function addCandidateRow(name = '', email = '', skillId = '', phone = '') {
   bulkCandidateRowCount++;
   const container = document.getElementById('bulk-dispatch-rows');
   if (!container) return;
@@ -8759,14 +8759,19 @@ function addCandidateRow(name = '', email = '', skillId = '') {
     selectOptions += `<option value="${skill.id}" ${selected}>${skill.name}</option>`;
   });
   
+  if (!selectOptions) {
+    selectOptions = `<option value="" disabled selected>-- Select a Skill --</option>`;
+  }
+  
   div.innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:center;">
       <span style="font-size:11px; font-weight:700; color:var(--orange-deep); text-transform:uppercase;">Candidate #${bulkCandidateRowCount}</span>
       <button onclick="removeCandidateRow('${rowId}')" style="background:none; border:none; color:#C62828; cursor:pointer; font-size:11px; font-weight:700;">Remove</button>
     </div>
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
-      <input type="text" class="bulk-cand-name" placeholder="Alice Logan" value="${escapeHTML(name)}" style="padding:6px; border:1px solid var(--gray-200); border-radius:var(--radius-sm); font-size:12px; background:var(--white); color:var(--gray-900);" />
-      <input type="email" class="bulk-cand-email" placeholder="alice@gmail.com" value="${escapeHTML(email)}" style="padding:6px; border:1px solid var(--gray-200); border-radius:var(--radius-sm); font-size:12px; background:var(--white); color:var(--gray-900);" />
+    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px;">
+      <input type="text" class="bulk-cand-name" placeholder="Candidate Name" value="${escapeHTML(name)}" style="padding:6px; border:1px solid var(--gray-200); border-radius:var(--radius-sm); font-size:12px; background:var(--white); color:var(--gray-900);" />
+      <input type="email" class="bulk-cand-email" placeholder="Candidate Email" value="${escapeHTML(email)}" style="padding:6px; border:1px solid var(--gray-200); border-radius:var(--radius-sm); font-size:12px; background:var(--white); color:var(--gray-900);" />
+      <input type="tel" class="bulk-cand-phone" placeholder="Phone (e.g. +91...)" value="${escapeHTML(phone)}" style="padding:6px; border:1px solid var(--gray-200); border-radius:var(--radius-sm); font-size:12px; background:var(--white); color:var(--gray-900);" />
     </div>
     <select class="bulk-cand-skill" style="padding:6px; border:1px solid var(--gray-200); border-radius:var(--radius-sm); font-size:12px; width:100%; background:var(--white); color:var(--gray-900);">
       ${selectOptions}
@@ -8799,19 +8804,21 @@ async function runBulkDispatch() {
   rowElements.forEach(row => {
     const nameInput = row.querySelector('.bulk-cand-name');
     const emailInput = row.querySelector('.bulk-cand-email');
+    const phoneInput = row.querySelector('.bulk-cand-phone');
     const skillSelect = row.querySelector('.bulk-cand-skill');
 
     if (!nameInput || !emailInput || !skillSelect) return;
 
     const name = nameInput.value.trim();
     const email = emailInput.value.trim();
+    const phone = phoneInput ? phoneInput.value.trim() : null;
     const skillId = skillSelect.value;
 
     if (!name || !email) {
       validationError = true;
       return;
     }
-    candidates.push({ name, email, skillId });
+    candidates.push({ name, email, phone, skillId });
   });
 
   if (validationError) {
@@ -8877,6 +8884,10 @@ async function runBulkDispatch() {
         const result = data.results[0];
         successCount++;
         processedResults.push(result);
+        
+        const safePhone = (cand.phone || '').replace(/[^0-9+]/g, '').replace(/^\\+/, '');
+        const waMsg = `*SkillProof Exam Invitation*%0A%0ADear *${encodeURIComponent(cand.name)}*,%0A%0AYou have been invited to take a proctored technical challenge for *${encodeURIComponent(result.skillName || 'Skill')}*.%0A%0A🔑 *Passcode:* ${result.examPassword}%0A🔗 *URL:* https://skill-badge-scanner.vercel.app/%0A%0A— SkillProof`;
+        const waLink = safePhone ? ` <a href="https://wa.me/${safePhone}?text=${waMsg}" target="_blank" style="display:inline-block; margin-top:4px; padding:2px 6px; background:#25D366; color:#FFF; border-radius:4px; text-decoration:none; font-weight:700;">Send via WhatsApp</a>` : '';
 
         const infractionMsg = result.violationsCount > 0 
           ? `⚠️ Proctor flag: ${result.violationsCount} breach` 
@@ -8884,6 +8895,9 @@ async function runBulkDispatch() {
         
         logMessage(`AI Report Synthesized: Score: ${result.status === 'disqualified' ? 'WITHHELD' : result.score}/100 | ${infractionMsg}`, '#FFD7C9');
         logMessage(`✓ Successful dispatch completed for ${cand.name}.`, '#2E7D32');
+        
+        // Save WhatsApp link on the result object so we can render it later
+        result.waLink = waLink;
       } else {
         logMessage(`❌ Failed to dispatch / evaluate candidate: ${data.error || 'Server error'}`, '#FF5252');
       }
@@ -8912,7 +8926,10 @@ async function runBulkDispatch() {
       <td style="padding: 8px 6px;">${escapeHTML(r.skillName)}</td>
       <td style="padding: 8px 6px;"><strong>${r.status === 'disqualified' ? 'Result Withheld' : r.score + '/100'}</strong></td>
       <td style="padding: 8px 6px;">${violationBadge}</td>
-      <td style="padding: 8px 6px; text-align: right; color:#2E7D32; font-weight:700;">${r.smtpStatus}</td>
+      <td style="padding: 8px 6px; text-align: right; color:#2E7D32; font-weight:700;">
+        ${r.smtpStatus}
+        ${r.waLink ? '<br/>' + r.waLink : ''}
+      </td>
     `;
     tableBody.appendChild(tr);
   });
