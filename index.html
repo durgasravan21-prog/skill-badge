@@ -4705,14 +4705,6 @@ window.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('scroll', throttleSessionUpdate);
   window.addEventListener('touchstart', throttleSessionUpdate);
 
-  // Real-time synchronization polling for active student dashboard view
-  setInterval(() => {
-    const studentView = document.getElementById('view-student');
-    if (currentUser && currentUser.role === 'student' && studentView && studentView.classList.contains('active')) {
-      loadStudentDashboard();
-      updateNotificationBadge();
-    }
-  }, 6000);
 
   // 💎 3D Mouse-Tracking Perspective Tilt Effect for Profile Cards (Subtle angle, profile only)
   document.addEventListener('mousemove', (e) => {
