@@ -4089,6 +4089,7 @@ let pendingRecruiterEmail = null;
 let devtoolsCheckInterval = null;
 
 // Global Fetch Interceptor to append Secure Authorization Bearer Token and handle sliding session window automatically
+// Global Fetch Interceptor to append Secure Authorization Bearer Token and handle sliding session window automatically
 const originalFetch = window.fetch;
 window.fetch = function(resource, init) {
   init = init || {};
@@ -4115,9 +4116,18 @@ window.fetch = function(resource, init) {
     safeLocalStorage.setItem('skillproof_login_time', Date.now());
   }
 
+  const urlStr = typeof resource === 'string' ? resource : (resource && resource.url ? resource.url : '');
+  const isSilentPoll = urlStr.includes('/api/challenges/') && (urlStr.includes('/auto-save') || urlStr.includes('/sync') || urlStr.includes('/violation'));
+  const isNotification = urlStr.includes('/api/notifications');
+  const isExamActivity = urlStr.includes('/api/skills') || urlStr.includes('/api/student/schedules') || urlStr.includes('/api/exams/photo');
+  const isSilent = isSilentPoll || isNotification || isExamActivity || urlStr.includes('autosave');
+
+  if (window.NProgress && !isSilent) {
+    NProgress.start();
+  }
+
   return originalFetch.call(this, resource, init).then(response => {
-    const resourceStr = typeof resource === 'string' ? resource : (resource && resource.url ? resource.url : '');
-    const isLogoutRequest = resourceStr.includes('/api/auth/logout');
+    const isLogoutRequest = urlStr.includes('/api/auth/logout');
     // Skip 401 handling for auth/OTP endpoints that don't need a session token
     const isAuthEndpoint = resourceStr.includes('/api/auth/login') || resourceStr.includes('/api/auth/recruiter-otp');
     // Skip 401 handling for background proctoring endpoints — these fire continuously
@@ -10002,14 +10012,34 @@ async function runBulkDispatch() {
     let allWhatsAppMessages = '';
 
     results.forEach((r, i) => {
-      const waMsg = `*SkillProof Exam Invitation*%0A%0ADear *${encodeURIComponent(r.name)}*,%0A%0AYou have been invited to take a proctored technical challenge for *${encodeURIComponent(r.skillName)}*.%0A%0A🔑 *One-Time Passcode:* ${r.examPassword}%0A⏱ *Duration:* 60 minutes%0A🔗 *Access URL:* ${encodeURIComponent(appUrl)}%0A%0APlease use a laptop/desktop with a working webcam. Good luck!%0A%0A— SkillProof Assessment`;
-      const plainMsg = `*SkillProof Exam Invitation*\n\nDear *${r.name}*,\n\nYou have been invited to take a proctored technical challenge for *${r.skillName}*.\n\n🔑 *One-Time Passcode:* ${r.examPassword}\n⏱ *Duration:* 60 minutes\n🔗 *Access URL:* ${appUrl}\n\nPlease use a laptop/desktop with a working webcam. Good luck!\n\n— SkillProof Assessment`;
-      allWhatsAppMessages += `--- ${r.name} (${r.email}) ---\n${plainMsg}\n\n`;
-      
-      // Phone number for wa.me link (strip non-numeric, ensure country code)
-      const phone = r.phone ? r.phone.replace(/[^0-9+]/g, '').replace(/^\+/, '') : '';
-      const waLink = phone ? `https://wa.me/${phone}?text=${waMsg}` : '';
-      const emailLink = `mailto:${r.email}?subject=${encodeURIComponent(`Exam Invitation: ${r.skillName}`)}&body=${encodeURIComponent(plainMsg.replace(/\*/g, ''))}`;
+      const isFailed = r.status === 'failed';
+      const pillColor = isFailed ? '#FF5252' : '#4CAF50';
+      const pillBg = isFailed ? '#3d1b1b' : '#1B3D20';
+      const displayStatus = isFailed ? 'Failed' : (r.status || 'Invited');
+
+      let actionButtons = '';
+      let passwordBadge = '';
+
+      if (!isFailed) {
+        const waMsg = `*SkillProof Exam Invitation*%0A%0ADear *${encodeURIComponent(r.name)}*,%0A%0AYou have been invited to take a proctored technical challenge for *${encodeURIComponent(r.skillName)}*.%0A%0A🔑 *One-Time Passcode:* ${r.examPassword}%0A⏱ *Duration:* 60 minutes%0A🔗 *Access URL:* ${encodeURIComponent(appUrl)}%0A%0APlease use a laptop/desktop with a working webcam. Good luck!%0A%0A— SkillProof Assessment`;
+        const plainMsg = `*SkillProof Exam Invitation*\n\nDear *${r.name}*,\n\nYou have been invited to take a proctored technical challenge for *${r.skillName}*.\n\n🔑 *One-Time Passcode:* ${r.examPassword}\n⏱ *Duration:* 60 minutes\n🔗 *Access URL:* ${appUrl}\n\nPlease use a laptop/desktop with a working webcam. Good luck!\n\n— SkillProof Assessment`;
+        allWhatsAppMessages += `--- ${r.name} (${r.email}) ---\n${plainMsg}\n\n`;
+        
+        // Phone number for wa.me link (strip non-numeric, ensure country code)
+        const phone = r.phone ? r.phone.replace(/[^0-9+]/g, '').replace(/^\+/, '') : '';
+        const waLink = phone ? `https://wa.me/${phone}?text=${waMsg}` : '';
+        const emailLink = `mailto:${r.email}?subject=${encodeURIComponent(`Exam Invitation: ${r.skillName}`)}&body=${encodeURIComponent(plainMsg.replace(/\*/g, ''))}`;
+
+        passwordBadge = `<span style="background:#262626;padding:3px 8px;border-radius:4px;">🔑 ${r.examPassword}</span>`;
+        actionButtons = `
+          <div style="display:flex;gap:6px;">
+            ${waLink ? `<a href="${waLink}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;background:#25D366;color:#fff;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;cursor:pointer;">📱 Send via WhatsApp</a>` : `<span style="color:#666;font-size:11px;padding:5px;">No phone number</span>`}
+            <a href="${emailLink}" style="display:inline-flex;align-items:center;gap:4px;background:#1976D2;color:#fff;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;cursor:pointer;">📧 Send via Email</a>
+          </div>
+        `;
+      } else {
+        actionButtons = `<div style="color:#FF5252;font-size:12px;font-weight:600;margin-top:4px;">${escapeHTML(r.message || 'Failed to dispatch invite.')}</div>`;
+      }
 
       resultsHtml += `
         <div style="background:#1A1A1A;border:1px solid #333;border-radius:10px;padding:12px;margin-bottom:10px;">
@@ -10018,16 +10048,13 @@ async function runBulkDispatch() {
               <strong style="font-size:14px;">${escapeHTML(r.name)}</strong>
               <span style="color:#999;font-size:11px;margin-left:6px;">${escapeHTML(r.email)}</span>
             </div>
-            <span style="background:#1B3D20;color:#4CAF50;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;">${r.status || 'invited'}</span>
+            <span style="background:${pillBg};color:${pillColor};font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;">${displayStatus}</span>
           </div>
           <div style="display:flex;gap:6px;font-size:11px;margin-bottom:8px;">
             <span style="background:#262626;padding:3px 8px;border-radius:4px;">📋 ${escapeHTML(r.skillName)}</span>
-            <span style="background:#262626;padding:3px 8px;border-radius:4px;">🔑 ${r.examPassword}</span>
+            ${passwordBadge}
           </div>
-          <div style="display:flex;gap:6px;">
-            ${waLink ? `<a href="${waLink}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;background:#25D366;color:#fff;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;cursor:pointer;">📱 Send via WhatsApp</a>` : `<span style="color:#666;font-size:11px;padding:5px;">No phone number</span>`}
-            <a href="${emailLink}" style="display:inline-flex;align-items:center;gap:4px;background:#1976D2;color:#fff;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;cursor:pointer;">📧 Send via Email</a>
-          </div>
+          ${actionButtons}
         </div>`;
     });
 

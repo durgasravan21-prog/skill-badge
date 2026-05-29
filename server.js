@@ -2191,8 +2191,14 @@ app.post('/api/recruiter/dispatch-and-evaluate', bulkLimiter, async (req, res) =
       const skillId = sanitizeString(cand.skillId, 50);
       const difficultyOrder = sanitizeString(cand.difficultyOrder, 200) || 'easy,medium,hard';
 
-      if (!name || !email || !skillId) continue;
-      if (!isValidEmail(email)) continue;
+      if (!name || !email || !skillId) {
+        results.push({ name, email: cand.email, status: 'failed', message: 'Missing name, email, or skill. Invite skipped.' });
+        continue;
+      }
+      if (!isValidEmail(email)) {
+        results.push({ name, email: cand.email, status: 'failed', message: 'Invalid email address. Invite skipped.' });
+        continue;
+      }
 
       // Ensure candidate user exists in DB
       let user = await dbGet('SELECT * FROM users WHERE email = ? COLLATE NOCASE', [email]);
@@ -2213,7 +2219,10 @@ app.post('/api/recruiter/dispatch-and-evaluate', bulkLimiter, async (req, res) =
 
       // Fetch skill
       const skill = await dbGet('SELECT * FROM skills WHERE id = ?', [skillId]);
-      if (!skill) continue;
+      if (!skill) {
+        results.push({ name, email, status: 'failed', message: 'Selected skill does not exist. Invite skipped.' });
+        continue;
+      }
 
       // Build shuffled question order for each difficulty
       const difficulties = difficultyOrder.split(',').map(d => d.trim().toLowerCase());
@@ -2224,7 +2233,16 @@ app.post('/api/recruiter/dispatch-and-evaluate', bulkLimiter, async (req, res) =
           questionIds.push(questions[Math.floor(Math.random() * questions.length)].id);
         }
       }
-      if (questionIds.length === 0) continue;
+      
+      if (questionIds.length === 0) {
+        results.push({
+          name, email,
+          skillName: skill.name,
+          status: 'failed',
+          message: 'No questions available for this skill in the selected difficulty. Invite skipped.'
+        });
+        continue;
+      }
 
       // Create exam invite (schedule) for this specific candidate
       const examPassword = crypto.randomBytes(3).toString('hex').toUpperCase();
