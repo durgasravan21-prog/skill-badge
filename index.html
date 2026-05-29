@@ -41,6 +41,9 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<!-- NProgress Loading Bar -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -80,8 +83,13 @@
   --shadow-md:0 4px 16px rgba(0,0,0,.06);
   --shadow-lg:0 12px 40px rgba(0,0,0,.1);
 }
+/* NProgress Customization */
+#nprogress .bar { background: var(--orange) !important; height: 3px !important; }
+#nprogress .peg { box-shadow: 0 0 10px var(--orange), 0 0 5px var(--orange) !important; }
+#nprogress .spinner-icon { border-top-color: var(--orange) !important; border-left-color: var(--orange) !important; }
 html{scroll-behavior:smooth}
 body{font-family:var(--font-body);background:var(--white);color:var(--gray-900);overflow-x:hidden;line-height:1.6}
+button, a, input, select, textarea, .step, .workspace-card, .status-tag, .exam-card, .progress-step, .nav-cta, .btn-primary, .btn-ghost, .btn-outline { transition: all 0.2s ease-in-out; }
 
 /* ── NAV ── */
 nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(255,255,255,.96);backdrop-filter:blur(16px);border-bottom:1px solid var(--gray-100);padding:0 5vw}
@@ -378,8 +386,10 @@ footer{background:var(--footer-bg);border-top:1px solid rgba(255,255,255,.06);pa
 .view-container.active{display:block}
 
 /* Real OAuth Glassmorphic Modal Dialog */
-.oauth-modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(28,26,23,0.8);backdrop-filter:blur(12px);z-index:999;align-items:center;justify-content:center;padding:20px}
-.oauth-modal-box{background:var(--white);border:1.5px solid var(--orange-mid);border-radius:var(--radius-lg);width:100%;max-width:440px;padding:32px;box-shadow:var(--shadow-lg);position:relative}
+@keyframes overlayFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes modalScaleIn { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.oauth-modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(28,26,23,0.8);backdrop-filter:blur(12px);z-index:999;align-items:center;justify-content:center;padding:20px; animation: overlayFadeIn 0.2s ease-out; }
+.oauth-modal-box{background:var(--white);border:1.5px solid var(--orange-mid);border-radius:var(--radius-lg);width:100%;max-width:440px;padding:32px;box-shadow:var(--shadow-lg);position:relative; animation: modalScaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
 .oauth-header{text-align:center;margin-bottom:24px}
 .oauth-header h3{font-family:var(--font-display);font-size:22px;font-weight:800;letter-spacing:-.5px}
 .oauth-logo-circle{width:56px;height:56px;border-radius:50%;background:var(--orange-light);border:1px solid var(--orange-mid);display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
@@ -1112,6 +1122,7 @@ body.dark-theme .demo-details strong {
   .footer-stack { flex-wrap: wrap; }
   .desktop-only-lockdown .lockdown-inner { padding: 24px; }
   .desktop-only-lockdown h2 { font-size: 20px; }
+  .dispatch-row > div:nth-child(2) { grid-template-columns: 1fr !important; }
 }
 @media (max-width: 480px) {
   .hero-actions { flex-direction: column; width: 100%; }
@@ -2520,7 +2531,7 @@ body.dark-theme .premium-metric-card:hover {
         <!-- Right Column: Interactive 3D Mockup Card -->
         <div class="hero-image-pane">
           <div class="hero-3d-card">
-            <img src="/images/hero_dashboard_mockup.png" alt="SkillProof AI Proctored Exam Dashboard" />
+            <img src="/images/hero_dashboard_mockup.png" alt="SkillProof AI Proctored Exam Dashboard" loading="lazy" />
           </div>
         </div>
       </div>
@@ -2580,14 +2591,14 @@ body.dark-theme .premium-metric-card:hover {
             </div>
           </div>
           <div class="feature-image-col">
-            <img src="/images/proctor_session_mockup.png" alt="Futuristic AI Proctoring Dashboard" />
+            <img src="/images/proctor_session_mockup.png" alt="Futuristic AI Proctoring Dashboard" loading="lazy" />
           </div>
         </div>
 
         <!-- Feature 2: Dynamic AI Code Synthesis Evaluation -->
         <div class="feature-row reverse">
           <div class="feature-image-col">
-            <img src="/images/ai_evaluation_mockup.png" alt="AI Evaluation Analytics Summary" />
+            <img src="/images/ai_evaluation_mockup.png" alt="AI Evaluation Analytics Summary" loading="lazy" />
           </div>
           <div class="feature-text-col">
             <div style="display:inline-flex; align-items:center; gap:6px; color:#7C3AED; font-weight:800; font-size:11px; text-transform:uppercase; margin-bottom:12px; letter-spacing:0.5px;">
@@ -2616,7 +2627,7 @@ body.dark-theme .premium-metric-card:hover {
             <button onclick="showView('auth')" class="btn-primary" style="align-self:flex-start; padding:12px 24px; font-size:13px; font-weight:700; border-radius:var(--radius-sm);">Earn Your Badge Now →</button>
           </div>
           <div class="feature-image-col">
-            <img src="/images/verified_badges_mockup.png" alt="Verified Portfolio Badges Mockup" />
+            <img src="/images/verified_badges_mockup.png" alt="Verified Portfolio Badges Mockup" loading="lazy" />
           </div>
         </div>
       </div>
@@ -3959,6 +3970,24 @@ SkillProof HR Recruiting Team</textarea>
 </div>
 
 <script>
+// --- NProgress & Global Loading Interceptors ---
+if (typeof NProgress !== 'undefined') {
+  NProgress.configure({ showSpinner: false, minimum: 0.1 });
+  NProgress.start();
+  window.addEventListener('load', () => NProgress.done());
+
+  const originalFetch = window.fetch;
+  window.fetch = async function(...args) {
+    NProgress.start();
+    try {
+      const response = await originalFetch.apply(this, args);
+      return response;
+    } finally {
+      NProgress.done();
+    }
+  };
+}
+
 // --- Real-time Sync & Broadcast channel for multi-tab updates ---
 const syncChannel = new BroadcastChannel('skillproof_sync');
 syncChannel.onmessage = (event) => {
